@@ -5,43 +5,39 @@
 #ifndef SYNTAXPARSER_SYMBOLTABLE_H
 #define SYNTAXPARSER_SYMBOLTABLE_H
 
-#include <map>
-#include <vector>
-#include <string>
-#include <stdexcept>
-
 #include <Symbol.h>
 
+#include <map>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 class SymbolTable {
+  int index = 1;
 
-    int index = 1;
+  std::map<std::string, Symbol *> table;
 
-    std::map<std::wstring, Symbol *> table;
+  std::map<int, Symbol *> cache;
 
-    std::map<int, Symbol *> cache;
+  std::vector<const Symbol *> line;
 
-    std::vector<const Symbol *> line;
+ public:
+  SymbolTable();
 
-public:
+  [[nodiscard]] const std::vector<const Symbol *> &getAllSymbols() const {
+    return line;
+  }
 
-    SymbolTable();
+  int addSymbol(const std::string &name, bool terminator);
 
-    [[nodiscard]] const std::vector<const Symbol *> &getAllSymbols() const {
-        return line;
-    }
+  [[nodiscard]] const Symbol *getSymbol(int symbol_index) const;
 
-    int addSymbol(const std::wstring& name, bool terminator);
+  [[nodiscard]] int getSymbolIndex(const std::string &name) const;
 
-    [[nodiscard]] const Symbol *getSymbol(int symbol_index) const;
+  void modifySymbol(int idx, const std::string &name, bool terminator,
+                    bool start);
 
-    [[nodiscard]] int getSymbolIndex(const std::wstring &name) const;
-
-    void modifySymbol(int idx, const std::wstring &name, bool terminator, bool start);
-
-    [[nodiscard]] const Symbol *getStartSymbol() const;
-
+  [[nodiscard]] const Symbol *getStartSymbol() const;
 };
 
-
-#endif //SYNTAXPARSER_SYMBOLTABLE_H
+#endif  // SYNTAXPARSER_SYMBOLTABLE_H

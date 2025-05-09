@@ -5,60 +5,50 @@
 #ifndef SYNTAXPARSER_ITEMCOLLECTION_H
 #define SYNTAXPARSER_ITEMCOLLECTION_H
 
-#include <fstream>
-#include <iostream>
-#include <algorithm>
-#include <functional>
-
-
-#include <Item.h>
 #include <GrammarResourcePool.h>
+#include <Item.h>
+
+#include <algorithm>
+#include <fstream>
+#include <functional>
+#include <iostream>
 
 class ItemCollectionManager;
 
-class ItemCollection{
+class ItemCollection {
+  int index = 0;
 
-    int index = 0;
+  std::map<size_t, Item *> items;
 
-    std::map<size_t, Item *> items;
+  std::vector<Item *> cache;
 
-    std::vector<Item *> cache;
+  GrammarResourcePool *pool;
 
-    GrammarResourcePool *pool;
+  friend ItemCollectionManager;
 
-    friend ItemCollectionManager;
+  template <class T>
+  inline void hash_combine(std::size_t &seed, const T &v) const {
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  }
 
-    template <class T>
-    inline void hash_combine(std::size_t& seed, const T& v) const
-    {
-        std::hash<T> hasher;
-        seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-    }
+  static bool compare_item_ptr(const Item *lhs, const Item *rhs);
 
-    static bool compare_item_ptr(const Item* lhs, const Item* rhs);
+ public:
+  explicit ItemCollection(GrammarResourcePool *pool) : pool(pool) {}
 
-public:
+  [[nodiscard]] const std::vector<Item *> &getItems() const { return cache; }
 
-    explicit ItemCollection(GrammarResourcePool *pool) : pool(pool) {
+  [[nodiscard]] int getIndex() const { return index; }
 
-    }
+  bool addItem(const Production *p_pdt, int dot_index, int terminator,
+               bool generated = false);
 
-    [[nodiscard]] const std::vector<Item *> &getItems() const {
-        return cache;
-    }
+  void CLOSURE();
 
-    [[nodiscard]] int getIndex() const  {
-        return index;
-    }
+  void print(std::ofstream &output) const;
 
-
-    bool addItem(const Production *p_pdt, int dot_index, int terminator, bool generated = false);
-
-    void CLOSURE();
-
-    void print(std::wofstream &output) const;
-
-    [[nodiscard]] size_t getHash() const;
+  [[nodiscard]] size_t getHash() const;
 };
 
-#endif //SYNTAXPARSER_ITEMCOLLECTION_H
+#endif  // SYNTAXPARSER_ITEMCOLLECTION_H

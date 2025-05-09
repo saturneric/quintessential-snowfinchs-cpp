@@ -2,7 +2,7 @@
 more_struct_type -> "EOF"
 more_struct_type -> ε
 
-member_list -> type_spec declarators "SEMICOLON"  member_list
+member_list -> type_spec declarators "SEMICOLON" member_list
 member_list -> ε
 
 type_spec -> base_type_spec

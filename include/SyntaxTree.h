@@ -5,65 +5,52 @@
 #ifndef SYNTAXPARSER_SYNTAXTREE_H
 #define SYNTAXPARSER_SYNTAXTREE_H
 
+#include <algorithm>
+#include <fstream>
 #include <stack>
 #include <string>
 #include <vector>
-#include <algorithm>
-#include <fstream>
 
 class TreeNode {
-    const int nodeType;
-    TreeNode *father = nullptr;
-    std::vector<std::wstring> infoVec;
-    std::vector<TreeNode *> children;
+  const int nodeType;
+  TreeNode *father = nullptr;
+  std::vector<std::string> infoVec;
+  std::vector<TreeNode *> children;
 
-public:
+ public:
+  explicit TreeNode(int nodeType) : nodeType(nodeType) {}
 
-    explicit TreeNode(int nodeType) : nodeType(nodeType) {
+  void addInfo(const std::string &info) { infoVec.push_back(info); }
 
+  void setFather(TreeNode *fatherNode) {
+    if (fatherNode == this) {
+      throw std::runtime_error("Illegal Tree Structure");
     }
-
-    void addInfo(const std::wstring& info) {
-        infoVec.push_back(info);
+    if (std::find(fatherNode->children.begin(), fatherNode->children.end(),
+                  this) == fatherNode->children.end()) {
+      fatherNode->children.push_back(this);
     }
+    this->father = fatherNode;
+  }
 
-    void setFather(TreeNode *fatherNode) {
-        if(fatherNode == this) {
-            throw std::runtime_error("Illegal Tree Structure");
-        }
-        if(std::find(fatherNode->children.begin(), fatherNode->children.end(), this) == fatherNode->children.end()) {
-            fatherNode->children.push_back(this);
-        }
-        this->father = fatherNode;
-    }
+  const std::vector<TreeNode *> &getChildren() { return children; }
 
-    const std::vector<TreeNode *> &getChildren() {
-        return children;
-    }
-
-    const std::vector<std::wstring> &getInfoVec() {
-        return infoVec;
-    }
+  const std::vector<std::string> &getInfoVec() { return infoVec; }
 };
 
 class SyntaxTree {
+  TreeNode *root = nullptr;
 
-    TreeNode *root = nullptr;
+  void do_tree_node_print(TreeNode *thisNode, std::ofstream &stream);
 
-    void do_tree_node_print(TreeNode *thisNode, std::wofstream &stream);
-public:
+ public:
+  std::stack<int> tabStack;
 
-    std::stack<int> tabStack;
+  const int spacesInTab = 4;
 
-    const int spacesInTab = 4;
+  void setRoot(TreeNode *node) { this->root = node; }
 
-    void setRoot(TreeNode *node) {
-        this->root = node;
-    }
-
-    void print(std::wofstream &stream);
-
+  void print(std::ofstream &stream);
 };
 
-
-#endif //SYNTAXPARSER_SYNTAXTREE_H
+#endif  // SYNTAXPARSER_SYNTAXTREE_H

@@ -7,16 +7,13 @@
 
 #include <vector>
 
-// ²úÉúÊ½
 struct Production {
+  const int index;
+  const int left;
+  const std::vector<int> right;
 
-    const int index;
-    const int left;
-    const std::vector<int> right;
-
-    Production(int index, int left, std::vector<int> right): index(index), left(left), right(std::move(right)) {}
-
+  Production(int index, int left, std::vector<int> right)
+      : index(index), left(left), right(std::move(right)) {}
 };
 
-
-#endif //SYNTAXPARSER_PRODUCTION_H
+#endif  // SYNTAXPARSER_PRODUCTION_H

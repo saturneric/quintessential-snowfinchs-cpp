@@ -5,88 +5,83 @@
 #ifndef SYNTAXPARSER_SYNTAXPARSER_H
 #define SYNTAXPARSER_SYNTAXPARSER_H
 
-#include <queue>
-#include <stack>
-#include <regex>
-#include <codecvt>
-
-#include <GrammarResourcePool.h>
 #include <AnalyseTableGenerator.h>
+#include <GrammarResourcePool.h>
 #include <SyntaxTree.h>
 
-
+#include <codecvt>
+#include <queue>
+#include <regex>
+#include <stack>
 
 class SyntaxParser {
+  // ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
+  std::ifstream input;
 
-    // ÎÄ¼þÊäÈë
-    std::wifstream input;
+  std::ofstream output;
 
-    std::wofstream output;
+  std::ofstream treeOutput;
 
-    std::wofstream treeOutput;
+  const GrammarResourcePool *pool;
 
-    const GrammarResourcePool *pool;
+  const AnalyseTableGenerator *atg;
 
-    const AnalyseTableGenerator *atg;
+  std::queue<int> tokens_queue;
 
-    std::queue<int> tokens_queue;
+  std::stack<int> analyse_stack;
 
-    std::stack<int> analyse_stack;
+  std::stack<int> status_stack;
 
-    std::stack<int> status_stack;
+  std::stack<TreeNode *> tree_stack;
 
-    std::stack<TreeNode *> tree_stack;
+  std::vector<size_t> lines_index;
 
-    std::vector<size_t> lines_index;
+  std::stringstream string_buffer;
 
-    std::wstringstream string_buffer;
+  size_t now_line = 1;
 
-    size_t now_line = 1;
+  static std::vector<std::string> ws_split(const std::string &in,
+                                           const std::string &delim);
 
-    static std::vector<std::wstring> ws_split(const std::wstring& in, const std::wstring& delim);
+  static std::pair<std::string, std::string> get_token_info(
+      const std::string &token);
 
-    static std::pair<std::wstring, std::wstring> get_token_info(const std::wstring &token);
+  SyntaxTree syntaxTree;
 
-    SyntaxTree syntaxTree;
+ public:
+  SyntaxParser(const GrammarResourcePool *pool,
+               const AnalyseTableGenerator *atg)
+      : input("tokenOut.txt", std::ios::binary),
+        pool(pool),
+        atg(atg),
+        output("AnalyseOut.txt", std::ios::binary),
+        treeOutput("SyntaxOut.txt", std::ios::binary) {
+    input.imbue(input.getloc());
+    output.imbue(output.getloc());
+    treeOutput.imbue(treeOutput.getloc());
+  }
 
-public:
+  ~SyntaxParser() {
+    input.close();
+    output.close();
+    treeOutput.close();
+  }
 
-    SyntaxParser(const GrammarResourcePool *pool, const AnalyseTableGenerator *atg):
-            input("tokenOut.txt", std::ios::binary),
-            pool(pool),
-            atg(atg),
-            output("AnalyseOut.txt", std::ios::binary),
-            treeOutput("SyntaxOut.txt", std::ios::binary){
+  // ï¿½Ãµï¿½ï¿½ï¿½ï¿½ÐµÄ²ï¿½ï¿½ï¿½Ê½
+  void getToken();
 
-        auto* codeCvtToUTF8= new std::codecvt_utf8<wchar_t>;
-        input.imbue(std::locale(input.getloc(), codeCvtToUTF8));
-        output.imbue(std::locale(output.getloc(), codeCvtToUTF8));
-        treeOutput.imbue(std::locale(output.getloc(), codeCvtToUTF8));
-    }
+  void printSymbol(int symbol_index);
 
-    ~SyntaxParser() {
-        input.close();
-        output.close();
-        treeOutput.close();
-    }
+  void printProduction(const Production *p_pdt);
 
-    // µÃµ½ËùÓÐµÄ²úÉúÊ½
-    void getToken();
+  // ï¿½Ôµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï·¨ï¿½ï¿½ï¿½ï¿½
+  void parse();
 
-    void printSymbol(int symbol_index);
+  void printError(std::ofstream &errOutput);
 
-    void printProduction(const Production *p_pdt);
+  void printError();
 
-    // ×Ôµ×ÏòÉÏÓï·¨·ÖÎö
-    void parse();
-
-    void printError(std::wofstream &errOutput);
-
-    void printError();
-
-    void printDone();
-
+  void printDone();
 };
 
-
-#endif //SYNTAXPARSER_SYNTAXPARSER_H
+#endif  // SYNTAXPARSER_SYNTAXPARSER_H

@@ -5,56 +5,44 @@
 #ifndef SYNTAXPARSER_LR1GENERATOR_H
 #define SYNTAXPARSER_LR1GENERATOR_H
 
-#include <codecvt>
-
+#include <AnalyseTableGenerator.h>
 #include <GrammarResourcePool.h>
 #include <ItemCollectionManager.h>
-#include <AnalyseTableGenerator.h>
 
+class LR1Generator {
+  std::ifstream input;
 
-class LR1Generator{
+  GrammarResourcePool *pool;
 
-    // 文件输入
-    std::wifstream input;
+  ItemCollectionManager *icm;
 
-    GrammarResourcePool *pool;
+  AnalyseTableGenerator *atg;
 
-    ItemCollectionManager *icm;
+ public:
+  LR1Generator()
+      : input("SyntaxInput.txt", std::ios::binary),
+        pool(new GrammarResourcePool()),
+        icm(new ItemCollectionManager(pool)),
+        atg(new AnalyseTableGenerator(pool, icm)) {
+    input.imbue(input.getloc());
+  }
 
-    AnalyseTableGenerator *atg;
+  ~LR1Generator() { input.close(); }
 
-public:
+  void run() {
+    pool->FOLLOW();
+    icm->buildItems();
+    atg->generate();
+    atg->print();
+  }
 
-    LR1Generator(): input("syntaxInput.txt", std::ios::binary),
-                    pool(new GrammarResourcePool()),
-                    icm(new ItemCollectionManager(pool)),
-                    atg(new AnalyseTableGenerator(pool, icm)){
+  void getProductions();
 
-        auto* codeCvtToUTF8= new std::codecvt_utf8<wchar_t>;
-
-        input.imbue(std::locale(input.getloc(), codeCvtToUTF8));
-    }
-
-    ~LR1Generator() {
-        input.close();
-    }
-
-    void run() {
-        pool->FOLLOW();
-        icm->buildItems();
-        atg->generate();
-        atg->print();
-    }
-
-    // 得到所有的产生式
-    void getProductions();
-
-    void output(const GrammarResourcePool *&m_pool, const AnalyseTableGenerator *&m_atg) {
-        m_pool = this->pool;
-        m_atg = this->atg;
-    }
-
+  void output(const GrammarResourcePool *&m_pool,
+              const AnalyseTableGenerator *&m_atg) {
+    m_pool = this->pool;
+    m_atg = this->atg;
+  }
 };
 
-
-#endif //SYNTAXPARSER_LR1GENERATOR_H
+#endif  // SYNTAXPARSER_LR1GENERATOR_H

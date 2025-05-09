@@ -4,383 +4,428 @@
 
 #include "Automata.h"
 
+#include <iostream>
+#include <sstream>
+#include <string>
+
 const std::vector<Automata::ReservedWord> Automata::reservedWords = {
-        {L"struct", STRUCT},
-        {L"boolean", BOOLEAN},
-        {L"short", SHORT},
-        {L"long", LONG},
-        {L"double", DOUBLE},
-        {L"float", FLOAT},
-        {L"int8", INT8},
-        {L"int16", INT16},
-        {L"int32", INT32},
-        {L"int64", INT64},
-        {L"uint8", UINT8},
-        {L"uint16", UINT16},
-        {L"uint32", UINT32},
-        {L"uint64", UINT64},
-        {L"char", CHAR},
-        {L"unsigned", UNSIGNED},
-        {L"TRUE", T_TRUE},
-        {L"FALSE", T_FALSE}
-};
+    {"struct", STRUCT}, {"if", IF},
+    {"else", ELSE},     {"while", WHILE},
+    {"for", FOR},       {"continue", CONTINUE},
+    {"break", BREAK},   {"return", RETURN},
+    {"assert", ASSERT}, {"true", T_TRUE},
+    {"false", T_FALSE}, {"NULL", T_NULL},
+    {"print", PRINT},   {"read", READ},
+    {"alloc", ALLOC},   {"alloc_array", ALLOC_ARRAY},
+    {"int", INT},       {"bool", BOOLEAN},
+    {"void", VOID},     {"char", CHAR},
+    {"string", STRING}};
 
-const std::map<Automata::StateType, std::wstring> Automata::stateTypeStrMap = {
-        {START, L"START"},
-        {S_LETTER, L"LETTER"},
-        {S_UNDERLINE, L"UNDERLINE"},
-        {S_DIGIT, L"DIGIT"},
-        {INT_0, L"INT_0"},
-        {INT_NOT_0, L"INT_NOT_0"},
-        {INT_TYPE_SUFFIX, L"INT_TYPE_SUFFIX"},
-        {STRING_START, L"STRING_START"},
-        {STRING_END, L"STRING_END"},
-        {DONE, L"DONE"},
-        {S_SIGN, L"SIGN"}
-};
+const std::map<Automata::StateType, std::string> Automata::stateTypeStrMap = {
+    {START, "START"},
+    {S_LETTER, "LETTER"},
+    {S_UNDERLINE, "UNDERLINE"},
+    {S_DIGIT, "DIGIT"},
+    {INT_0, "INT_0"},
+    {INT_NOT_0, "INT_NOT_0"},
+    {INT_TYPE_SUFFIX, "INT_TYPE_SUFFIX"},
+    {STRING_START, "STRING_START"},
+    {STRING_END, "STRING_END"},
+    {DONE, "DONE"},
+    {S_SIGN, "SIGN"}};
 
-const std::map<Automata::TokenType, std::wstring> Automata::tokenTypeStrMap = {
-        {STRUCT, L"STRUCT"},
-        {BOOLEAN, L"BOOLEAN"},
-        {SHORT, L"SHORT"},
-        {LONG, L"LONG"},
-        {FLOAT, L"FLOAT"},
-        {DOUBLE, L"DOUBLE"},
-        {INT8, L"INT8"},
-        {INT16, L"INT16"},
-        {INT32, L"INT32"},
-        {INT64, L"INT64"},
-        {UINT8, L"UINT8"},
-        {UINT16, L"UINT16"},
-        {UINT32, L"UINT32"},
-        {UINT64, L"UINT64"},
-        {CHAR, L"CHAR"},
-        {UNSIGNED, L"UNSIGNED"},
-        {OPENING_BRACE, L"OPENING_BRACE"},
-        {CLOSING_BRACE, L"CLOSING_BRACE"},
-        {SEMICOLON, L"SEMICOLON"},
-        {LEFT_BRACKET, L"LEFT_BRACKET"},
-        {RIGHT_BRACKET, L"RIGHT_BRACKET"},
-        {MULT, L"MULT"},
-        {PLUS, L"PLUS"},
-        {SUB, L"SUB"},
-        {TILDE, L"TILDE"},
-        {SLASH, L"SLASH"},
-        {PERCENT, L"PERCENT"},
-        {LEFT_SHIFT, L"LEFT_SHIFT"},
-        {RIGHT_SHIFT, L"RIGHT_SHIFT"},
-        {AND, L"AND"},
-        {INSERT, L"INSERT"},
-        {DELIMITER, L"DELIMITER"},
-        {COMMA, L"COMMA"},
-        {ID, L"ID"},
-        {LETTER, L"LETTER"},
-        {DIGIT, L"DIGIT"},
-        {UNDERLINE, L"UNDERLINE"},
-        {T_TRUE, L"TRUE"},
-        {T_FALSE, L"FALSE"},
-        {INTEGER, L"INTEGER"},
-        {INTEGER_TYPE_SUFFIX, L"INTEGER_TYPE_SUFFIX"},
-        {T_BOOLEAN, L"BOOLEAN"},
-        {STRING, L"STRING"},
-        {COMMA, L"COMMA"},
-        {NONE, L"NONE"},
-        {ERROR, L"ERROR"},
-        {T_EOF, L"EOF"}
-};
+const std::map<Automata::TokenType, std::string> Automata::tokenTypeStrMap = {
+    {STRUCT, "STRUCT"},
+    {IF, "IF"},
+    {ELSE, "ELSE"},
+    {WHILE, "WHILE"},
+    {FOR, "FOR"},
+    {BREAK, "DOUBLE"},
+    {RETURN, "RETURN"},
+    {ASSERT, "ASSERT"},
+    {T_NULL, "NULL"},
+    {PRINT, "PRINT"},
+    {READ, "READ"},
+    {ALLOC, "ALLOC"},
+    {CHAR, "CHAR"},
+    {INT, "INT"},
+    {ALLOC_ARRAY, "ALLOC_ARRAY"},
+    {OPENING_BRACE, "OPENING_BRACE"},
+    {CLOSING_BRACE, "CLOSING_BRACE"},
+    {SEMICOLON, "SEMICOLON"},
+    {LEFT_BRACKET, "LEFT_BRACKET"},
+    {RIGHT_BRACKET, "RIGHT_BRACKET"},
+    {MULT, "MULT"},
+    {PLUS, "PLUS"},
+    {SUB, "SUB"},
+    {TILDE, "TILDE"},
+    {SLASH, "SLASH"},
+    {EQUAL, "EQUAL"},
+    {MULT_EQUAL, "MULT_EQUAL"},
+    {PLUS_EQUAL, "PLUS_EQUAL"},
+    {SUB_EQUAL, "SUB_EQUAL"},
+    {SLASH_EQUAL, "SLASH_EQUAL"},
+    {PERCENT_EQUAL, "PERCENT_EQUALs"},
+    {LEFT_SHIFT, "LEFT_SHIFT"},
+    {RIGHT_SHIFT, "RIGHT_SHIFT"},
+    {AND, "AND"},
+    {INSERT, "INSERT"},
+    {DELIMITER, "DELIMITER"},
+    {COMMA, "COMMA"},
+    {ID, "ID"},
+    {LETTER, "LETTER"},
+    {DIGIT, "DIGIT"},
+    {UNDERLINE, "UNDERLINE"},
+    {T_TRUE, "TRUE"},
+    {T_FALSE, "FALSE"},
+    {INTEGER, "INTEGER"},
+    {INTEGER_TYPE_SUFFIX, "INTEGER_TYPE_SUFFIX"},
+    {STRING, "STRING"},
+    {COMMA, "COMMA"},
+    {NONE, "NONE"},
+    {ERROR, "ERROR"},
+    {T_EOF, "EOF"}};
 
 void Automata::output() {
+  std::ofstream stream("./tokenOut.txt", std::ios::binary | std::ios::trunc);
+  int temp_line = 1;
+  stream << "1 ";
 
-    std::wofstream stream(L"./tokenOut.txt", std::ios::binary | std::ios::trunc);
-    int temp_line = 1;
-    stream << "1 ";
-
-    for (const auto& token : tokens) {
-        if (token.line > temp_line) {
-            temp_line = token.line;
-            stream << std::endl << temp_line << ' ';
-        }
-
-        if (token.token == ERROR) {
-            stream << tokenTypeStrMap.find(token.token)->second << '{' << token.str << ", " << stateTypeStrMap.find(token.state)->second << '}' << ' ';
-        }
-        else {
-            stream << tokenTypeStrMap.find(token.token)->second << '(' << token.str << ')' << ' ';
-        }
-
+  for (const auto& token : tokens) {
+    if (token.line > temp_line) {
+      temp_line = token.line;
+      stream << '\n' << temp_line << ' ';
     }
 
-    stream.close();
-}
-
-wchar_t Automata::nextChar() {
-    wchar_t c;
-    input >> std::noskipws >> c;
-    if (input.eof()) {
-        this->ifeof = true;
+    if (token.token == ERROR) {
+      stream << tokenTypeStrMap.find(token.token)->second << '{' << token.str
+             << ", " << stateTypeStrMap.find(token.state)->second << '}' << ' ';
+    } else {
+      stream << tokenTypeStrMap.find(token.token)->second << '(' << token.str
+             << ')' << ' ';
     }
-    return c;
+  }
+
+  stream.close();
 }
 
-Automata::TokenInfo Automata::nextToken() {
-    TokenType currentToken = NONE;
-    StateType state = START, last_state = S_NONE;
-    std::wstringstream ss;
-    while (state != DONE) {
+auto Automata::nextChar() -> char {
+  char c;
+  input >> std::noskipws >> c;
+  if (input.eof()) {
+    this->ifeof = true;
+  }
+  return c;
+}
 
-        last_state = state;
+auto Automata::nextToken() -> Automata::TokenInfo {
+  TokenType current_token = NONE;
+  StateType state = START;
+  StateType last_state = S_NONE;
 
-        wchar_t CH = nextChar();
-        bool save = true;
-        if (ifeof) {
-            currentToken = T_EOF;
-            break;
-        }
-        switch (state) {
-            case START:
-                if (isdigit(CH)) {
-                    if (CH == '0') {
-                        state = INT_0;
-                    }
-                    else {
-                        state = INT_NOT_0;
-                    }
-                }
-                else if (isalpha(CH)) {
-                    state = S_LETTER;
-                }
-                else if (CH == '\"') {
-                    state = STRING_START;
-                }
-                else if ((CH == ' ') || (CH == '\t') || (CH == '\r')) {
-                    save = false;
-                }
-                else if (CH == '\n') {
-                    this->line++;
-                    save = false;
-                }
-                else {
+  std::stringstream ss;
+  while (state != DONE) {
+    last_state = state;
 
-                    state = S_SIGN;
-                    switch (CH) {
-                        case '{':
-                            currentToken = OPENING_BRACE;
-                            break;
-                        case '}':
-                            currentToken = CLOSING_BRACE;
-                            break;
-                        case ';':
-                            currentToken = SEMICOLON;
-                            break;
-                        case '[':
-                            currentToken = LEFT_BRACKET;
-                            break;
-                        case ']':
-                            currentToken = RIGHT_BRACKET;
-                            break;
-                        case '*':
-                            currentToken = MULT;
-                            break;
-                        case '+':
-                            currentToken = PLUS;
-                            break;
-                        case '-':
-                            currentToken = SUB;
-                            break;
-                        case '~':
-                            currentToken = TILDE;
-                            break;
-                        case '/':
-                            currentToken = SLASH;
-                            break;
-                        case '%':
-                            currentToken = PERCENT;
-                            break;
-                        case '>':
-                            CH = nextChar();
-                            if (CH == '>') {
-                                currentToken = RIGHT_SHIFT;
-                                ss << CH;
-                            }
-                            else {
-                                pushBackChar();
-                                currentToken = ERROR;
-                            }
-                            break;
-                        case '<':
-                            CH = nextChar();
-                            if (CH == '<') {
-                                currentToken = LEFT_SHIFT;
-                                ss << CH;
-                            }
-                            else {
-                                pushBackChar();
-                                currentToken = ERROR;
-                            }
-                            break;
-                        case '&':
-                            currentToken = AND;
-                            break;
-                        case '^':
-                            currentToken = INSERT;
-                            break;
-                        case '|':
-                            currentToken = DELIMITER;
-                            break;
-                        case ',':
-                            currentToken = COMMA;
-                            break;
-                        default:
-                            currentToken = ERROR;
-                            break;
-                    }
-                }
-                break;
+    char ch = nextChar();
 
-            case S_LETTER:
-                if (CH == '_') {
-                    state = S_UNDERLINE;
-                }
-                else if (isdigit(CH)) {
-                    state = S_DIGIT;
-                }
-                else if (isalpha(CH)) {
-                    state = S_LETTER;
-                }
-                else {
-                    currentToken = ID;
-                    pushBackChar();
-                    state = DONE;
-                    save = false;
-                }
-                break;
+    bool save = true;
+    if (ifeof) {
+      current_token = T_EOF;
+      break;
+    }
 
-            case S_DIGIT:
-                if (isalpha(CH)) {
-                    state = S_LETTER;
-                } else if (isdigit(CH)) {
-                    state = S_DIGIT;
-                }
-                else {
-                    currentToken = ID;
-                    pushBackChar();
-                    state = DONE;
-                    save = false;
-                }
-                break;
+    switch (state) {
+      case START: {
+        if (isdigit(ch) != 0) {
+          if (ch == '0') {
+            state = INT_0;
+          } else {
+            state = INT_NOT_0;
+          }
+        } else if (isalpha(ch) != 0) {
+          state = S_LETTER;
+        } else if (ch == '\"') {
+          state = STRING_START;
+        } else if ((ch == ' ') || (ch == '\t') || (ch == '\r')) {
+          save = false;
+        } else if (ch == '\n') {
+          this->line++;
+          save = false;
+        } else {
+          state = S_SIGN;
 
-            case S_UNDERLINE:
-                if (isdigit(CH)) {
-                    state = S_DIGIT;
-                } else if (isalpha(CH)) {
-                    state = S_LETTER;
-                }
-                else {
-                    pushBackChar();
-                    currentToken = ERROR;
-                    save = false;
-                }
-                break;
-
-            case INT_0:
-                if (CH == 'l' || CH == 'L') {
-                    state = INT_TYPE_SUFFIX;
-                }
-                else {
-                    currentToken = INTEGER;
-                    pushBackChar();
-                    state = DONE;
-                    save = false;
-                }
-                break;
-
-            case INT_NOT_0:
-                if (CH == 'l' || CH == 'L') {
-                    state = INT_TYPE_SUFFIX;
-                }
-                else if (isdigit(CH)) {
-                    state = INT_NOT_0;
-                }
-                else {
-                    currentToken = INTEGER;
-                    pushBackChar();
-                    state = DONE;
-                    save = false;
-                }
-                break;
-
-            case INT_TYPE_SUFFIX:
-                state = DONE;
-                currentToken = INTEGER;
+          switch (ch) {
+            case '{':
+              current_token = OPENING_BRACE;
+              state = DONE;
+              break;
+            case '}':
+              current_token = CLOSING_BRACE;
+              state = DONE;
+              break;
+            case ';':
+              current_token = SEMICOLON;
+              state = DONE;
+              break;
+            case '(':
+              current_token = LEFT_BRACKET;
+              state = DONE;
+              break;
+            case ')':
+              current_token = RIGHT_BRACKET;
+              state = DONE;
+              break;
+            case '*': {
+              current_token = MULT;
+              auto n_ch = nextChar();
+              if (n_ch == '=') {
+                current_token = MULT_EQUAL;
+                ss << ch;
+                ch = n_ch;
+              } else {
                 pushBackChar();
-                save = false;
-                break;
-
-            case STRING_START:
-                if (CH == '\\') {
-                    wchar_t buff_c = CH;
-                    CH = nextChar();
-
-                    if ((CH == 'b') || (CH == 't') || (CH == 'n') || (CH == 'f') || (CH == 'r')
-                        || (CH == '"') || (CH == '\\')) {
-                        ss << buff_c;
-                        state = STRING_START;
-                    }
-                    else {
-                        pushBackChar();
-                        currentToken = ERROR;
-                    }
-                }
-                else if (CH == '\"') {
-                    state = STRING_END;
-                }
-                else if (CH == ' ') {
-                    ss << '\\' << '4';
-                    CH = '0';
-                    state = STRING_START;
-                }
-                else {
-                    state = STRING_START;
-                }
-                break;
-
-            case STRING_END:
-                state = DONE;
-                currentToken = STRING;
-                pushBackChar();
-                save = false;
-                break;
-
-            case S_SIGN:
-                state = DONE;
-                pushBackChar();
-                save = false;
-                break;
-        }
-
-        if (save) {
-            ss << CH;
-        }
-
-        if (state == DONE) {
-            const std::wstring token = ss.str();
-            if (currentToken == ID) {
-                currentToken = reservedLookup(token);
+              }
+              state = DONE;
+              break;
             }
+            case '+': {
+              current_token = PLUS;
+              auto n_ch = nextChar();
+              if (n_ch == '=') {
+                current_token = PLUS_EQUAL;
+                ss << ch;
+                ch = n_ch;
+              } else {
+                pushBackChar();
+              }
+              state = DONE;
+              break;
+            }
+            case '-': {
+              current_token = SUB;
+              auto n_ch = nextChar();
+              if (n_ch == '=') {
+                current_token = SUB_EQUAL;
+                ss << ch;
+                ch = n_ch;
+              } else {
+                pushBackChar();
+              }
+              state = DONE;
+              break;
+            }
+            case '~':
+              current_token = TILDE;
+              break;
+            case '/': {
+              current_token = MULT;
+              auto n_ch = nextChar();
+              if (n_ch == '=') {
+                current_token = MULT_EQUAL;
+                ss << ch;
+                ch = n_ch;
+              } else {
+                pushBackChar();
+              }
+              state = DONE;
+              break;
+            }
+            case '%': {
+              current_token = MULT;
+              auto n_ch = nextChar();
+              if (n_ch == '=') {
+                current_token = MULT_EQUAL;
+                ss << ch;
+                ch = n_ch;
+              } else {
+                pushBackChar();
+              }
+              state = DONE;
+              break;
+            }
+            case '>':
+              ch = nextChar();
+              if (ch == '>') {
+                current_token = RIGHT_SHIFT;
+                ss << ch;
+              } else {
+                pushBackChar();
+                current_token = ERROR;
+              }
+              state = DONE;
+              break;
+            case '<':
+              ch = nextChar();
+              if (ch == '<') {
+                current_token = LEFT_SHIFT;
+                ss << ch;
+              } else {
+                pushBackChar();
+                current_token = ERROR;
+              }
+              state = DONE;
+              break;
+            case '&':
+              current_token = AND;
+              state = DONE;
+              break;
+            case '^':
+              current_token = INSERT;
+              state = DONE;
+              break;
+            case '|':
+              current_token = DELIMITER;
+              state = DONE;
+              break;
+            case ',':
+              current_token = COMMA;
+              state = DONE;
+              break;
+            case '=':
+              current_token = EQUAL;
+              state = DONE;
+              break;
+            default:
+              current_token = ERROR;
+              state = DONE;
+              break;
+          }
         }
+        break;
+      }
+      case S_LETTER: {
+        if (ch == '_') {
+          state = S_UNDERLINE;
+        } else if (isdigit(ch)) {
+          state = S_DIGIT;
+        } else if (isalpha(ch)) {
+          state = S_LETTER;
+        } else {
+          current_token = ID;
+          pushBackChar();
+          state = DONE;
+          save = false;
+        }
+        break;
+      }
+      case S_DIGIT: {
+        if (isalpha(ch)) {
+          state = S_LETTER;
+        } else if (isdigit(ch)) {
+          state = S_DIGIT;
+        } else {
+          current_token = ID;
+          pushBackChar();
+          state = DONE;
+          save = false;
+        }
+        break;
+      }
+      case S_UNDERLINE: {
+        if (isdigit(ch)) {
+          state = S_DIGIT;
+        } else if (isalpha(ch)) {
+          state = S_LETTER;
+        } else {
+          pushBackChar();
+          current_token = ERROR;
+          save = false;
+        }
+        break;
+      }
+      case INT_0: {
+        if (ch == 'l' || ch == 'L') {
+          state = INT_TYPE_SUFFIX;
+        } else {
+          current_token = INTEGER;
+          pushBackChar();
+          state = DONE;
+          save = false;
+        }
+        break;
+      }
+      case INT_NOT_0: {
+        if (ch == 'l' || ch == 'L') {
+          state = INT_TYPE_SUFFIX;
+        } else if (isdigit(ch)) {
+          state = INT_NOT_0;
+        } else {
+          current_token = INTEGER;
+          pushBackChar();
+          state = DONE;
+          save = false;
+        }
+        break;
+      }
+      case INT_TYPE_SUFFIX: {
+        state = DONE;
+        current_token = INTEGER;
+        pushBackChar();
+        save = false;
+        break;
+      }
+      case STRING_START: {
+        if (ch == '\\') {
+          char buff_c = ch;
+          ch = nextChar();
 
+          if ((ch == 'b') || (ch == 't') || (ch == 'n') || (ch == 'f') ||
+              (ch == 'r') || (ch == '"') || (ch == '\\')) {
+            ss << buff_c;
+            state = STRING_START;
+          } else {
+            pushBackChar();
+            current_token = ERROR;
+          }
+        } else if (ch == '\"') {
+          state = STRING_END;
+        } else if (ch == ' ') {
+          ss << '\\' << '4';
+          ch = '0';
+          state = STRING_START;
+        } else {
+          state = STRING_START;
+        }
+        break;
+      }
+      case STRING_END: {
+        state = DONE;
+        current_token = STRING;
+        pushBackChar();
+        save = false;
+        break;
+      }
+      case S_SIGN: {
+        state = DONE;
+        pushBackChar();
+        save = false;
+        break;
+      }
+      case DONE:
+      case S_NONE: {
+        break;
+      }
     }
 
-    return TokenInfo(this->line, currentToken, ss.str(), last_state);
+    if (save) ss << ch;
+
+    if (state == DONE) {
+      const std::string token = ss.str();
+      if (current_token == ID) {
+        current_token = reservedLookup(token);
+      }
+    }
+  }
+
+  return {this->line, current_token, ss.str(), last_state};
 }
 
-Automata::TokenType Automata::reservedLookup(const std::wstring &s) {
-    for (const auto& word : reservedWords)
-        if (word.str == s)
-            return word.token;
-    return ID;
+auto Automata::reservedLookup(const std::string& s) -> Automata::TokenType {
+  for (const auto& word : reservedWords) {
+    if (word.str == s) return word.token;
+  }
+  return ID;
 }
 
-void Automata::pushBackChar() {
-    input.seekg(-1L, std::ios::cur);
-}
+void Automata::pushBackChar() { input.seekg(-1L, std::ios::cur); }

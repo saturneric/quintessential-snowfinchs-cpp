@@ -1,0 +1,47 @@
+@program -> "INT" function_name "LEFT_BRACKET" "RIGHT_BRACKET" "OPENING_BRACE" statements "CLOSING_BRACE" program_ending
+function_name ->  "ID"
+program_ending -> "EOF"
+
+statements -> statement statements
+statements -> ε
+
+statement -> declarator "SEMICOLON"
+statement -> simple_statement "SEMICOLON"
+statement -> return_statement "SEMICOLON"
+
+simple_statement -> left_value assign_operator root_expression
+return_statement ->  "RETURN" root_expression
+
+declarator -> "INT" "ID"
+declarator -> "INT" "ID" "EQUAL" root_expression
+
+left_value -> "ID"
+left_value -> "LEFT_BRACKET" left_value "RIGHT_BRACKET"
+
+root_expression -> left_expression
+root_expression -> left_expression binary_operator right_expression
+
+left_expression -> expression
+right_expression -> expression
+
+expression ->  "LEFT_BRACKET" expression "RIGHT_BRACKET"
+expression -> int_const
+expression -> "ID"
+expression -> unary_operator expression
+
+int_const -> "INTEGER"
+
+unary_operator -> "SUB"
+
+binary_operator -> "ADD"
+binary_operator -> "SUB"
+binary_operator -> "MULT"
+binary_operator -> "SLASH"
+binary_operator -> "PERCENT"
+
+assign_operator -> "EQUAL"
+assign_operator -> "PLUS_EQUAL"
+assign_operator -> "SUB_EQUAL"
+assign_operator -> "MULT_EQUAL"
+assign_operator -> "SLASH_EQUAL"
+assign_operator -> "PERCENT_EQUAL"

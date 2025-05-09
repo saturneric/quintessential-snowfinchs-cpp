@@ -5,89 +5,85 @@
 #ifndef SYNTAXPARSER_GRAMMARRESOURCEPOOL_H
 #define SYNTAXPARSER_GRAMMARRESOURCEPOOL_H
 
+#include <Production.h>
+#include <SymbolTable.h>
 
+#include <iostream>
 #include <set>
 #include <sstream>
-#include <iostream>
 
-#include <SymbolTable.h>
-#include <Production.h>
-
-// Óï·¨×ÊÔ´³Ø
+// ï¿½ï·¨ï¿½ï¿½Ô´ï¿½ï¿½
 class GrammarResourcePool {
+  int pdt_index = 0;
 
-    int pdt_index = 0;
+  // ï¿½ï¿½ï¿½Å±ï¿½
+  SymbolTable symbolTable;
 
-    // ·ûºÅ±í
-    SymbolTable symbolTable;
+  // ï¿½ï¿½ï¿½ï¿½Ê½
+  std::vector<const Production *> productions;
 
-    // ²úÉúÊ½
-    std::vector<const Production *> productions;
+  // FIRSTï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½
+  std::map<int, const std::set<int> *> firsts;
 
-    // FIRST½á¹û´æ´¢±í
-    std::map<int, const std::set<int> *> firsts;
+  // FOLLOWï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½
+  std::map<int, std::set<int> *> follows;
 
-    // FOLLOW½á¹û´æ´¢±í
-    std::map<int, std::set<int> *> follows;
-
-    // È¥µôÊ×Î²¿Õ¸ñ
-    static std::wstring& trim(std::wstring &&str) {
-        if (str.empty()) {
-            return str;
-        }
-
-        str.erase(0,str.find_first_not_of(' '));
-        str.erase(str.find_last_not_of(' ') + 1);
-        return str;
+  // È¥ï¿½ï¿½ï¿½ï¿½Î²ï¿½Õ¸ï¿½
+  static std::string &trim(std::string &&str) {
+    if (str.empty()) {
+      return str;
     }
 
-public:
+    str.erase(0, str.find_first_not_of(' '));
+    str.erase(str.find_last_not_of(' ') + 1);
+    return str;
+  }
 
-    const std::set<int > *FIRST(const std::vector<int> &symbols, int start_index);
+ public:
+  const std::set<int> *FIRST(const std::vector<int> &symbols, int start_index);
 
-    const std::set<int>* FIRST(int symbol);
+  const std::set<int> *FIRST(int symbol);
 
-    const std::set<int> *FOLLOW(int symbol);
+  const std::set<int> *FOLLOW(int symbol);
 
-    void FOLLOW();
+  void FOLLOW();
 
-    std::set<int>* get_follow_set(int symbol);
+  std::set<int> *get_follow_set(int symbol);
 
+  void print_symbols(const std::set<int> &symbols_index);
 
-    void print_symbols(const std::set<int> &symbols_index);
+  void parse_production_string_line(const std::string &temp_line);
 
-    void parse_production_string_line(const std::wstring &temp_line);
+  [[nodiscard]] const std::vector<const Production *> &get_productions() const {
+    return productions;
+  }
 
-    [[nodiscard]] const std::vector<const Production *> &get_productions() const {
-        return productions;
-    }
+  [[nodiscard]] const Symbol *getSymbol(int symbol_index) const {
+    return symbolTable.getSymbol(symbol_index);
+  }
 
-    [[nodiscard]] const Symbol *getSymbol(int symbol_index) const {
-        return symbolTable.getSymbol(symbol_index);
-    }
+  [[nodiscard]] const Symbol *getStartSymbol() const {
+    return symbolTable.getStartSymbol();
+  }
 
-    [[nodiscard]] const Symbol *getStartSymbol() const {
-        return symbolTable.getStartSymbol();
-    }
+  int addSymbol(const std::string &name, bool terminator) {
+    return symbolTable.addSymbol(name, terminator);
+  }
 
-    int addSymbol(const std::wstring &name, bool terminator) {
-        return symbolTable.addSymbol(name, terminator);
-    }
+  const Production *addProduction(int left, std::initializer_list<int> right);
 
-    const Production *addProduction(int left, std::initializer_list<int> right);
+  [[nodiscard]] const std::vector<const Symbol *> &getAllSymbols() const {
+    return symbolTable.getAllSymbols();
+  }
 
-    [[nodiscard]] const std::vector<const Symbol *> &getAllSymbols() const {
-        return symbolTable.getAllSymbols();
-    }
+  void modifySymbol(int index, const std::string &name, bool terminator,
+                    bool start) {
+    symbolTable.modifySymbol(index, name, terminator, start);
+  }
 
-    void modifySymbol(int index, const std::wstring &name, bool terminator, bool start) {
-        symbolTable.modifySymbol(index, name, terminator, start);
-    }
-
-    [[nodiscard]] int getSymbolIndex(const std::wstring &name) const {
-        return symbolTable.getSymbolIndex(name);
-    }
+  [[nodiscard]] int getSymbolIndex(const std::string &name) const {
+    return symbolTable.getSymbolIndex(name);
+  }
 };
 
-
-#endif //SYNTAXPARSER_GRAMMARRESOURCEPOOL_H
+#endif  // SYNTAXPARSER_GRAMMARRESOURCEPOOL_H
