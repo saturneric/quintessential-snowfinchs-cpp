@@ -4,6 +4,8 @@
 
 #include "SyntaxParser.h"
 
+using std::pair;
+
 void SyntaxParser::parse() {
   status_stack.push(0);
 
@@ -11,8 +13,8 @@ void SyntaxParser::parse() {
   size_t line_index = 0;
   size_t max_line_index = lines_index[now_line - 1];
   while (!tokens_queue.empty()) {
-    const auto *p_step =
-        atg->findActionStep(status_stack.top(), tokens_queue.front());
+    const auto *p_step = atg->findActionStep(status_stack.top(),
+                                             tokens_queue.front().symbol_index);
 
     if (p_step == nullptr) {
       printError();
@@ -21,18 +23,22 @@ void SyntaxParser::parse() {
 
     if (p_step->action == MOVE) {
       output << "MOVE IN" << "(AUTOMATA STATUS " << status_stack.top() << "): ";
-      printSymbol(tokens_queue.front());
 
-      auto *node = new TreeNode(tokens_queue.front());
+      const auto token = tokens_queue.front();
+      printSymbol(token.symbol_index);
 
-      const auto *p_symbol = pool->getSymbol(tokens_queue.front());
+      auto *node = new TreeNode(token.symbol_index);
+      node->AddValue(token.value);
+
+      const auto *p_symbol = pool->getSymbol(token.symbol_index);
       if (p_symbol->terminator) {
-        node->addInfo("terminator");
+        node->AddInfo("terminator");
       }
-      node->addInfo(p_symbol->name);
+
+      node->AddInfo(p_symbol->name);
 
       status_stack.push(p_step->target.index);
-      analyse_stack.push(tokens_queue.front());
+      analyse_stack.push(token.symbol_index);
       tree_stack.push(node);
 
       if (line_index > max_line_index) {
@@ -40,9 +46,11 @@ void SyntaxParser::parse() {
         string_buffer.clear();
         max_line_index = lines_index[now_line++];
       }
+
       string_buffer << p_symbol->name << " ";
       tokens_queue.pop();
       line_index++;
+
     } else if (p_step->action == REDUCE) {
       const auto *p_pdt = p_step->target.production;
       output << "REDUCE BY" << "(AUTOMATA STATUS " << status_stack.top()
@@ -61,22 +69,23 @@ void SyntaxParser::parse() {
       }
 
       auto *father_node = new TreeNode(p_pdt->left);
-
-      father_node->addInfo(pool->getSymbol(p_pdt->left)->name);
-
-      // std::cout << fatherNode->getInfoVec()[0] << std::endl;
+      father_node->AddInfo(pool->getSymbol(p_pdt->left)->name);
 
       while (!temp_stack.empty()) {
-        // std::cout << temp_stack.top()->getInfoVec()[0] << std::endl;
-
-        const auto &child_info = temp_stack.top()->getInfoVec();
+        auto *node = temp_stack.top();
+        const auto &child_info = node->GetInfoVec();
         if (child_info[0] == "terminator") {
           for (int i = 1; i < child_info.size(); i++) {
-            father_node->addInfo(child_info[i]);
+            father_node->AddInfo(child_info[i]);
           }
+
+          for (const auto &value : node->GetValueVec()) {
+            father_node->AddValue(value);
+          }
+
           delete temp_stack.top();
         } else {
-          temp_stack.top()->setFather(father_node);
+          temp_stack.top()->SetFather(father_node);
         }
         temp_stack.pop();
       }
@@ -127,6 +136,7 @@ void SyntaxParser::printSymbol(int symbol_index) {
     output << "[Epsilon]";
     return;
   }
+
   if (!symbol->terminator) {
     output << pool->getSymbol(symbol_index)->name;
   } else {
@@ -144,20 +154,21 @@ void SyntaxParser::getToken() {
 
       for (int i = 1; i < tokens.size(); i++) {
         if (tokens[i] == "\r") continue;
-        ;
+
         auto token_info = get_token_info(tokens[i]);
-        tokens_queue.push(pool->getSymbolIndex(token_info.first));
+        tokens_queue.push(
+            {pool->getSymbolIndex(token_info.first), token_info.second});
         line_index++;
       }
       lines_index.push_back(line_index - 1);
     }
   }
 
-  tokens_queue.push(-1);
+  tokens_queue.push({-1, ""});
 }
 
-std::vector<std::string> SyntaxParser::ws_split(const std::string &in,
-                                                const std::string &delim) {
+auto SyntaxParser::ws_split(const std::string &in, const std::string &delim)
+    -> std::vector<std::string> {
   std::regex re{delim};
   return std::vector<std::string>{
       std::sregex_token_iterator(in.begin(), in.end(), re, -1),
@@ -166,14 +177,13 @@ std::vector<std::string> SyntaxParser::ws_split(const std::string &in,
 
 std::pair<std::string, std::string> SyntaxParser::get_token_info(
     const std::string &token) {
-  auto pre_index = token.find(L'(');
+  auto pre_index = token.find('(');
+  auto back_index = token.find(')');
 
-  auto back_index = token.find(L')');
+  auto name = token.substr(0, pre_index);
+  auto value = token.substr(pre_index + 1, back_index - pre_index - 1);
 
-  std::string name = token.substr(0, pre_index);
-  std::string value = token.substr(pre_index + 1, back_index - pre_index - 1);
-
-  return std::pair<std::string, std::string>(name, value);
+  return {name, value};
 }
 
 void SyntaxParser::printDone() {
@@ -185,6 +195,7 @@ void SyntaxParser::printDone() {
 }
 
 void SyntaxParser::printError(std::ofstream &errOutput) {
+  const auto token = tokens_queue.front();
   std::string temp_line = string_buffer.str();
   errOutput << '\n';
   errOutput << "------------------------------------------------------" << '\n';
@@ -192,7 +203,8 @@ void SyntaxParser::printError(std::ofstream &errOutput) {
   errOutput.width(24);
   errOutput << "Syntax Parser Found Error: " << '\n'
             << "At [Line " << now_line << "]: " << temp_line << "<- Next Token{"
-            << pool->getSymbol(tokens_queue.front())->name << "}" << '\n';
+            << pool->getSymbol(token.symbol_index)->name << "}" << "Value{"
+            << token.value << "}" << '\n';
   errOutput << "AUTOMATA STATUS " << status_stack.top() << '\n';
 }
 

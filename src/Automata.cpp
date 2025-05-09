@@ -219,10 +219,10 @@ auto Automata::nextToken() -> Automata::TokenInfo {
               current_token = TILDE;
               break;
             case '/': {
-              current_token = MULT;
+              current_token = SLASH;
               auto n_ch = nextChar();
               if (n_ch == '=') {
-                current_token = MULT_EQUAL;
+                current_token = SLASH_EQUAL;
                 ss << ch;
                 ch = n_ch;
               } else {
@@ -232,10 +232,10 @@ auto Automata::nextToken() -> Automata::TokenInfo {
               break;
             }
             case '%': {
-              current_token = MULT;
+              current_token = PERCENT;
               auto n_ch = nextChar();
               if (n_ch == '=') {
-                current_token = MULT_EQUAL;
+                current_token = PERCENT_EQUAL;
                 ss << ch;
                 ch = n_ch;
               } else {

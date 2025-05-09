@@ -8,6 +8,9 @@
 #include <ctime>
 #include <iostream>
 
+#include "AST.h"
+#include "IRGenerator.h"
+
 auto main(int argc, const char *argv[]) -> int {
   try {
     std::cout << "Compile Program Based on LR(1) Written By Saturneric(???? "
@@ -56,10 +59,16 @@ auto main(int argc, const char *argv[]) -> int {
     start = clock();
 
     SyntaxParser syntax_parser(pool, atg);
-
     syntax_parser.getToken();
-
     syntax_parser.parse();
+
+    AST ast;
+    ast.Build(syntax_parser.SyntaxTree());
+    ast.Print();
+
+    IRGenerator irg;
+    irg.Generate(&ast);
+    irg.Print();
 
     end = clock();
     times = static_cast<double>(end - start) / CLOCKS_PER_SEC;

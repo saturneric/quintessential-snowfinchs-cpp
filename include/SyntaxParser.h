@@ -15,7 +15,11 @@
 #include <stack>
 
 class SyntaxParser {
-  // �ļ�����
+  struct Token {
+    int symbol_index;
+    std::string value;
+  };
+
   std::ifstream input;
 
   std::ofstream output;
@@ -26,7 +30,7 @@ class SyntaxParser {
 
   const AnalyseTableGenerator *atg;
 
-  std::queue<int> tokens_queue;
+  std::queue<Token> tokens_queue;
 
   std::stack<int> analyse_stack;
 
@@ -82,6 +86,8 @@ class SyntaxParser {
   void printError();
 
   void printDone();
+
+  auto SyntaxTree() -> SyntaxTree * { return &syntaxTree; }
 };
 
 #endif  // SYNTAXPARSER_SYNTAXPARSER_H

@@ -12,30 +12,40 @@
 #include <vector>
 
 class TreeNode {
-  const int nodeType;
-  TreeNode *father = nullptr;
-  std::vector<std::string> infoVec;
-  std::vector<TreeNode *> children;
+  const int nodeType_;
+  TreeNode *father_ = nullptr;
+  std::vector<std::string> info_vec_;
+  std::vector<std::string> value_vec_;
+  std::vector<TreeNode *> children_;
 
  public:
-  explicit TreeNode(int nodeType) : nodeType(nodeType) {}
+  explicit TreeNode(int nodeType) : nodeType_(nodeType) {}
 
-  void addInfo(const std::string &info) { infoVec.push_back(info); }
+  void AddInfo(const std::string &info) { info_vec_.push_back(info); }
 
-  void setFather(TreeNode *fatherNode) {
+  void AddValue(const std::string &info) { value_vec_.push_back(info); }
+
+  void SetFather(TreeNode *fatherNode) {
     if (fatherNode == this) {
       throw std::runtime_error("Illegal Tree Structure");
     }
-    if (std::find(fatherNode->children.begin(), fatherNode->children.end(),
-                  this) == fatherNode->children.end()) {
-      fatherNode->children.push_back(this);
+    if (std::find(fatherNode->children_.begin(), fatherNode->children_.end(),
+                  this) == fatherNode->children_.end()) {
+      fatherNode->children_.push_back(this);
     }
-    this->father = fatherNode;
+    this->father_ = fatherNode;
   }
 
-  const std::vector<TreeNode *> &getChildren() { return children; }
+  auto NodeType() -> std::string {
+    if (info_vec_.empty()) return {};
+    return info_vec_.front();
+  }
 
-  const std::vector<std::string> &getInfoVec() { return infoVec; }
+  auto GetChildren() -> const std::vector<TreeNode *> & { return children_; }
+
+  auto GetInfoVec() -> const std::vector<std::string> & { return info_vec_; }
+
+  auto GetValueVec() -> const std::vector<std::string> & { return value_vec_; }
 };
 
 class SyntaxTree {
@@ -47,6 +57,8 @@ class SyntaxTree {
   std::stack<int> tabStack;
 
   const int spacesInTab = 4;
+
+  auto Root() -> TreeNode * { return root; }
 
   void setRoot(TreeNode *node) { this->root = node; }
 

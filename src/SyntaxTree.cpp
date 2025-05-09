@@ -15,7 +15,7 @@ void SyntaxTree::do_tree_node_print(TreeNode *thisNode, std::ofstream &stream) {
   }
 
   int count = 0;
-  for (auto &info : thisNode->getInfoVec()) {
+  for (const auto &info : thisNode->GetInfoVec()) {
     if (count++ != 0) {
       if (count != 2) {
         stream << ", ";
@@ -28,10 +28,22 @@ void SyntaxTree::do_tree_node_print(TreeNode *thisNode, std::ofstream &stream) {
 
   stream << '>';
 
+  stream << "[";
+
+  count = 0;
+  for (const auto &value : thisNode->GetValueVec()) {
+    if (count++ != 0) {
+      stream << ", ";
+    }
+    stream << value;
+  }
+
+  stream << ']';
+
   stream << '\n';
 
-  if (!thisNode->getChildren().empty()) {
-    for (auto &node : thisNode->getChildren()) {
+  if (!thisNode->GetChildren().empty()) {
+    for (const auto &node : thisNode->GetChildren()) {
       do_tree_node_print(node, stream);
     }
   }
