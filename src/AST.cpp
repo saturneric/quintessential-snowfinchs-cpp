@@ -103,14 +103,9 @@ auto HandleExpression(const ASTNodePtr& parent, TreeNode* syntax,
 
   auto* first_syntax_child = syntax_children.front();
 
-  if (syntax_info_vec.size() > 1 && syntax_info_vec[1] == "LEFT_BRACKET") {
+  // exp -> ( <exp> )
+  if (syntax_info_vec.size() > 1 && syntax_info_vec.back() == "RIGHT_BRACKET") {
     return HandleUselessSyntaxNode(parent, first_syntax_child, f);
-  }
-
-  // exp -> <int_const>
-
-  if (first_syntax_child->NodeType() == "int_const") {
-    return HandleValueNode(parent, first_syntax_child, f);
   }
 
   // exp -> <unop> <exp>
@@ -122,6 +117,10 @@ auto HandleExpression(const ASTNodePtr& parent, TreeNode* syntax,
     // <exp>
     ast->AddChildren(f(ast, syntax_children.back()));
     return ast;
+  }
+
+  for (const auto& syntax_child : syntax->GetChildren()) {
+    return HandleUselessSyntaxNode(parent, first_syntax_child, f);
   }
 
   return nullptr;
@@ -186,7 +185,7 @@ std::map<std::string, AST::HandlerFunc> AST::handler_registry = {
     {"declarator", HandleDeclarator},
     {"expression", HandleExpression},
     {"left_value", HandleLeftValue},
-};
+    {"int_const", HandleValueNode}};
 
 void AST::do_ast_node_print(const ASTNodePtr& node, std::ofstream& stream) {
   if (node == nullptr) return;
