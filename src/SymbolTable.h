@@ -32,6 +32,9 @@ class SymbolTable {
   auto AddSymbol(SymbolType type, const std::string &name,
                  const std::string &value = {}) -> SymbolPtr;
 
+  auto AddASTSymbol(const std::string &name, const std::string &value)
+      -> SymbolPtr;
+
   [[nodiscard]] auto Symbol(int index) const -> SymbolPtr;
 
   [[nodiscard]] auto SymbolIndex(SymbolType type, const std::string &name) const

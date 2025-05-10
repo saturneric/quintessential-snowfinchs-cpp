@@ -1,6 +1,7 @@
 #include <ctime>
 #include <iostream>
 
+#include "ASMGenerator.h"
 #include "AST.h"
 #include "IRGenerator.h"
 #include "LR1Generator.h"
@@ -70,8 +71,12 @@ auto main(int argc, const char *argv[]) -> int {
               << " = " << times * 1000 << "ms" << "\n";
 
     IRGenerator irg;
-    irg.Generate(ast);
-    irg.Print("PrintIR.txt");
+    auto ir = irg.Generate(ast);
+    irg.Print3Addr("PrintIR3.txt");
+    irg.Print2Addr("PrintIR2.txt");
+
+    ASMGenerator asm_gen(ir);
+    asm_gen.Generate("ASM.txt");
 
   } catch (std::runtime_error &e) {
     std::cout << "Runtime Error: " << e.what() << "\n";

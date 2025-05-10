@@ -17,6 +17,18 @@ const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
     {ASTNodeType::kTYPE, "Type"},
 };
 
+auto GenerateASTSymbol(const SymbolTablePtr& table, const SymbolPtr& symbol) {
+  if (symbol == nullptr) {
+    return table->AddASTSymbol("", "");
+  }
+
+  if (symbol->Type() == SymbolType::kTOKEN) {
+    return table->AddASTSymbol(symbol->Value(), symbol->Name());
+  }
+
+  return table->AddASTSymbol(symbol->Name(), symbol->Value());
+}
+
 auto HandleUselessSyntaxNode(const ASTNodePtr& parent, TreeNode* syntax,
                              const SymbolTablePtr& /*table*/,
                              const AST::RouterFunc& f) -> ASTNodePtr {
@@ -28,18 +40,19 @@ auto HandleUselessSyntaxNode(const ASTNodePtr& parent, TreeNode* syntax,
 }
 
 auto HandleValueNode(const ASTNodePtr& /*parent*/, TreeNode* syntax,
-                     const SymbolTablePtr& /*table*/,
-                     const AST::RouterFunc& /*f*/) -> ASTNodePtr {
+                     const SymbolTablePtr& table, const AST::RouterFunc& /*f*/)
+    -> ASTNodePtr {
   auto tokens = syntax->Tokens();
   if (tokens.empty()) return nullptr;
-
-  return std::make_shared<ASTNode>(ASTNodeType::kVALUE, tokens.front());
+  return std::make_shared<ASTNode>(ASTNodeType::kVALUE,
+                                   GenerateASTSymbol(table, tokens.front()));
 }
 
 auto HandleProgram(const ASTNodePtr& /*parent*/, TreeNode* syntax,
-                   const SymbolTablePtr& /*table*/, const AST::RouterFunc& f)
+                   const SymbolTablePtr& table, const AST::RouterFunc& f)
     -> ASTNodePtr {
-  auto ast = std::make_shared<ASTNode>(ASTNodeType::kPROGRAM, syntax->Syntax());
+  auto ast = std::make_shared<ASTNode>(
+      ASTNodeType::kPROGRAM, GenerateASTSymbol(table, syntax->Syntax()));
   for (const auto& child : syntax->GetChildren()) {
     ast->AddChildren(f(ast, child));
   }
@@ -47,7 +60,7 @@ auto HandleProgram(const ASTNodePtr& /*parent*/, TreeNode* syntax,
 }
 
 auto HandleAssign(const ASTNodePtr& /*parent*/, TreeNode* syntax,
-                  const SymbolTablePtr& /*table*/, const AST::RouterFunc& f)
+                  const SymbolTablePtr& table, const AST::RouterFunc& f)
     -> ASTNodePtr {
   auto syntax_children = syntax->GetChildren();
   if (syntax_children.empty()) return nullptr;
@@ -56,8 +69,12 @@ auto HandleAssign(const ASTNodePtr& /*parent*/, TreeNode* syntax,
   // <lvalue> <asnop> <exp>
 
   auto* assign_operator = syntax_children[1];
+
+  auto tokens = assign_operator->Tokens();
+  if (tokens.empty()) return nullptr;
+
   auto ast = std::make_shared<ASTNode>(ASTNodeType::kASSIGN,
-                                       assign_operator->Tokens().back());
+                                       GenerateASTSymbol(table, tokens.back()));
 
   ast->AddChildren(f(ast, syntax_children.front()));
   ast->AddChildren(f(ast, syntax_children.back()));
@@ -65,12 +82,13 @@ auto HandleAssign(const ASTNodePtr& /*parent*/, TreeNode* syntax,
 }
 
 auto HandleReturn(const ASTNodePtr& /*parent*/, TreeNode* syntax,
-                  const SymbolTablePtr& /*table*/, const AST::RouterFunc& f)
+                  const SymbolTablePtr& table, const AST::RouterFunc& f)
     -> ASTNodePtr {
   auto syntax_children = syntax->GetChildren();
   if (syntax_children.empty()) return nullptr;
 
-  auto ast = std::make_shared<ASTNode>(ASTNodeType::kRETURN, syntax->Syntax());
+  auto ast = std::make_shared<ASTNode>(
+      ASTNodeType::kRETURN, GenerateASTSymbol(table, syntax->Syntax()));
   ast->AddChildren(f(ast, syntax_children.front()));
   return ast;
 }
@@ -84,8 +102,12 @@ auto HandleRootExpression(const ASTNodePtr& parent, TreeNode* syntax,
   // <exp> <binop> <exp>
   if (syntax_children.size() == 3) {
     auto* binary_operator = syntax_children[1];
-    auto ast = std::make_shared<ASTNode>(ASTNodeType::kBIN_OP,
-                                         binary_operator->Tokens().back());
+
+    auto tokens = binary_operator->Tokens();
+    if (tokens.empty()) return nullptr;
+
+    auto ast = std::make_shared<ASTNode>(
+        ASTNodeType::kBIN_OP, GenerateASTSymbol(table, tokens.back()));
 
     ast->AddChildren(f(ast, syntax_children.front()));
     ast->AddChildren(f(ast, syntax_children.back()));
@@ -106,8 +128,11 @@ auto HandleExpression(const ASTNodePtr& parent, TreeNode* syntax,
     // exp -> <unop> <exp>
 
     if (syntax_children.front()->NodeType() == "unary_operator") {
+      auto tokens = syntax_children.front()->Tokens();
+      if (tokens.empty()) return nullptr;
+
       auto ast = std::make_shared<ASTNode>(
-          ASTNodeType::kUN_OP, syntax_children.front()->Tokens().front());
+          ASTNodeType::kUN_OP, GenerateASTSymbol(table, tokens.front()));
 
       // <exp>
       ast->AddChildren(f(ast, syntax_children.back()));
@@ -136,21 +161,23 @@ auto HandleExpression(const ASTNodePtr& parent, TreeNode* syntax,
 }
 
 auto HandleDeclarator(const ASTNodePtr& /*parent*/, TreeNode* syntax,
-                      const SymbolTablePtr& /*table*/, const AST::RouterFunc& f)
+                      const SymbolTablePtr& table, const AST::RouterFunc& f)
     -> ASTNodePtr {
   auto syntax_children = syntax->GetChildren();
   auto tokens = syntax->Tokens();
 
   if (tokens.size() < 2) return nullptr;
 
-  auto ast = std::make_shared<ASTNode>(ASTNodeType::kDECLARE, syntax->Syntax());
+  auto ast = std::make_shared<ASTNode>(
+      ASTNodeType::kDECLARE, GenerateASTSymbol(table, syntax->Syntax()));
 
   // int
-  ast->AddChildren(
-      std::make_shared<ASTNode>(ASTNodeType::kTYPE, tokens.front()));
+  ast->AddChildren(std::make_shared<ASTNode>(
+      ASTNodeType::kTYPE, GenerateASTSymbol(table, tokens.front())));
 
   // ident
-  ast->AddChildren(std::make_shared<ASTNode>(ASTNodeType::kVALUE, tokens[1]));
+  ast->AddChildren(std::make_shared<ASTNode>(
+      ASTNodeType::kVALUE, GenerateASTSymbol(table, tokens[1])));
 
   // int ident <exp>
   if (!syntax_children.empty()) {

@@ -34,6 +34,19 @@ auto SymbolTable::AddSymbol(SymbolType type, const std::string &name,
   return AddSymbol(type, index_++, name, value);
 }
 
+auto SymbolTable::AddASTSymbol(const std::string &name,
+                               const std::string &value) -> SymbolPtr {
+  if (table_.count(SymbolType::kAST) == 0) table_[SymbolType::kAST] = {};
+
+  while (cache_.count(index_) != 0) index_++;
+  auto symbol =
+      std::make_shared<class Symbol>(SymbolType::kAST, index_++, name, value);
+  table_[SymbolType::kAST].insert({symbol->Name(), symbol});
+
+  cache_.insert(std::pair<int, SymbolPtr>(symbol->Index(), symbol));
+  return symbol;
+}
+
 auto SymbolTable::Symbol(int symbol_index) const -> SymbolPtr {
   const auto &it = cache_.find(symbol_index);
   if (it != cache_.end()) return it->second;
