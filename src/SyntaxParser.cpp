@@ -1,75 +1,72 @@
-//
-// Created by Administrator on 2021/4/30.
-//
-
 #include "SyntaxParser.h"
 
-using std::pair;
+#include <iostream>
 
-void SyntaxParser::parse() {
-  status_stack.push(0);
+void SyntaxParser::Parse() {
+  output_analyse_.clear();
+  status_stack_.push(kEmptySymbolId);
+  token_queue_ = lexer_.Tokens();
 
-  now_line = 1;
-  size_t line_index = 0;
-  size_t max_line_index = lines_index[now_line - 1];
-  while (!tokens_queue.empty()) {
-    const auto *p_step = atg->findActionStep(status_stack.top(),
-                                             tokens_queue.front().symbol_index);
+  // add EOF
+  token_queue_.emplace(kTokenSpecEOF, kEOFSymbol);
+  // add $
+  token_queue_.emplace(kTokenSpecStop, kStopSymbol);
+
+  while (!token_queue_.empty()) {
+    const auto token = token_queue_.front();
+    auto token_id = token.Id();
+
+    const auto *p_step =
+        generator_->findActionStep(status_stack_.top(), token_id);
 
     if (p_step == nullptr) {
-      printError();
+      print_error();
       return;
     }
 
     if (p_step->action == MOVE) {
-      output << "MOVE IN" << "(AUTOMATA STATUS " << status_stack.top() << "): ";
+      output_analyse_ << "MOVE IN" << "(AUTOMATA STATUS " << status_stack_.top()
+                      << "): ";
 
-      const auto token = tokens_queue.front();
-      printSymbol(token.symbol_index);
+      const auto token = token_queue_.front();
+      print_symbol(token.Id());
 
-      auto *node = new TreeNode(token.symbol_index);
+      auto *node = new TreeNode(token.Id());
       node->AddValue(token.value);
 
-      const auto *p_symbol = pool->getSymbol(token.symbol_index);
+      const auto *p_symbol = pool_->GetSymbol(token.Id());
       if (p_symbol->terminator) {
         node->AddInfo("terminator");
       }
 
       node->AddInfo(p_symbol->name);
 
-      status_stack.push(p_step->target.index);
-      analyse_stack.push(token.symbol_index);
-      tree_stack.push(node);
+      status_stack_.push(p_step->target.index);
+      analyse_stack_.push(token.Id());
+      tree_stack_.push(node);
 
-      if (line_index > max_line_index) {
-        string_buffer.str("");
-        string_buffer.clear();
-        max_line_index = lines_index[now_line++];
-      }
-
-      string_buffer << p_symbol->name << " ";
-      tokens_queue.pop();
-      line_index++;
+      buffer_ << token.value << " ";
+      token_queue_.pop();
 
     } else if (p_step->action == REDUCE) {
-      const auto *p_pdt = p_step->target.production;
-      output << "REDUCE BY" << "(AUTOMATA STATUS " << status_stack.top()
-             << "): [";
-      printProduction(p_pdt);
-      output << "]";
+      const auto p_pdt = p_step->target.production;
+      output_analyse_ << "REDUCE BY" << "(AUTOMATA STATUS "
+                      << status_stack_.top() << "): [";
+      print_production(p_pdt);
+      output_analyse_ << "]";
 
       std::stack<TreeNode *> temp_stack;
 
       for (int i : p_pdt->right) {
         if (i == 0) continue;
-        analyse_stack.pop();
-        status_stack.pop();
-        temp_stack.push(tree_stack.top());
-        tree_stack.pop();
+        analyse_stack_.pop();
+        status_stack_.pop();
+        temp_stack.push(tree_stack_.top());
+        tree_stack_.pop();
       }
 
       auto *father_node = new TreeNode(p_pdt->left);
-      father_node->AddInfo(pool->getSymbol(p_pdt->left)->name);
+      father_node->AddInfo(pool_->GetSymbol(p_pdt->left)->name);
 
       while (!temp_stack.empty()) {
         auto *node = temp_stack.top();
@@ -90,125 +87,93 @@ void SyntaxParser::parse() {
         temp_stack.pop();
       }
 
-      // std::cout << std::endl;
-
       const auto *p_goto_step =
-          atg->findGotoStep(status_stack.top(), p_pdt->left);
+          generator_->findGotoStep(status_stack_.top(), p_pdt->left);
 
       if (p_goto_step == nullptr) {
-        printError();
+        print_error();
         return;
       }
 
-      analyse_stack.push(p_pdt->left);
-      tree_stack.push(father_node);
-      status_stack.push(p_goto_step->target.index);
+      analyse_stack_.push(p_pdt->left);
+      tree_stack_.push(father_node);
+      status_stack_.push(p_goto_step->target.index);
 
     } else if (p_step->action == ACC) {
-      syntaxTree.setRoot(tree_stack.top());
-      tree_stack.pop();
-      output << "ACC";
-      printDone();
+      syntax_tree_.setRoot(tree_stack_.top());
+      tree_stack_.pop();
+      output_analyse_ << "ACC";
+      print_done();
       return;
     } else {
-      printError();
+      print_error();
       return;
     }
 
-    output << '\n';
+    output_analyse_ << '\n';
   }
 }
 
-void SyntaxParser::printProduction(const Production *p_pdt) {
-  output << pool->getSymbol(p_pdt->left)->name << " -> ";
+void SyntaxParser::print_production(const std::shared_ptr<Production> &p_pdt) {
+  output_analyse_ << pool_->GetSymbol(p_pdt->left)->name << " -> ";
   int i = 0;
   for (const auto &symbol_index : p_pdt->right) {
-    if (i++ > 0) output << " ";
+    if (i++ > 0) output_analyse_ << " ";
 
-    printSymbol(symbol_index);
+    print_symbol(symbol_index);
   }
 }
 
-void SyntaxParser::printSymbol(int symbol_index) {
-  const auto *symbol = pool->getSymbol(symbol_index);
+void SyntaxParser::print_symbol(int symbol_index) {
+  const auto *symbol = pool_->GetSymbol(symbol_index);
 
   if (symbol->index == 0) {
-    output << "[Epsilon]";
+    output_analyse_ << "[Epsilon]";
     return;
   }
 
   if (!symbol->terminator) {
-    output << pool->getSymbol(symbol_index)->name;
+    output_analyse_ << pool_->GetSymbol(symbol_index)->name;
   } else {
-    output << '"' << pool->getSymbol(symbol_index)->name << '"';
+    output_analyse_ << '"' << pool_->GetSymbol(symbol_index)->name << '"';
   }
 }
 
-void SyntaxParser::getToken() {
-  std::string temp_line;
-
-  size_t line_index = 0;
-  while (getline(input, temp_line)) {
-    if (temp_line.size() > 2 && temp_line[0] != '#') {
-      std::vector<std::string> tokens = ws_split(temp_line, " ");
-
-      for (int i = 1; i < tokens.size(); i++) {
-        if (tokens[i] == "\r") continue;
-
-        auto token_info = get_token_info(tokens[i]);
-        tokens_queue.push(
-            {pool->getSymbolIndex(token_info.first), token_info.second});
-        line_index++;
-      }
-      lines_index.push_back(line_index - 1);
-    }
-  }
-
-  tokens_queue.push({-1, ""});
+void SyntaxParser::print_done() {
+  output_analyse_ << '\n';
+  output_analyse_ << "------------------------------------------------------"
+                  << '\n';
+  output_analyse_ << "Syntax Parser Work Done, No Error Found." << '\n' << '\n';
+  output_analyse_.flush();
 }
 
-auto SyntaxParser::ws_split(const std::string &in, const std::string &delim)
-    -> std::vector<std::string> {
-  std::regex re{delim};
-  return std::vector<std::string>{
-      std::sregex_token_iterator(in.begin(), in.end(), re, -1),
-      std::sregex_token_iterator()};
+void SyntaxParser::print_error() {
+  const auto token = token_queue_.front();
+  std::string temp_line = buffer_.str();
+
+  std::cout << "Syntax Parser Found Error: " << '\n'
+            << "At: " << temp_line << "-> Next Token{"
+            << pool_->GetSymbol(token.Id())->name << "}"
+            << " " << "Value{" << token.value << "}" << '\n';
+
+  std::cout << "AUTOMATA STATUS " << status_stack_.top() << '\n';
 }
 
-std::pair<std::string, std::string> SyntaxParser::get_token_info(
-    const std::string &token) {
-  auto pre_index = token.find('(');
-  auto back_index = token.find(')');
+SyntaxParser::SyntaxParser(const Lexer &lexer, const LR1Generator &generator)
+    : lexer_(lexer),
+      pool_(generator.Pool()),
+      generator_(generator.Generator()) {}
 
-  auto name = token.substr(0, pre_index);
-  auto value = token.substr(pre_index + 1, back_index - pre_index - 1);
-
-  return {name, value};
+void SyntaxParser::PrintAnalyse(const std::string &path) {
+  std::ofstream f(path);
+  f << output_analyse_.str();
+  f.close();
 }
 
-void SyntaxParser::printDone() {
-  output << '\n';
-  output << "------------------------------------------------------" << '\n';
-  output << "Syntax Parser Work Done, No Error Found." << '\n' << '\n';
-
-  syntaxTree.print(treeOutput);
+void SyntaxParser::PrintTree(const std::string &path) {
+  std::ofstream f(path);
+  syntax_tree_.print(f);
+  f.close();
 }
 
-void SyntaxParser::printError(std::ofstream &errOutput) {
-  const auto token = tokens_queue.front();
-  std::string temp_line = string_buffer.str();
-  errOutput << '\n';
-  errOutput << "------------------------------------------------------" << '\n';
-  errOutput.fill('-');
-  errOutput.width(24);
-  errOutput << "Syntax Parser Found Error: " << '\n'
-            << "At [Line " << now_line << "]: " << temp_line << "<- Next Token{"
-            << pool->getSymbol(token.symbol_index)->name << "}" << "Value{"
-            << token.value << "}" << '\n';
-  errOutput << "AUTOMATA STATUS " << status_stack.top() << '\n';
-}
-
-void SyntaxParser::printError() {
-  printError(output);
-  printError(treeOutput);
-}
+auto SyntaxParser::Tree() -> SyntaxTree & { return syntax_tree_; }

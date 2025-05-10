@@ -95,7 +95,7 @@ auto HandleExpression(const ASTNodePtr& parent, TreeNode* syntax,
   auto syntax_info_vec = syntax->GetInfoVec();
   if (syntax_info_vec.empty()) return nullptr;
 
-  if (syntax_info_vec.size() > 1 && syntax_info_vec[1] == "ID") {
+  if (syntax_info_vec.size() > 1 && syntax_info_vec[1] == "VALUE_ID") {
     return HandleValueNode(parent, syntax, f);
   }
 
@@ -119,11 +119,7 @@ auto HandleExpression(const ASTNodePtr& parent, TreeNode* syntax,
     return ast;
   }
 
-  for (const auto& syntax_child : syntax->GetChildren()) {
-    return HandleUselessSyntaxNode(parent, first_syntax_child, f);
-  }
-
-  return nullptr;
+  return HandleUselessSyntaxNode(parent, syntax, f);
 }
 
 auto HandleDeclarator(const ASTNodePtr& /*parent*/, TreeNode* syntax,
@@ -162,7 +158,7 @@ auto HandleLeftValue(const ASTNodePtr& parent, TreeNode* syntax,
   auto syntax_info_vec = syntax->GetInfoVec();
   if (syntax_info_vec.empty()) return nullptr;
 
-  if (syntax_info_vec.back() == "ID") {
+  if (syntax_info_vec.back() == "VALUE_ID") {
     return HandleValueNode(parent, syntax, f);
   }
 
@@ -217,14 +213,48 @@ void AST::do_ast_node_print(const ASTNodePtr& node, std::ofstream& stream) {
   tab_stack_.pop();
 }
 
-void AST::Print() {
+void AST::Print(const std::string& path) {
   if (root_ == nullptr) return;
 
   tab_stack_.push(-1);
 
-  std::ofstream f("AST.txt");
+  std::ofstream f(path);
 
   do_ast_node_print(root_, f);
 
   f.close();
 }
+
+auto AST::do_build_tree(const ASTNodePtr& ast_node, TreeNode* syntax_node)
+    -> std::shared_ptr<ASTNode> {
+  auto node_type = syntax_node->NodeType();
+
+  if (handler_registry.count(node_type) == 0U) return nullptr;
+  if (handler_registry.at(node_type) == nullptr) return nullptr;
+
+  return handler_registry[node_type](ast_node, syntax_node, do_build_tree);
+}
+
+ASTNode::ASTNode(ASTNodeType type, std::string opera)
+    : type_(type), opera_(std::move(opera)) {}
+
+ASTNode::ASTNode(ASTNodeType type, std::string opera,
+                 std::initializer_list<ASTNodePtr> children)
+    : type_(type), opera_(std::move(opera)), children_(children) {}
+
+auto ASTNode::Children() -> std::vector<ASTNodePtr> { return children_; }
+
+void ASTNode::AddChildren(const ASTNodePtr& child) {
+  if (child != nullptr) children_.push_back(child);
+}
+
+auto ASTNode::Type() -> ASTNodeType { return type_; }
+auto ASTNode::Operation() -> std::string { return opera_; }
+auto AST::Build(const SyntaxTree& tree) -> bool {
+  if (tree.Root() == nullptr) return false;
+
+  root_ = do_build_tree(nullptr, tree.Root());
+  return root_ == nullptr;
+}
+
+auto AST::Root() const -> ASTNodePtr { return root_; }

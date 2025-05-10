@@ -1,20 +1,15 @@
-#include <AnalyseTableGenerator.h>
-#include <Automata.h>
-#include <GrammarResourcePool.h>
-#include <LR1Generator.h>
-#include <SymbolTable.h>
-#include <SyntaxParser.h>
-
 #include <ctime>
 #include <iostream>
 
 #include "AST.h"
 #include "IRGenerator.h"
+#include "LR1Generator.h"
+#include "Lexer.h"
+#include "SyntaxParser.h"
 
 auto main(int argc, const char *argv[]) -> int {
   try {
-    std::cout << "Compile Program Based on LR(1) Written By Saturneric(???? "
-                 "2018303206)"
+    std::cout << "Compiler Based on LR(1)"
               << "\n";
 
     if (argc < 2) {
@@ -26,30 +21,21 @@ auto main(int argc, const char *argv[]) -> int {
     clock_t end;
     start = clock();
 
-    Automata atm(argv[1]);
-
-    atm.parse();
-
-    atm.output();
+    Lexer lexer;
+    lexer.LoadTokenSpecs("TokenSpecs.txt");
+    lexer.Lex(argv[1]);
+    lexer.Print("PrintLexer.txt");
 
     end = clock();
     double times = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-    std::wcout << "Token Automata Run time = " << times << "s MicroSeconds"
+    std::wcout << "Lexer Run time = " << times << "s MicroSeconds"
                << " = " << times * 1000 << "ms" << "\n";
 
     start = clock();
 
-    const GrammarResourcePool *pool;
-
-    const AnalyseTableGenerator *atg;
-
-    LR1Generator generator;
-
-    generator.getProductions();
-
-    generator.run();
-
-    generator.output(pool, atg);
+    LR1Generator generator(lexer);
+    generator.Generate("SyntaxInput.txt");
+    generator.Print("PrintLR1Table.txt");
 
     end = clock();
     times = static_cast<double>(end - start) / CLOCKS_PER_SEC;
@@ -58,22 +44,30 @@ auto main(int argc, const char *argv[]) -> int {
 
     start = clock();
 
-    SyntaxParser syntax_parser(pool, atg);
-    syntax_parser.getToken();
-    syntax_parser.parse();
-
-    AST ast;
-    ast.Build(syntax_parser.SyntaxTree());
-    ast.Print();
-
-    IRGenerator irg;
-    irg.Generate(&ast);
-    irg.Print();
+    SyntaxParser syntax_parser(lexer, generator);
+    syntax_parser.Parse();
+    syntax_parser.PrintAnalyse("PrintSyntaxAnalyse.txt");
+    syntax_parser.PrintTree("PrintSyntaxTree.txt");
 
     end = clock();
     times = static_cast<double>(end - start) / CLOCKS_PER_SEC;
     std::cout << "Syntax Parser Run time = " << times << "s MicroSeconds "
               << " = " << times * 1000 << "ms" << "\n";
+
+    start = clock();
+
+    AST ast;
+    ast.Build(syntax_parser.Tree());
+    ast.Print("PrintAST.txt");
+
+    end = clock();
+    times = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    std::cout << "AST Builder Run time = " << times << "s MicroSeconds "
+              << " = " << times * 1000 << "ms" << "\n";
+
+    IRGenerator irg;
+    irg.Generate(ast);
+    irg.Print("PrintIR.txt");
 
   } catch (std::runtime_error &e) {
     std::cout << "Runtime Error: " << e.what() << "\n";

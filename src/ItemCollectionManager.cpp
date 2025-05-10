@@ -5,43 +5,42 @@
 #include "ItemCollectionManager.h"
 
 void ItemCollectionManager::buildItems() {
-  const auto startSymbol = pool->getStartSymbol();
+  const auto *const start_symbol = pool->GetStartSymbol();
 
-  std::string new_symbol_name = startSymbol->name + "'";
+  std::string new_symbol_name = start_symbol->name + "'";
 
   int new_symbol_index =
-      pool->addSymbol(new_symbol_name, startSymbol->terminator);
+      pool->AddSymbol(new_symbol_name, start_symbol->terminator);
 
-  pool->modifySymbol(startSymbol->index, startSymbol->name.substr(1), false,
+  pool->ModifySymbol(start_symbol->index, start_symbol->name.substr(1), false,
                      false);
 
-  const auto *p_pdt =
-      pool->addProduction(new_symbol_index, {startSymbol->index});
+  const auto p_pdt =
+      pool->AddProduction(new_symbol_index, {start_symbol->index});
 
   this->start_pdt = p_pdt;
 
   auto *pi_ic = new ItemCollection(pool);
 
-  // -1 ���� $
-  pi_ic->addItem(p_pdt, 0, -1);
+  pi_ic->AddItem(p_pdt, 0, kStopSymbolId);
 
   pi_ic->CLOSURE();
 
   addItemCollection(0, 0, pi_ic);
 
-  bool ifAdd = true;
+  bool if_add = true;
 
-  while (ifAdd) {
-    ifAdd = false;
+  while (if_add) {
+    if_add = false;
     const auto &r_ics = getItemCollections();
     std::vector<const ItemCollection *> temp_ics(r_ics.begin(), r_ics.end());
     for (const auto ic : temp_ics) {
-      for (const auto symbol : pool->getAllSymbols()) {
+      for (const auto symbol : pool->GetAllSymbols()) {
         if (symbol->index <= 0) {
           continue;
         }
         if (GOTO(ic, symbol->index)) {
-          ifAdd = true;
+          if_add = true;
         }
       }
     }
@@ -59,7 +58,7 @@ ItemCollection *ItemCollectionManager::getItemCollectionByHash(size_t hash) {
 
 bool ItemCollectionManager::addItemCollection(int idx, int symbol,
                                               ItemCollection *p_ic) {
-  size_t ic_hash = p_ic->getHash();
+  size_t ic_hash = p_ic->GetHash();
   auto it = ic_content_map.find(ic_hash);
   if (it != ic_content_map.end()) {
     p_ic = it->second;
@@ -79,7 +78,7 @@ bool ItemCollectionManager::addItemCollection(int idx, int symbol,
   }
 
   if (symbol != 0) {
-    auto p_symbol = pool->getSymbol(symbol);
+    auto p_symbol = pool->GetSymbol(symbol);
     if (p_symbol->terminator)
       output << "GOTO(" << idx << ", \"" << p_symbol->name << "\")"
              << std::endl;
@@ -90,7 +89,7 @@ bool ItemCollectionManager::addItemCollection(int idx, int symbol,
   }
 
   ic_map.insert(std::pair<size_t, ItemCollection *>(seed, p_ic));
-  p_ic->print(output);
+  p_ic->Print(output);
   return true;
 }
 
@@ -113,11 +112,11 @@ bool ItemCollectionManager::GOTO(const ItemCollection *p_ic, int symbol) {
 
   for (const auto &item : p_ic->cache) {
     if (item->get_dot_next_symbol() == symbol) {
-      pt_ic->addItem(item->get_production(), item->get_dot_index() + 1,
+      pt_ic->AddItem(item->get_production(), item->get_dot_index() + 1,
                      item->get_terminator());
     }
   }
-  auto *p_temp_ic = this->getItemCollectionByHash(pt_ic->getHash());
+  auto *p_temp_ic = this->getItemCollectionByHash(pt_ic->GetHash());
   if (p_temp_ic == nullptr)
     pt_ic->CLOSURE();
   else

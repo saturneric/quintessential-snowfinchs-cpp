@@ -21,22 +21,19 @@ const std::map<std::string, std::string> kIrInstructions = {
 
 class IRGenerator {
  public:
-  std::vector<IRInstruction> instructions;
-  int temp_counter = 0;
-
-  void Generate(AST* tree) {
-    auto node = tree->Root();
+  void Generate(const AST& tree) {
+    auto node = tree.Root();
     if (node == nullptr) return;
 
     do_generate(node);
   }
 
-  void Print() {
-    if (instructions.empty()) return;
+  void Print(const std::string& path) {
+    if (instructions_.empty()) return;
 
-    std::ofstream f("IntermediateRepresentation.txt");
+    std::ofstream f(path);
 
-    for (const auto& i : instructions) {
+    for (const auto& i : instructions_) {
       f << std::left << std::setw(6) << i.op;
 
       if (!i.result.empty()) {
@@ -55,6 +52,9 @@ class IRGenerator {
   }
 
  private:
+  std::vector<IRInstruction> instructions_;
+  int temp_counter_ = 0;
+
   void do_generate(const ASTNodePtr& node) {
     if (node == nullptr) return;
 
@@ -63,20 +63,20 @@ class IRGenerator {
         if (node->Children().size() < 2) break;
         std::string rhs = do_generate_expr(node->Children()[1]);
         std::string lhs = do_generate_expr(node->Children()[0]);
-        instructions.push_back({"mov", rhs, "", lhs});
+        instructions_.push_back({"mov", rhs, "", lhs});
         break;
       }
       case ASTNodeType::kDECLARE: {
         if (node->Children().size() < 3) break;
         std::string rhs = do_generate_expr(node->Children()[2]);
         std::string lhs = do_generate_expr(node->Children()[1]);
-        instructions.push_back({"mov", rhs, "", lhs});
+        instructions_.push_back({"mov", rhs, "", lhs});
         break;
       }
       case ASTNodeType::kRETURN: {
         if (node->Children().empty()) break;
         std::string ret_val = do_generate_expr(node->Children()[0]);
-        instructions.push_back({"rtn", ret_val, "", ""});
+        instructions_.push_back({"rtn", ret_val, "", ""});
         break;
       }
       default: {
@@ -100,7 +100,7 @@ class IRGenerator {
       std::string temp = new_temp();
 
       auto instruction = select_instruction(node->Operation());
-      instructions.push_back({instruction, operand, "", temp});
+      instructions_.push_back({instruction, operand, "", temp});
       return temp;
     }
 
@@ -112,7 +112,7 @@ class IRGenerator {
       std::string temp = new_temp();
 
       auto instruction = select_instruction(node->Operation());
-      instructions.push_back({instruction, lhs, rhs, temp});
+      instructions_.push_back({instruction, lhs, rhs, temp});
       return temp;
     }
 
@@ -120,7 +120,7 @@ class IRGenerator {
   }
 
   auto new_temp() -> std::string {
-    return "t" + std::to_string(temp_counter++);
+    return "t" + std::to_string(temp_counter_++);
   }
 
   static auto select_instruction(const std::string& operation) -> std::string {

@@ -1,10 +1,6 @@
-//
-// Created by Administrator on 2021/5/12.
-//
-
 #include "SyntaxTree.h"
 
-void SyntaxTree::do_tree_node_print(TreeNode *thisNode, std::ofstream &stream) {
+void SyntaxTree::do_tree_node_print(TreeNode *thisNode, std::ostream &stream) {
   tabStack.push(tabStack.top() + 1);
 
   for (int i = tabStack.top() * spacesInTab; i > 0; i--) {
@@ -51,10 +47,9 @@ void SyntaxTree::do_tree_node_print(TreeNode *thisNode, std::ofstream &stream) {
   tabStack.pop();
 }
 
-void SyntaxTree::print(std::ofstream &stream) {
+void SyntaxTree::print(std::ostream &stream) {
   if (this->root == nullptr) return;
-
   tabStack.push(-1);
-
   do_tree_node_print(root, stream);
+  stream.flush();
 }

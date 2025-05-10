@@ -5,24 +5,24 @@
 #include "Item.h"
 
 void Item::set_dot_index(int m_dot_index) {
-    if(m_dot_index > production->right.size()) {
+    if(m_dot_index > production_->right.size()) {
         throw std::runtime_error("DOT_INDEX out of range");
     }
-    this->dot_index = m_dot_index;
+    this->dot_index_ = m_dot_index;
 }
 
 int Item::get_dot_next_symbol() const {
-    if(get_dot_index() == production->right.size()) {
+    if(get_dot_index() == production_->right.size()) {
         return 0;
     } else {
-        return production->right[dot_index];
+        return production_->right[dot_index_];
     }
 }
 
 int Item::get_dot_next_i_symbol(int i) const {
-    if(get_dot_index() + i >= production->right.size()) {
+    if(get_dot_index() + i >= production_->right.size()) {
         return 0;
     } else {
-        return production->right[dot_index + i];
+        return production_->right[dot_index_ + i];
     }
 }

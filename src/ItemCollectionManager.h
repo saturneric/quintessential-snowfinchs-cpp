@@ -8,6 +8,7 @@
 
 #include <codecvt>
 #include <fstream>
+#include <utility>
 
 class ItemCollectionManager {
   std::ofstream output;
@@ -20,9 +21,9 @@ class ItemCollectionManager {
 
   std::vector<const ItemCollection *> ics;
 
-  GrammarResourcePool *pool;
+  std::shared_ptr<GrammarResourcePool> pool;
 
-  const Production *start_pdt{};
+  std::shared_ptr<Production> start_pdt;
 
   template <class T>
   inline void hash_combine(std::size_t &seed, const T &v) const {
@@ -31,8 +32,8 @@ class ItemCollectionManager {
   }
 
  public:
-  explicit ItemCollectionManager(GrammarResourcePool *resource_pool)
-      : pool(resource_pool), output("LR1Automata.txt", std::ios::binary) {
+  explicit ItemCollectionManager(std::shared_ptr<GrammarResourcePool> pool)
+      : pool(std::move(pool)), output("LR1Automata.txt", std::ios::binary) {
     output.imbue(output.getloc());
   }
 
@@ -40,7 +41,7 @@ class ItemCollectionManager {
 
   void buildItems();
 
-  [[nodiscard]] const Production *getStartProduction() const {
+  [[nodiscard]] std::shared_ptr<Production> getStartProduction() const {
     return start_pdt;
   }
 

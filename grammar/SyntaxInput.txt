@@ -2,8 +2,9 @@
 function_name ->  "VALUE_ID"
 program_ending -> "EOF"
 
-statements -> statement statements
-statements -> ε
+statements -> statement more_statement
+more_statement -> statement more_statement
+more_statement -> ε
 
 statement -> declarator "SEMICOLON"
 statement -> simple_statement "SEMICOLON"
@@ -29,7 +30,7 @@ expression -> int_const
 expression -> "VALUE_ID"
 expression -> unary_operator expression
 
-int_const -> " VALUE_INTEGER"
+int_const -> "VALUE_INTEGER"
 
 unary_operator -> "SUB"
 

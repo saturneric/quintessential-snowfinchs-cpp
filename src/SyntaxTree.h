@@ -1,9 +1,4 @@
-//
-// Created by Administrator on 2021/5/12.
-//
-
-#ifndef SYNTAXPARSER_SYNTAXTREE_H
-#define SYNTAXPARSER_SYNTAXTREE_H
+#pragma once
 
 #include <algorithm>
 #include <fstream>
@@ -49,20 +44,19 @@ class TreeNode {
 };
 
 class SyntaxTree {
-  TreeNode *root = nullptr;
-
-  void do_tree_node_print(TreeNode *thisNode, std::ofstream &stream);
-
  public:
   std::stack<int> tabStack;
 
   const int spacesInTab = 4;
 
-  auto Root() -> TreeNode * { return root; }
+  [[nodiscard]] auto Root() const -> TreeNode * { return root; }
 
   void setRoot(TreeNode *node) { this->root = node; }
 
-  void print(std::ofstream &stream);
-};
+  void print(std::ostream &stream);
 
-#endif  // SYNTAXPARSER_SYNTAXTREE_H
+ private:
+  TreeNode *root = nullptr;
+
+  void do_tree_node_print(TreeNode *thisNode, std::ostream &stream);
+};
