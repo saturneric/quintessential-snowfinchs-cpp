@@ -59,7 +59,8 @@ auto main(int argc, const char *argv[]) -> int {
 
     start = clock();
 
-    AST ast;
+    AST ast(symbol_table);
+    ast.LoadBinding("AST.txt");
     ast.Build(syntax_parser.Tree());
     ast.Print("PrintAST.txt");
 

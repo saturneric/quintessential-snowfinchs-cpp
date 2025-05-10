@@ -1,24 +1,21 @@
 #pragma once
 
 #include <algorithm>
-#include <fstream>
 #include <stack>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "Symbol.h"
+
 class TreeNode {
-  const int nodeType_;
-  TreeNode *father_ = nullptr;
-  std::vector<std::string> info_vec_;
-  std::vector<std::string> value_vec_;
-  std::vector<TreeNode *> children_;
-
  public:
-  explicit TreeNode(int nodeType) : nodeType_(nodeType) {}
+  explicit TreeNode(SymbolPtr syntax_symbol)
+      : syntax_symbol_(std::move(syntax_symbol)) {}
 
-  void AddInfo(const std::string &info) { info_vec_.push_back(info); }
+  void AddToken(const SymbolPtr &symbol) { tokens_symbols_.push_back(symbol); }
 
-  void AddValue(const std::string &info) { value_vec_.push_back(info); }
+  void SetSyntax(const SymbolPtr &symbol) { syntax_symbol_ = symbol; }
 
   void SetFather(TreeNode *fatherNode) {
     if (fatherNode == this) {
@@ -31,32 +28,34 @@ class TreeNode {
     this->father_ = fatherNode;
   }
 
-  auto NodeType() -> std::string {
-    if (info_vec_.empty()) return {};
-    return info_vec_.front();
-  }
+  auto NodeType() -> std::string { return syntax_symbol_->Name(); }
 
   auto GetChildren() -> const std::vector<TreeNode *> & { return children_; }
 
-  auto GetInfoVec() -> const std::vector<std::string> & { return info_vec_; }
+  auto Tokens() -> std::vector<SymbolPtr> { return tokens_symbols_; }
 
-  auto GetValueVec() -> const std::vector<std::string> & { return value_vec_; }
+  auto Syntax() -> SymbolPtr { return syntax_symbol_; }
+
+ private:
+  TreeNode *father_ = nullptr;
+  std::vector<TreeNode *> children_;
+
+  SymbolPtr syntax_symbol_;
+  std::vector<SymbolPtr> tokens_symbols_;
 };
 
 class SyntaxTree {
  public:
-  std::stack<int> tabStack;
+  [[nodiscard]] auto Root() const -> TreeNode * { return root_; }
 
-  const int spacesInTab = 4;
+  void SetRoot(TreeNode *node) { this->root_ = node; }
 
-  [[nodiscard]] auto Root() const -> TreeNode * { return root; }
-
-  void setRoot(TreeNode *node) { this->root = node; }
-
-  void print(std::ostream &stream);
+  void Print(std::ostream &stream);
 
  private:
-  TreeNode *root = nullptr;
+  std::stack<int> tab_stack_;
+  const int spaces_in_tab_ = 4;
+  TreeNode *root_ = nullptr;
 
   void do_tree_node_print(TreeNode *thisNode, std::ostream &stream);
 };

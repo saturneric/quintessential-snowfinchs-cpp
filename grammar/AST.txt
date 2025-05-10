@@ -1,0 +1,15 @@
+program            ProgramNode
+function_name      ValueNode
+statements         UselessNode
+more_statements    UselessNode
+statement          UselessNode
+more_statement     UselessNode
+root_expression    RootExpressionNode
+left_expression    UselessNode
+right_expression   UselessNode
+return_statement   ReturnNode
+simple_statement   AssignNode
+declarator         DeclaratorNode
+expression         ExpressionNode
+left_value         LeftValueNode
+int_const          ValueNode

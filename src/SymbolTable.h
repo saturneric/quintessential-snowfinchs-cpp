@@ -47,3 +47,5 @@ class SymbolTable {
 
   [[nodiscard]] auto GetSyntaxStartSymbol() const -> SymbolPtr;
 };
+
+using SymbolTablePtr = std::shared_ptr<SymbolTable>;

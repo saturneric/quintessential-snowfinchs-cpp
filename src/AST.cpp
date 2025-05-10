@@ -1,5 +1,9 @@
 #include "AST.h"
 
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
 namespace {
 
 const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
@@ -14,7 +18,9 @@ const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
 };
 
 auto HandleUselessSyntaxNode(const ASTNodePtr& parent, TreeNode* syntax,
+                             const SymbolTablePtr& /*table*/,
                              const AST::RouterFunc& f) -> ASTNodePtr {
+  if (syntax == nullptr) return nullptr;
   for (const auto& syntax_child : syntax->GetChildren()) {
     if (parent != nullptr) parent->AddChildren(f(parent, syntax_child));
   }
@@ -22,19 +28,18 @@ auto HandleUselessSyntaxNode(const ASTNodePtr& parent, TreeNode* syntax,
 }
 
 auto HandleValueNode(const ASTNodePtr& /*parent*/, TreeNode* syntax,
+                     const SymbolTablePtr& /*table*/,
                      const AST::RouterFunc& /*f*/) -> ASTNodePtr {
-  auto syntax_value_vec = syntax->GetValueVec();
-  if (syntax_value_vec.empty()) return nullptr;
+  auto tokens = syntax->Tokens();
+  if (tokens.empty()) return nullptr;
 
-  auto ast =
-      std::make_shared<ASTNode>(ASTNodeType::kVALUE, syntax_value_vec.front());
-  return ast;
+  return std::make_shared<ASTNode>(ASTNodeType::kVALUE, tokens.front());
 }
 
 auto HandleProgram(const ASTNodePtr& /*parent*/, TreeNode* syntax,
-                   const AST::RouterFunc& f) -> ASTNodePtr {
-  auto ast = std::make_shared<ASTNode>(ASTNodeType::kPROGRAM, "");
-
+                   const SymbolTablePtr& /*table*/, const AST::RouterFunc& f)
+    -> ASTNodePtr {
+  auto ast = std::make_shared<ASTNode>(ASTNodeType::kPROGRAM, syntax->Syntax());
   for (const auto& child : syntax->GetChildren()) {
     ast->AddChildren(f(ast, child));
   }
@@ -42,7 +47,8 @@ auto HandleProgram(const ASTNodePtr& /*parent*/, TreeNode* syntax,
 }
 
 auto HandleAssign(const ASTNodePtr& /*parent*/, TreeNode* syntax,
-                  const AST::RouterFunc& f) -> ASTNodePtr {
+                  const SymbolTablePtr& /*table*/, const AST::RouterFunc& f)
+    -> ASTNodePtr {
   auto syntax_children = syntax->GetChildren();
   if (syntax_children.empty()) return nullptr;
   if (syntax_children.size() != 3) return nullptr;
@@ -51,7 +57,7 @@ auto HandleAssign(const ASTNodePtr& /*parent*/, TreeNode* syntax,
 
   auto* assign_operator = syntax_children[1];
   auto ast = std::make_shared<ASTNode>(ASTNodeType::kASSIGN,
-                                       assign_operator->GetInfoVec().back());
+                                       assign_operator->Tokens().back());
 
   ast->AddChildren(f(ast, syntax_children.front()));
   ast->AddChildren(f(ast, syntax_children.back()));
@@ -59,17 +65,19 @@ auto HandleAssign(const ASTNodePtr& /*parent*/, TreeNode* syntax,
 }
 
 auto HandleReturn(const ASTNodePtr& /*parent*/, TreeNode* syntax,
-                  const AST::RouterFunc& f) -> ASTNodePtr {
+                  const SymbolTablePtr& /*table*/, const AST::RouterFunc& f)
+    -> ASTNodePtr {
   auto syntax_children = syntax->GetChildren();
   if (syntax_children.empty()) return nullptr;
 
-  auto ast = std::make_shared<ASTNode>(ASTNodeType::kRETURN, "return");
+  auto ast = std::make_shared<ASTNode>(ASTNodeType::kRETURN, syntax->Syntax());
   ast->AddChildren(f(ast, syntax_children.front()));
   return ast;
 }
 
 auto HandleRootExpression(const ASTNodePtr& parent, TreeNode* syntax,
-                          const AST::RouterFunc& f) -> ASTNodePtr {
+                          const SymbolTablePtr& table, const AST::RouterFunc& f)
+    -> ASTNodePtr {
   auto syntax_children = syntax->GetChildren();
   if (syntax_children.empty()) return nullptr;
 
@@ -77,7 +85,7 @@ auto HandleRootExpression(const ASTNodePtr& parent, TreeNode* syntax,
   if (syntax_children.size() == 3) {
     auto* binary_operator = syntax_children[1];
     auto ast = std::make_shared<ASTNode>(ASTNodeType::kBIN_OP,
-                                         binary_operator->GetInfoVec().back());
+                                         binary_operator->Tokens().back());
 
     ast->AddChildren(f(ast, syntax_children.front()));
     ast->AddChildren(f(ast, syntax_children.back()));
@@ -85,18 +93,34 @@ auto HandleRootExpression(const ASTNodePtr& parent, TreeNode* syntax,
   }
 
   // <exp>
-
-  return HandleUselessSyntaxNode(parent, syntax, f);
+  return HandleUselessSyntaxNode(parent, syntax, table, f);
 }
 
 auto HandleExpression(const ASTNodePtr& parent, TreeNode* syntax,
-                      const AST::RouterFunc& f) -> ASTNodePtr {
+                      const SymbolTablePtr& table, const AST::RouterFunc& f)
+    -> ASTNodePtr {
   auto syntax_children = syntax->GetChildren();
-  auto syntax_info_vec = syntax->GetInfoVec();
-  if (syntax_info_vec.empty()) return nullptr;
+  auto tokens = syntax->Tokens();
 
-  if (syntax_info_vec.size() > 1 && syntax_info_vec[1] == "VALUE_ID") {
-    return HandleValueNode(parent, syntax, f);
+  if (tokens.empty()) {
+    // exp -> <unop> <exp>
+
+    if (syntax_children.front()->NodeType() == "unary_operator") {
+      auto ast = std::make_shared<ASTNode>(
+          ASTNodeType::kUN_OP, syntax_children.front()->Tokens().front());
+
+      // <exp>
+      ast->AddChildren(f(ast, syntax_children.back()));
+      return ast;
+    }
+
+    // int_const
+    return HandleUselessSyntaxNode(parent, syntax, table, f);
+  }
+
+  // ident
+  if (tokens.front()->Value() == "VALUE_ID") {
+    return HandleValueNode(parent, syntax, table, f);
   }
 
   if (syntax_children.empty()) return nullptr;
@@ -104,47 +128,31 @@ auto HandleExpression(const ASTNodePtr& parent, TreeNode* syntax,
   auto* first_syntax_child = syntax_children.front();
 
   // exp -> ( <exp> )
-  if (syntax_info_vec.size() > 1 && syntax_info_vec.back() == "RIGHT_BRACKET") {
-    return HandleUselessSyntaxNode(parent, first_syntax_child, f);
+  if (tokens.back()->Value() == "RIGHT_BRACKET") {
+    return HandleUselessSyntaxNode(parent, first_syntax_child, table, f);
   }
 
-  // exp -> <unop> <exp>
-
-  if (first_syntax_child->NodeType() == "unary_operator") {
-    auto ast = std::make_shared<ASTNode>(
-        ASTNodeType::kUN_OP, first_syntax_child->GetInfoVec().back());
-
-    // <exp>
-    ast->AddChildren(f(ast, syntax_children.back()));
-    return ast;
-  }
-
-  return HandleUselessSyntaxNode(parent, syntax, f);
+  return HandleUselessSyntaxNode(parent, syntax, table, f);
 }
 
 auto HandleDeclarator(const ASTNodePtr& /*parent*/, TreeNode* syntax,
-                      const AST::RouterFunc& f) -> ASTNodePtr {
+                      const SymbolTablePtr& /*table*/, const AST::RouterFunc& f)
+    -> ASTNodePtr {
   auto syntax_children = syntax->GetChildren();
-  auto syntax_info_vec = syntax->GetInfoVec();
-  auto syntax_value_vec = syntax->GetValueVec();
-  if (syntax_info_vec.size() < 3) return nullptr;
+  auto tokens = syntax->Tokens();
 
-  auto ast = std::make_shared<ASTNode>(ASTNodeType::kDECLARE, "declare");
+  if (tokens.size() < 2) return nullptr;
 
-  // int ident
+  auto ast = std::make_shared<ASTNode>(ASTNodeType::kDECLARE, syntax->Syntax());
 
-  if (syntax_info_vec.size() > 2) {
-    // int
-    ast->AddChildren(std::make_shared<ASTNode>(ASTNodeType::kTYPE,
-                                               syntax_value_vec.front()));
+  // int
+  ast->AddChildren(
+      std::make_shared<ASTNode>(ASTNodeType::kTYPE, tokens.front()));
 
-    // ident
-    ast->AddChildren(
-        std::make_shared<ASTNode>(ASTNodeType::kVALUE, syntax_value_vec[1]));
-  }
+  // ident
+  ast->AddChildren(std::make_shared<ASTNode>(ASTNodeType::kVALUE, tokens[1]));
 
   // int ident <exp>
-
   if (!syntax_children.empty()) {
     ast->AddChildren(f(ast, syntax_children.front()));
   }
@@ -153,36 +161,32 @@ auto HandleDeclarator(const ASTNodePtr& /*parent*/, TreeNode* syntax,
 }
 
 auto HandleLeftValue(const ASTNodePtr& parent, TreeNode* syntax,
-                     const AST::RouterFunc& f) -> ASTNodePtr {
+                     const SymbolTablePtr& table, const AST::RouterFunc& f)
+    -> ASTNodePtr {
   auto syntax_children = syntax->GetChildren();
-  auto syntax_info_vec = syntax->GetInfoVec();
-  if (syntax_info_vec.empty()) return nullptr;
+  auto tokens = syntax->Tokens();
+  if (tokens.empty()) return nullptr;
 
-  if (syntax_info_vec.back() == "VALUE_ID") {
-    return HandleValueNode(parent, syntax, f);
+  if (tokens.back()->Value() == "VALUE_ID") {
+    return HandleValueNode(parent, syntax, table, f);
   }
 
-  return HandleUselessSyntaxNode(parent, syntax, f);
+  return HandleUselessSyntaxNode(parent, syntax, table, f);
 }
 
 }  // namespace
 
 std::map<std::string, AST::HandlerFunc> AST::handler_registry = {
-    {"program", HandleProgram},
-    {"function_name", HandleValueNode},
-    {"statements", HandleUselessSyntaxNode},
-    {"more_statements", HandleUselessSyntaxNode},
-    {"statement", HandleUselessSyntaxNode},
-    {"more_statement", HandleUselessSyntaxNode},
-    {"root_expression", HandleRootExpression},
-    {"left_expression", HandleUselessSyntaxNode},
-    {"right_expression", HandleUselessSyntaxNode},
-    {"return_statement", HandleReturn},
-    {"simple_statement", HandleAssign},
-    {"declarator", HandleDeclarator},
-    {"expression", HandleExpression},
-    {"left_value", HandleLeftValue},
-    {"int_const", HandleValueNode}};
+    {"ProgramNode", HandleProgram},
+    {"ValueNode", HandleValueNode},
+    {"UselessNode", HandleUselessSyntaxNode},
+    {"RootExpressionNode", HandleRootExpression},
+    {"ReturnNode", HandleReturn},
+    {"AssignNode", HandleAssign},
+    {"DeclaratorNode", HandleDeclarator},
+    {"ExpressionNode", HandleExpression},
+    {"LeftValueNode", HandleLeftValue},
+};
 
 void AST::do_ast_node_print(const ASTNodePtr& node, std::ofstream& stream) {
   if (node == nullptr) return;
@@ -203,7 +207,8 @@ void AST::do_ast_node_print(const ASTNodePtr& node, std::ofstream& stream) {
     stream << "Unknown";
   }
 
-  stream << "[" << node->Operation() << "]";
+  stream << "<" << node->Operation()->Name() << ","
+         << node->Operation()->Value() << ">";
 
   stream << '\n';
 
@@ -230,16 +235,21 @@ auto AST::do_build_tree(const ASTNodePtr& ast_node, TreeNode* syntax_node)
     -> std::shared_ptr<ASTNode> {
   auto node_type = syntax_node->NodeType();
 
-  if (handler_registry.count(node_type) == 0U) return nullptr;
-  if (handler_registry.at(node_type) == nullptr) return nullptr;
+  if (syntax_symbol_to_handler_.count(node_type) == 0U) return nullptr;
+  if (syntax_symbol_to_handler_.at(node_type) == nullptr) return nullptr;
+  if (syntax_node == nullptr) return nullptr;
 
-  return handler_registry[node_type](ast_node, syntax_node, do_build_tree);
+  return syntax_symbol_to_handler_[node_type](
+      ast_node, syntax_node, symbol_table_, [this](auto&& PH1, auto&& PH2) {
+        return do_build_tree(std::forward<decltype(PH1)>(PH1),
+                             std::forward<decltype(PH2)>(PH2));
+      });
 }
 
-ASTNode::ASTNode(ASTNodeType type, std::string opera)
+ASTNode::ASTNode(ASTNodeType type, SymbolPtr opera)
     : type_(type), opera_(std::move(opera)) {}
 
-ASTNode::ASTNode(ASTNodeType type, std::string opera,
+ASTNode::ASTNode(ASTNodeType type, SymbolPtr opera,
                  std::initializer_list<ASTNodePtr> children)
     : type_(type), opera_(std::move(opera)), children_(children) {}
 
@@ -250,7 +260,9 @@ void ASTNode::AddChildren(const ASTNodePtr& child) {
 }
 
 auto ASTNode::Type() -> ASTNodeType { return type_; }
-auto ASTNode::Operation() -> std::string { return opera_; }
+
+auto ASTNode::Operation() -> SymbolPtr { return opera_; }
+
 auto AST::Build(const SyntaxTree& tree) -> bool {
   if (tree.Root() == nullptr) return false;
 
@@ -259,3 +271,31 @@ auto AST::Build(const SyntaxTree& tree) -> bool {
 }
 
 auto AST::Root() const -> ASTNodePtr { return root_; }
+
+void AST::LoadBinding(const std::string& path) {
+  std::map<std::string, std::string> action_map;
+  std::ifstream infile(path);
+  std::string line;
+
+  while (std::getline(infile, line)) {
+    auto comment_pos = line.find('#');
+    if (comment_pos != std::string::npos) {
+      line = line.substr(0, comment_pos);
+    }
+
+    std::istringstream iss(line);
+    std::string symbol;
+    std::string handler;
+    if (iss >> symbol >> handler) {
+      if (handler_registry.count(handler) == 0) {
+        std::cout << "Cannot bind Syntax Symbol: " << symbol
+                  << " to AST Handler: " << handler;
+        continue;
+      }
+      syntax_symbol_to_handler_[symbol] = handler_registry.at(handler);
+    }
+  }
+}
+
+AST::AST(std::shared_ptr<SymbolTable> symbol_table)
+    : symbol_table_(std::move(symbol_table)) {};

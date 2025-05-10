@@ -1,55 +1,41 @@
 #include "SyntaxTree.h"
 
-void SyntaxTree::do_tree_node_print(TreeNode *thisNode, std::ostream &stream) {
-  tabStack.push(tabStack.top() + 1);
+#include <ostream>
 
-  for (int i = tabStack.top() * spacesInTab; i > 0; i--) {
-    if (i % spacesInTab == 0) {
+void SyntaxTree::do_tree_node_print(TreeNode *node, std::ostream &stream) {
+  tab_stack_.push(tab_stack_.top() + 1);
+
+  for (int i = tab_stack_.top() * spaces_in_tab_; i > 0; i--) {
+    if (i % spaces_in_tab_ == 0) {
       stream << '|';
     }
     stream << ' ';
   }
 
+  stream << node->Syntax()->Name();
+
   int count = 0;
-  for (const auto &info : thisNode->GetInfoVec()) {
-    if (count++ != 0) {
-      if (count != 2) {
-        stream << ", ";
-      }
-      stream << info;
-    } else {
-      stream << info << '<';
-    }
-  }
-
-  stream << '>';
-
-  stream << "[";
-
-  count = 0;
-  for (const auto &value : thisNode->GetValueVec()) {
+  for (const auto &token : node->Tokens()) {
     if (count++ != 0) {
       stream << ", ";
     }
-    stream << value;
+    stream << "<" << token->Value() << ", " << token->Name() << ">";
   }
-
-  stream << ']';
 
   stream << '\n';
 
-  if (!thisNode->GetChildren().empty()) {
-    for (const auto &node : thisNode->GetChildren()) {
+  if (!node->GetChildren().empty()) {
+    for (const auto &node : node->GetChildren()) {
       do_tree_node_print(node, stream);
     }
   }
 
-  tabStack.pop();
+  tab_stack_.pop();
 }
 
-void SyntaxTree::print(std::ostream &stream) {
-  if (this->root == nullptr) return;
-  tabStack.push(-1);
-  do_tree_node_print(root, stream);
+void SyntaxTree::Print(std::ostream &stream) {
+  if (this->root_ == nullptr) return;
+  tab_stack_.push(-1);
+  do_tree_node_print(root_, stream);
   stream.flush();
 }

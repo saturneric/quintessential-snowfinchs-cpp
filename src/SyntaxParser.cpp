@@ -35,13 +35,8 @@ void SyntaxParser::Parse() {
 
       print_symbol(symbol_idx);
 
-      auto *node = new TreeNode(symbol_idx);
-      node->AddValue(token->Name());
-
-      const auto &p_symbol = symbol;
-
-      if (p_symbol->IsTerminator()) node->AddInfo("terminator");
-      node->AddInfo(p_symbol->Name());
+      auto *node = new TreeNode(symbol);
+      node->AddToken(token);
 
       status_stack_.push(p_step->target.index);
       analyse_stack_.push(symbol_idx);
@@ -67,19 +62,14 @@ void SyntaxParser::Parse() {
         tree_stack_.pop();
       }
 
-      auto *father_node = new TreeNode(p_pdt->left);
-      father_node->AddInfo(pool_->GetSymbol(p_pdt->left)->Name());
+      auto *father_node = new TreeNode(pool_->GetSymbol(p_pdt->left));
 
       while (!temp_stack.empty()) {
         auto *node = temp_stack.top();
-        const auto &child_info = node->GetInfoVec();
-        if (child_info[0] == "terminator") {
-          for (int i = 1; i < child_info.size(); i++) {
-            father_node->AddInfo(child_info[i]);
-          }
-
-          for (const auto &value : node->GetValueVec()) {
-            father_node->AddValue(value);
+        const auto &child = node->Syntax();
+        if (child->IsTerminator()) {
+          for (const auto &token : node->Tokens()) {
+            father_node->AddToken(token);
           }
 
           delete temp_stack.top();
@@ -102,7 +92,7 @@ void SyntaxParser::Parse() {
       status_stack_.push(p_goto_step->target.index);
 
     } else if (p_step->action == ACC) {
-      syntax_tree_.setRoot(tree_stack_.top());
+      syntax_tree_.SetRoot(tree_stack_.top());
       tree_stack_.pop();
       output_analyse_ << "ACC";
       print_done();
@@ -175,7 +165,7 @@ void SyntaxParser::PrintAnalyse(const std::string &path) {
 
 void SyntaxParser::PrintTree(const std::string &path) {
   std::ofstream f(path);
-  syntax_tree_.print(f);
+  syntax_tree_.Print(f);
   f.close();
 }
 

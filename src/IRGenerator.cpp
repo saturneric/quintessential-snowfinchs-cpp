@@ -1,5 +1,6 @@
 #include "IRGenerator.h"
 
+#include <fstream>
 #include <iostream>
 
 void IRGenerator::Print(const std::string& path) {
@@ -62,15 +63,19 @@ auto IRGenerator::do_generate_expr(const ASTNodePtr& node) -> std::string {
   if (node == nullptr) return {};
 
   if (node->Type() == ASTNodeType::kVALUE) {
-    return node->Operation();
+    return node->Operation()->Name();
   }
 
   if (node->Type() == ASTNodeType::kUN_OP) {
     std::string operand = do_generate_expr(node->Children()[0]);
     std::string temp = new_temp();
 
-    auto instruction = select_instruction(node->Operation());
-    instructions_.push_back({instruction, operand, "", temp});
+    instructions_.push_back({"mov", operand, "", temp});
+
+    if (node->Operation()->Value() == "SUB") {
+      instructions_.push_back({"neg", temp, ""});
+    }
+
     return temp;
   }
 
@@ -81,7 +86,7 @@ auto IRGenerator::do_generate_expr(const ASTNodePtr& node) -> std::string {
     std::string rhs = do_generate_expr(node->Children()[1]);
     std::string temp = new_temp();
 
-    auto instruction = select_instruction(node->Operation());
+    auto instruction = select_instruction(node->Operation()->Value());
     instructions_.push_back({instruction, lhs, rhs, temp});
     return temp;
   }
