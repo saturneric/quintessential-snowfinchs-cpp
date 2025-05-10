@@ -76,7 +76,7 @@ auto main(int argc, const char *argv[]) -> int {
     irg.Print2Addr("PrintIR2.txt");
 
     ASMGenerator asm_gen(ir);
-    asm_gen.Generate("ASM.txt");
+    asm_gen.Generate("ASM.S");
 
   } catch (std::runtime_error &e) {
     std::cout << "Runtime Error: " << e.what() << "\n";
