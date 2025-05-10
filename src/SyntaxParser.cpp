@@ -14,10 +14,13 @@ void SyntaxParser::Parse() {
 
   while (!token_queue_.empty()) {
     const auto token = token_queue_.front();
-    auto token_id = token.Id();
+    const int syntax_symbol_index = pool_->GetSymbolIndex(token.Name());
+
+    std::cout << "syntax symbol id: " << syntax_symbol_index
+              << " token id: " << token.Id() << "\n";
 
     const auto &p_step =
-        generator_->FindActionStep(status_stack_.top(), token_id);
+        generator_->FindActionStep(status_stack_.top(), syntax_symbol_index);
 
     if (p_step == nullptr) {
       print_error();
@@ -28,21 +31,18 @@ void SyntaxParser::Parse() {
       output_analyse_ << "MOVE IN" << "(AUTOMATA STATUS " << status_stack_.top()
                       << "): ";
 
-      const auto token = token_queue_.front();
-      print_symbol(token.Id());
+      print_symbol(syntax_symbol_index);
 
-      auto *node = new TreeNode(token.Id());
+      auto *node = new TreeNode(syntax_symbol_index);
       node->AddValue(token.value);
 
-      const auto *p_symbol = pool_->GetSymbol(token.Id());
-      if (p_symbol->terminator) {
-        node->AddInfo("terminator");
-      }
+      const auto p_symbol = pool_->GetSymbol(syntax_symbol_index);
 
-      node->AddInfo(p_symbol->name);
+      if (p_symbol->IsTerminator()) node->AddInfo("terminator");
+      node->AddInfo(p_symbol->Name());
 
       status_stack_.push(p_step->target.index);
-      analyse_stack_.push(token.Id());
+      analyse_stack_.push(syntax_symbol_index);
       tree_stack_.push(node);
 
       buffer_ << token.value << " ";
@@ -66,7 +66,7 @@ void SyntaxParser::Parse() {
       }
 
       auto *father_node = new TreeNode(p_pdt->left);
-      father_node->AddInfo(pool_->GetSymbol(p_pdt->left)->name);
+      father_node->AddInfo(pool_->GetSymbol(p_pdt->left)->Name());
 
       while (!temp_stack.empty()) {
         auto *node = temp_stack.top();
@@ -115,7 +115,7 @@ void SyntaxParser::Parse() {
 }
 
 void SyntaxParser::print_production(const ProductionPtr &p_pdt) {
-  output_analyse_ << pool_->GetSymbol(p_pdt->left)->name << " -> ";
+  output_analyse_ << pool_->GetSymbol(p_pdt->left)->Name() << " -> ";
   int i = 0;
   for (const auto &symbol_index : p_pdt->right) {
     if (i++ > 0) output_analyse_ << " ";
@@ -125,17 +125,17 @@ void SyntaxParser::print_production(const ProductionPtr &p_pdt) {
 }
 
 void SyntaxParser::print_symbol(int symbol_index) {
-  const auto *symbol = pool_->GetSymbol(symbol_index);
+  const auto symbol = pool_->GetSymbol(symbol_index);
 
-  if (symbol->index == 0) {
+  if (symbol->Index() == 0) {
     output_analyse_ << "[Epsilon]";
     return;
   }
 
-  if (!symbol->terminator) {
-    output_analyse_ << pool_->GetSymbol(symbol_index)->name;
+  if (!symbol->IsTerminator()) {
+    output_analyse_ << pool_->GetSymbol(symbol_index)->Name();
   } else {
-    output_analyse_ << '"' << pool_->GetSymbol(symbol_index)->name << '"';
+    output_analyse_ << '"' << pool_->GetSymbol(symbol_index)->Name() << '"';
   }
 }
 
@@ -150,10 +150,11 @@ void SyntaxParser::print_done() {
 void SyntaxParser::print_error() {
   const auto token = token_queue_.front();
   std::string temp_line = buffer_.str();
+  const int syntax_symbol_index = pool_->GetSymbolIndex(token.Name());
 
   std::cout << "Syntax Parser Found Error: " << '\n'
             << "At: " << temp_line << "-> Next Token{"
-            << pool_->GetSymbol(token.Id())->name << "}"
+            << pool_->GetSymbol(syntax_symbol_index)->Name() << "}"
             << " " << "Value{" << token.value << "}" << '\n';
 
   std::cout << "AUTOMATA STATUS " << status_stack_.top() << '\n';

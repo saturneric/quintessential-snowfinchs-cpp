@@ -7,25 +7,28 @@ void Item::SetDotIndex(int m_dot_index) {
   this->dot_index_ = m_dot_index;
 }
 
-int Item::GetDotNextSymbol() const {
+auto Item::GetDotNextSymbol() const -> int {
   if (GetDotIndex() == production_->right.size()) {
     return 0;
-  } else {
-    return production_->right[dot_index_];
   }
+  return production_->right[dot_index_];
 }
 
-int Item::GetDotNextISymbol(int i) const {
+auto Item::GetDotNextISymbol(int i) const -> int {
   if (GetDotIndex() + i >= production_->right.size()) {
     return 0;
-  } else {
-    return production_->right[dot_index_ + i];
   }
+  return production_->right[dot_index_ + i];
 }
+
 auto Item::GetDotIndex() const -> int { return dot_index_; }
+
 auto Item::GetRightSize() -> size_t { return production_->right.size(); }
+
 auto Item::GetTerminator() const -> int { return terminator_; }
+
 auto Item::GetProduction() const -> ProductionPtr { return production_; }
+
 Item::Item(ProductionPtr p_pdt, int m_terminator, bool m_generated)
     : production_(std::move(p_pdt)),
       terminator_(m_terminator),

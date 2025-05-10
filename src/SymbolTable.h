@@ -1,12 +1,11 @@
 #pragma once
 
-#include <Symbol.h>
-
 #include <map>
 #include <string>
 #include <vector>
 
 #include "Lexer.h"
+#include "Symbol.h"
 
 const std::string kEmptySymbol = "ε";
 const std::string kStopSymbol = "$";
@@ -22,31 +21,33 @@ const struct LexerTokenSpec kTokenSpecEOF = {kEOFSymbolId, kEOFSymbol, {}};
 const struct LexerTokenSpec kTokenSpecStop = {kStopSymbolId, kStopSymbol, {}};
 
 class SymbolTable {
-  int index = 1 << 10;
+  int index_ = 1 << 10;
 
-  std::map<std::string, Symbol *> table;
-
-  std::map<int, Symbol *> cache;
-
-  std::vector<const Symbol *> line;
+  using SymbolNameTable = std::map<std::string, SymbolPtr>;
+  std::map<SymbolType, SymbolNameTable> table_;
+  std::map<int, SymbolPtr> cache_;
 
  public:
   SymbolTable();
 
-  [[nodiscard]] auto GetAllSymbols() const
-      -> const std::vector<const Symbol *> &;
+  auto AddSymbol(SymbolType type, int index, const std::string &name,
+                 const std::string &value = {}) -> SymbolPtr;
 
-  auto AddSymbol(int index, const std::string &name, bool terminator,
-                 bool start) -> int;
+  auto AddSymbol(SymbolType type, const std::string &name,
+                 const std::string &value = {}) -> SymbolPtr;
 
-  auto AddSymbol(const std::string &name, bool terminator) -> int;
+  [[nodiscard]] auto Symbol(int index) const -> SymbolPtr;
 
-  [[nodiscard]] auto GetSymbol(int symbol_index) const -> const Symbol *;
+  [[nodiscard]] auto SymbolIndex(SymbolType type, const std::string &name) const
+      -> int;
 
-  [[nodiscard]] auto GetSymbolIndex(const std::string &name) const -> int;
+  [[nodiscard]] auto SearchSymbol(SymbolType type,
+                                  const std::string &name) const -> SymbolPtr;
 
   void ModifySymbol(int idx, const std::string &name, bool terminator,
                     bool start);
 
-  [[nodiscard]] auto GetStartSymbol() const -> const Symbol *;
+  [[nodiscard]] auto GetAllSyntaxSymbols() const -> std::vector<SymbolPtr>;
+
+  [[nodiscard]] auto GetSyntaxStartSymbol() const -> SymbolPtr;
 };

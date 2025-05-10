@@ -1,17 +1,20 @@
 #include "ItemCollectionManager.h"
 
+#include <iostream>
+
 void ItemCollectionManager::BuildItems() {
-  const auto *const start_symbol = pool_->GetStartSymbol();
-  auto new_symbol_name = start_symbol->name + "'";
+  auto start_symbol = pool_->GetStartSymbol();
+  auto new_symbol_name = start_symbol->Name() + "'";
 
-  int new_symbol_index =
-      pool_->AddSymbol(new_symbol_name, start_symbol->terminator);
+  start_symbol->SetName(start_symbol->Name().substr(1));
+  start_symbol->SetStartSymbol(false);
 
-  pool_->ModifySymbol(start_symbol->index, start_symbol->name.substr(1), false,
-                      false);
+  auto new_start_symbol =
+      pool_->AddSymbol(new_symbol_name, start_symbol->IsTerminator());
+  new_start_symbol->SetStartSymbol(true);
 
   const auto p_pdt =
-      pool_->AddProduction(new_symbol_index, {start_symbol->index});
+      pool_->AddProduction(new_start_symbol->Index(), {start_symbol->Index()});
 
   this->start_pdt_ = p_pdt;
 
@@ -21,21 +24,20 @@ void ItemCollectionManager::BuildItems() {
 
   AddItemCollection(0, 0, pi_ic);
 
-  bool if_add = true;
+  bool is_add = true;
 
-  while (if_add) {
-    if_add = false;
+  while (is_add) {
+    is_add = false;
     const auto &r_ics = GetItemCollections();
     std::vector<std::shared_ptr<ItemCollection>> temp_ics(r_ics.begin(),
                                                           r_ics.end());
     for (const auto &ic : temp_ics) {
-      for (const auto *const symbol : pool_->GetAllSymbols()) {
-        if (symbol->index <= 0) {
+      for (const auto &symbol : pool_->GetAllSymbols()) {
+        if (symbol->Index() == kEmptySymbolId ||
+            symbol->Index() == kStopSymbolId) {
           continue;
         }
-        if (GOTO(ic, symbol->index)) {
-          if_add = true;
-        }
+        if (GOTO(ic, symbol->Index())) is_add = true;
       }
     }
   }
@@ -74,11 +76,11 @@ auto ItemCollectionManager::AddItemCollection(
   }
 
   if (symbol != 0) {
-    const auto *p_symbol = pool_->GetSymbol(symbol);
-    if (p_symbol->terminator) {
-      output_ << "GOTO(" << idx << ", \"" << p_symbol->name << "\")" << '\n';
+    const auto p_symbol = pool_->GetSymbol(symbol);
+    if (p_symbol->IsTerminator()) {
+      output_ << "GOTO(" << idx << ", \"" << p_symbol->Name() << "\")" << '\n';
     } else {
-      output_ << "GOTO(" << idx << ", " << p_symbol->name << ")" << '\n';
+      output_ << "GOTO(" << idx << ", " << p_symbol->Name() << ")" << '\n';
     }
   } else {
     output_ << "GOTO(" << idx << ", [Epsilon])" << '\n';

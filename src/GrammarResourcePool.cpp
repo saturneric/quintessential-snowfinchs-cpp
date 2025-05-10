@@ -1,19 +1,17 @@
 #include "GrammarResourcePool.h"
 
 #include <iostream>
-#include <sstream>
 
 auto GrammarResourcePool::FIRST(const std::vector<int> &symbols,
-                                int start_index) -> const std::set<int> * {
-  auto *non_terminator_symbols = new std::set<int>();
+                                int start_index) -> SymbolSetPtr {
+  auto non_terminator_symbols = std::make_shared<SymbolSet>();
 
   for (int i = start_index; i < symbols.size(); i++) {
-    const auto *const p_non_term_set = FIRST(symbols[i]);
-
+    auto p_non_term_set = FIRST(symbols[i]);
     non_terminator_symbols->insert(p_non_term_set->begin(),
                                    p_non_term_set->end());
 
-    const auto sec_it = p_non_term_set->find(0);
+    const auto sec_it = p_non_term_set->find(kEmptySymbolId);
     if (sec_it != p_non_term_set->end()) continue;
 
     break;
@@ -22,13 +20,13 @@ auto GrammarResourcePool::FIRST(const std::vector<int> &symbols,
   return non_terminator_symbols;
 }
 
-auto GrammarResourcePool::FIRST(int symbol) -> const std::set<int> * {
+auto GrammarResourcePool::FIRST(int symbol) -> SymbolSetPtr {
   const auto it = firsts_.find(symbol);
   if (it != firsts_.end()) return it->second;
 
-  auto *non_terminator_symbols = new std::set<int>();
+  auto non_terminator_symbols = std::make_shared<SymbolSet>();
 
-  if (symbol_table_.GetSymbol(symbol)->terminator) {
+  if (symbol_table_.Symbol(symbol)->IsTerminator()) {
     non_terminator_symbols->insert(symbol);
   } else {
     bool production_found = false;
@@ -41,7 +39,7 @@ auto GrammarResourcePool::FIRST(int symbol) -> const std::set<int> * {
       production_found = true;
 
       for (const auto &right_symbol : p_pdt->right) {
-        const auto *const p_non_term_set = FIRST(right_symbol);
+        const auto p_non_term_set = FIRST(right_symbol);
 
         non_terminator_symbols->insert(p_non_term_set->begin(),
                                        p_non_term_set->end());
@@ -57,13 +55,11 @@ auto GrammarResourcePool::FIRST(int symbol) -> const std::set<int> * {
     if (!production_found) non_terminator_symbols->insert(0);
   }
 
-  this->firsts_.insert(
-      std::pair<int, const std::set<int> *>(symbol, non_terminator_symbols));
-
+  this->firsts_.insert({symbol, non_terminator_symbols});
   return non_terminator_symbols;
 }
 
-auto GrammarResourcePool::FOLLOW(int symbol) -> const std::set<int> * {
+auto GrammarResourcePool::FOLLOW(int symbol) -> SymbolSetPtr {
   if (follows_.empty()) FOLLOW();
 
   const auto it = follows_.find(symbol);
@@ -74,21 +70,16 @@ auto GrammarResourcePool::FOLLOW(int symbol) -> const std::set<int> * {
 }
 
 void GrammarResourcePool::FOLLOW() {
-  for (const auto &symbol : symbol_table_.GetAllSymbols()) {
-    if (!symbol->terminator) {
-      if (symbol->start) {
-        std::set<int> *non_terminator_symbols = GetFollowSet(symbol->index);
-        non_terminator_symbols->insert(kStopSymbolId);
-      }
-    }
-  }
+  auto symbol = symbol_table_.GetSyntaxStartSymbol();
+  auto non_terminator_symbols = GetFollowSet(symbol->Index());
+  non_terminator_symbols->insert(kStopSymbolId);
 
   bool if_added = true;
 
   while (if_added) {
     if_added = false;
 
-    std::set<int> *non_terminator_symbols = nullptr;
+    SymbolSetPtr non_terminator_symbols = nullptr;
 
     for (const auto &production : productions_) {
       const auto &right_symbols = production->right;
@@ -96,19 +87,18 @@ void GrammarResourcePool::FOLLOW() {
       std::set<int> equal_left_non_terminators;
 
       for (int i = 0; i < right_symbols.size() - 1; i++) {
-        if (!symbol_table_.GetSymbol(right_symbols[i])->terminator) {
-          const auto *const p_non_term_set = FIRST(right_symbols, i + 1);
+        if (!symbol_table_.Symbol(right_symbols[i])->IsTerminator()) {
+          auto p_non_term_set = FIRST(right_symbols, i + 1);
 
-          non_terminator_symbols = GetFollowSet(right_symbols[i]);
-
+          auto non_terminator_symbols = GetFollowSet(right_symbols[i]);
           const size_t set_size = non_terminator_symbols->size();
 
           non_terminator_symbols->insert(p_non_term_set->begin(),
                                          p_non_term_set->end());
 
-          if (non_terminator_symbols->find(0) !=
+          if (non_terminator_symbols->find(kEmptySymbolId) !=
               non_terminator_symbols->end()) {
-            non_terminator_symbols->erase(0);
+            non_terminator_symbols->erase(kEmptySymbolId);
             equal_left_non_terminators.insert(right_symbols[i]);
           }
 
@@ -117,16 +107,15 @@ void GrammarResourcePool::FOLLOW() {
       }
 
       if (!right_symbols.empty()) {
-        if (!symbol_table_.GetSymbol(right_symbols[right_symbols.size() - 1])
-                 ->terminator) {
+        if (!symbol_table_.Symbol(right_symbols[right_symbols.size() - 1])
+                 ->IsTerminator()) {
           equal_left_non_terminators.insert(
               right_symbols[right_symbols.size() - 1]);
         }
       }
 
       for (const auto symbol : equal_left_non_terminators) {
-        auto *const left_non_terminator_symbols =
-            GetFollowSet(production->left);
+        auto left_non_terminator_symbols = GetFollowSet(production->left);
 
         non_terminator_symbols = GetFollowSet(symbol);
 
@@ -147,16 +136,15 @@ void GrammarResourcePool::FOLLOW() {
   }
 }
 
-auto GrammarResourcePool::GetFollowSet(int symbol) -> std::set<int> * {
-  std::set<int> *non_terminator_symbols = nullptr;
+auto GrammarResourcePool::GetFollowSet(int symbol) -> SymbolSetPtr {
+  SymbolSetPtr non_terminator_symbols = nullptr;
 
   auto it = follows_.find(symbol);
   if (it != follows_.end()) {
     non_terminator_symbols = it->second;
   } else {
-    non_terminator_symbols = new std::set<int>();
-    this->follows_.insert(
-        std::pair<int, std::set<int> *>(symbol, non_terminator_symbols));
+    non_terminator_symbols = std::make_shared<SymbolSet>();
+    this->follows_.insert({symbol, non_terminator_symbols});
   }
 
   return non_terminator_symbols;
@@ -165,15 +153,16 @@ auto GrammarResourcePool::GetFollowSet(int symbol) -> std::set<int> * {
 void GrammarResourcePool::PrintSymbols(const std::set<int> &symbols_index) {
   std::cout << "{ ";
   for (const auto &symbol_index : symbols_index) {
-    const auto *p_sym = symbol_table_.GetSymbol(symbol_index);
+    const auto p_sym = symbol_table_.Symbol(symbol_index);
 
-    if (p_sym->terminator) {
-      if (p_sym->name == "ε") {
+    if (p_sym->IsTerminator()) {
+      if (p_sym->Name() == kEmptySymbol) {
         std::cout << " [Epsilon] ";
-      } else
-        std::cout << " \"" << p_sym->name << "\" ";
+      } else {
+        std::cout << " \"" << p_sym->Name() << "\" ";
+      }
     } else {
-      std::cout << " " << p_sym->name << " ";
+      std::cout << " " << p_sym->Name() << " ";
     }
   }
   std::cout << "}" << '\n';
@@ -187,83 +176,79 @@ void GrammarResourcePool::ParseProductionStringLine(const std::string &line) {
   }
 
   std::string front = trim(line.substr(0, middle_index));
-  int left = symbol_table_.AddSymbol(front, false);
+  auto symbol = symbol_table_.AddSymbol(SymbolType::kSYNTAX, front);
+  if (front.front() == kStartSymbolPrefix) symbol->SetStartSymbol(true);
+
+  auto left = symbol->Index();
 
   std::string back =
       trim(line.substr(middle_index + 2, line.size() - middle_index - 2));
 
-  std::stringstream terminator;
-  std::stringstream non_terminator;
   std::vector<int> symbols;
-  bool is_terminator = false;
 
-  for (const auto &c : back) {
-    if (c == '\"') {
-      if (is_terminator) {
-        symbols.push_back(
-            symbol_table_.AddSymbol(trim(terminator.str()), true));
-        terminator.str("");
-        terminator.clear();
+  std::regex pattern("\"(.*?)\"|(\\S+)");
+  std::smatch match;
+
+  std::string::const_iterator search_start(back.cbegin());
+
+  while (std::regex_search(search_start, back.cend(), match, pattern)) {
+    if (match[1].matched) {
+      const auto symbol_value = trim(match[1].str());
+
+      auto symbol =
+          symbol_table_.SearchSymbol(SymbolType::kSYNTAX, symbol_value);
+      if (!symbol) {
+        throw std::runtime_error("Terminator Symbol " + symbol_value +
+                                 " Not Found");
       }
-      is_terminator = !is_terminator;
-      continue;
-    }
-    if (c == ' ' || c == '\r') {
-      std::string temp_symbol = trim(non_terminator.str());
-      if (!temp_symbol.empty()) {
-        symbols.push_back(
-            symbol_table_.AddSymbol(trim(non_terminator.str()), false));
-        non_terminator.str("");
-        non_terminator.clear();
+
+      std::cout << "MATCH T SYMBOL: " << symbol_value
+                << " INDEX: " << symbol->Index() << "\n";
+
+      symbols.push_back(symbol->Index());
+    } else if (match[2].matched) {
+      const auto symbol_value = trim(match[2].str());
+
+      auto symbol =
+          symbol_table_.SearchSymbol(SymbolType::kSYNTAX, symbol_value);
+
+      if (!symbol) {
+        symbol = symbol_table_.AddSymbol(SymbolType::kSYNTAX, symbol_value);
       }
-      continue;
+
+      std::cout << "MATCH S SYMBOL: " << symbol_value
+                << " INDEX: " << symbol->Index() << "\n";
+
+      symbols.push_back(symbol->Index());
     }
-    if (is_terminator) {
-      terminator << c;
-    } else {
-      non_terminator << c;
-    }
+
+    search_start = match.suffix().first;
   }
 
-  std::string temp_symbol = trim(non_terminator.str());
-  if (!temp_symbol.empty()) {
-    symbols.push_back(
-        symbol_table_.AddSymbol(trim(non_terminator.str()), false));
-  }
-
-  productions_.push_back(
-      std::make_shared<Production>(pdt_index_++, left, symbols));
+  AddProduction(left, symbols);
 }
 
-auto GrammarResourcePool::AddProduction(int left,
-                                        std::initializer_list<int> right)
+auto GrammarResourcePool::AddProduction(int left, const std::vector<int> &right)
     -> ProductionPtr {
-  std::vector<int> right_vector;
-  for (int symbol : right) {
-    right_vector.push_back(symbol);
-  }
-
-  productions_.push_back(
-      std::make_shared<Production>(pdt_index_++, left, right_vector));
-  return productions_.back();
+  auto pd = std::make_shared<Production>(pdt_index_++, left, right);
+  productions_.push_back(pd);
+  return pd;
 }
+
 auto GrammarResourcePool::GetProductions() const
     -> const std::vector<ProductionPtr> & {
   return productions_;
 }
 
-auto GrammarResourcePool::GetSymbol(int symbol_index) const -> const Symbol * {
-  return symbol_table_.GetSymbol(symbol_index);
+auto GrammarResourcePool::GetSymbol(int symbol_index) const -> SymbolPtr {
+  return symbol_table_.Symbol(symbol_index);
 }
 
 auto GrammarResourcePool::AddSymbol(const std::string &name, bool terminator)
-    -> int {
-  return symbol_table_.AddSymbol(name, terminator);
-}
-
-auto GrammarResourcePool::AddSymbolToken(int index, const std::string &name)
-    -> int {
-  return symbol_table_.AddSymbol(index, name, true, false);
+    -> SymbolPtr {
+  auto symbol = symbol_table_.AddSymbol(SymbolType::kSYNTAX, name);
+  symbol->SetTerminator(terminator);
+  return symbol;
 }
 
 void GrammarResourcePool::ModifySymbol(int index, const std::string &name,
@@ -272,23 +257,27 @@ void GrammarResourcePool::ModifySymbol(int index, const std::string &name,
 }
 
 auto GrammarResourcePool::GetSymbolIndex(const std::string &name) const -> int {
-  return symbol_table_.GetSymbolIndex(name);
+  return symbol_table_.SymbolIndex(SymbolType::kSYNTAX, name);
 }
 
-auto GrammarResourcePool::trim(std::string &&str) -> std::string & {
-  if (str.empty()) {
-    return str;
-  }
+auto GrammarResourcePool::trim(const std::string &str) -> std::string {
+  if (str.empty()) return str;
 
-  str.erase(0, str.find_first_not_of(' '));
-  str.erase(str.find_last_not_of(' ') + 1);
-  return str;
+  auto temp = str;
+  temp.erase(0, temp.find_first_not_of(' '));
+  temp.erase(temp.find_last_not_of(' ') + 1);
+  return temp;
 }
 
-auto GrammarResourcePool::GetAllSymbols() const
-    -> const std::vector<const Symbol *> & {
-  return symbol_table_.GetAllSymbols();
+auto GrammarResourcePool::GetAllSymbols() const -> std::vector<SymbolPtr> {
+  return symbol_table_.GetAllSyntaxSymbols();
 }
-auto GrammarResourcePool::GetStartSymbol() const -> const Symbol * {
-  return symbol_table_.GetStartSymbol();
+
+auto GrammarResourcePool::GetStartSymbol() const -> SymbolPtr {
+  return symbol_table_.GetSyntaxStartSymbol();
+}
+
+auto GrammarResourcePool::GetSymbolByToken(const std::string &token_index) const
+    -> SymbolPtr {
+  return symbol_table_.SearchSymbol(SymbolType::kSYNTAX, token_index);
 }

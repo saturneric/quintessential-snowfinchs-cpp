@@ -26,7 +26,7 @@ LR1Generator::LR1Generator(const Lexer& lexer)
       icm_(std::make_shared<ItemCollectionManager>(pool_)),
       atg_(std::make_shared<AnalyseTableGenerator>(pool_, icm_)) {
   for (const auto& spec : lexer.TokenSpecs()) {
-    pool_->AddSymbolToken(spec.id, spec.name);
+    pool_->AddSymbol(spec.name, true);
   }
 }
 

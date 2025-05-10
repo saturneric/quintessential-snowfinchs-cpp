@@ -1,6 +1,6 @@
 #include "ItemCollection.h"
 
-size_t ItemCollection::GetHash() const {
+auto ItemCollection::GetHash() const -> size_t {
   size_t seed = 0;
 
   std::vector<ItemPtr> cache_sorted(cache_.begin(), cache_.end());
@@ -24,44 +24,45 @@ void ItemCollection::Print(std::stringstream &output) const {
   for (const auto &item : cache_) {
     auto p_pdt = item->GetProduction();
     int dot_index = item->GetDotIndex();
-    output << pool_->GetSymbol(p_pdt->left)->name << " -> ";
+    output << pool_->GetSymbol(p_pdt->left)->Name() << " -> ";
     int i = 0;
     for (const auto &symbol_index : p_pdt->right) {
       if (i > 0) output << " ";
       if (i++ == dot_index) output << "*";
 
-      const auto *symbol = pool_->GetSymbol(symbol_index);
+      const auto symbol = pool_->GetSymbol(symbol_index);
 
-      if (symbol->index == 0) {
+      if (symbol->Index() == kEmptySymbolId) {
         output << "[Epsilon]";
         continue;
       }
 
-      if (!symbol->terminator) {
-        output << pool_->GetSymbol(symbol_index)->name;
+      if (!symbol->IsTerminator()) {
+        output << pool_->GetSymbol(symbol_index)->Name();
       } else {
-        output << '"' << pool_->GetSymbol(symbol_index)->name << '"';
+        output << '"' << pool_->GetSymbol(symbol_index)->Name() << '"';
       }
     }
 
     if (i++ == dot_index) output << "*";
 
-    output << ", \"" << pool_->GetSymbol(item->GetTerminator())->name << "\""
+    output << ", \"" << pool_->GetSymbol(item->GetTerminator())->Name() << "\""
            << '\n';
   }
   output << '\n';
 }
 
 void ItemCollection::CLOSURE() {
-  bool if_add = true;
+  bool add = true;
 
-  while (if_add) {
-    if_add = false;
+  while (add) {
+    add = false;
 
     for (const auto &item : items_) {
       int next_symbol = item.second->GetDotNextSymbol();
 
-      if (next_symbol == 0 || pool_->GetSymbol(next_symbol)->terminator) {
+      if (next_symbol == kEmptySymbolId ||
+          pool_->GetSymbol(next_symbol)->IsTerminator()) {
         continue;
       }
 
@@ -76,11 +77,11 @@ void ItemCollection::CLOSURE() {
           }
           first_args.push_back(p_ic->GetTerminator());
 
-          const auto *const first_set = pool_->FIRST(first_args, 0);
+          auto first_set = pool_->FIRST(first_args, 0);
           for (auto terminator : *first_set) {
             if (terminator == 0) continue;
             if (this->AddItem(production, 0, terminator, true)) {
-              if_add = true;
+              add = true;
             }
           }
         }

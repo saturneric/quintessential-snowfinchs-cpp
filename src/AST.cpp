@@ -171,6 +171,7 @@ std::map<std::string, AST::HandlerFunc> AST::handler_registry = {
     {"program", HandleProgram},
     {"function_name", HandleValueNode},
     {"statements", HandleUselessSyntaxNode},
+    {"more_statements", HandleUselessSyntaxNode},
     {"statement", HandleUselessSyntaxNode},
     {"more_statement", HandleUselessSyntaxNode},
     {"root_expression", HandleRootExpression},

@@ -17,9 +17,8 @@ void AnalyseTableGenerator::add_action(int index, int terminator_symbol,
     if (it->second->action != action ||
         it->second->target.production != target_pdt) {
       std::cout << "\n"
-                << "Conflict at state: " << index
-                << " with symbol: " << pool_->GetSymbol(terminator_symbol)->name
-                << "\n"
+                << "Conflict at state: " << index << " with symbol: "
+                << pool_->GetSymbol(terminator_symbol)->Name() << "\n"
                 << "Existing action: " << it->second->action
                 << ", new action: " << action
                 << ", existing target: " << it->second->target.index
@@ -45,9 +44,8 @@ void AnalyseTableGenerator::add_action(int index, int terminator_symbol,
     if (it->second->action != action ||
         it->second->target.index != target_index) {
       std::cout << "\n"
-                << "Conflict at state: " << index
-                << " with symbol: " << pool_->GetSymbol(terminator_symbol)->name
-                << "\n"
+                << "Conflict at state: " << index << " with symbol: "
+                << pool_->GetSymbol(terminator_symbol)->Name() << "\n"
                 << "Existing action: " << it->second->action
                 << ", new action: " << action
                 << ", existing target: " << it->second->target.index
@@ -79,17 +77,18 @@ void AnalyseTableGenerator::add_goto(int index, int non_terminator_symbol,
 
 void AnalyseTableGenerator::Generate() {
   const auto &ics = icm_->GetItemCollections();
+
   for (const auto &ic : ics) {
     for (const auto &item : ic->GetItems()) {
       if (item->GetProduction() == icm_->GetStartProduction() &&
-          item->GetDotNextSymbol() == 0 &&
+          item->GetDotNextSymbol() == kEmptySymbolId &&
           item->GetTerminator() == kStopSymbolId) {
         this->add_action(ic->GetIndex(), kStopSymbolId, ACC, 0);
       }
       int next_symbol = item->GetDotNextSymbol();
       if (next_symbol != 0) {
         const auto &p_ic = icm_->GetGoto(ic->GetIndex(), next_symbol);
-        if (pool_->GetSymbol(next_symbol)->terminator) {
+        if (pool_->GetSymbol(next_symbol)->IsTerminator()) {
           if (p_ic != nullptr) {
             this->add_action(ic->GetIndex(), next_symbol, MOVE,
                              p_ic->GetIndex());
@@ -100,8 +99,8 @@ void AnalyseTableGenerator::Generate() {
           }
         }
       } else {
-        if (pool_->GetSymbol(next_symbol)->terminator) {
-          if (item->GetProduction()->left != pool_->GetStartSymbol()->index) {
+        if (item->GetDotNextSymbol() == kEmptySymbolId) {
+          if (item->GetProduction()->left != pool_->GetStartSymbol()->Index()) {
             this->add_action(ic->GetIndex(), item->GetTerminator(), REDUCE,
                              item->GetProduction());
           }
@@ -146,11 +145,11 @@ void AnalyseTableGenerator::Print(const std::string &path) const {
   output << "[ACTION]---------------------->" << '\n';
   std::vector<int> symbols;
 
-  for (const auto *symbol : pool_->GetAllSymbols()) {
-    if (symbol->index == 0) continue;
-    if (symbol->terminator) {
-      indent = std::max(indent, symbol->name.size() + 2);
-      symbols.push_back(symbol->index);
+  for (const auto &symbol : pool_->GetAllSymbols()) {
+    if (symbol->Index() == 0) continue;
+    if (symbol->IsTerminator()) {
+      indent = std::max(indent, symbol->Name().size() + 2);
+      symbols.push_back(symbol->Index());
     }
   }
 
@@ -158,7 +157,7 @@ void AnalyseTableGenerator::Print(const std::string &path) const {
 
   output << std::left << space << " ";
   for (const auto symbol_index : symbols) {
-    output << std::left << space << pool_->GetSymbol(symbol_index)->name;
+    output << std::left << space << pool_->GetSymbol(symbol_index)->Name();
   }
 
   output << '\n';
@@ -191,11 +190,11 @@ void AnalyseTableGenerator::Print(const std::string &path) const {
   output << "[GOTO]---------------------->" << '\n';
   symbols.clear();
 
-  for (const auto *symbol : pool_->GetAllSymbols()) {
-    if (symbol->index == 0) continue;
-    if (!symbol->terminator && !symbol->start) {
-      indent = std::max(indent, symbol->name.size() + 2);
-      symbols.push_back(symbol->index);
+  for (const auto &symbol : pool_->GetAllSymbols()) {
+    if (symbol->Index() == kEmptySymbolId) continue;
+    if (!symbol->IsTerminator() && !symbol->IsSyntaxStartSymbol()) {
+      indent = std::max(indent, symbol->Name().size() + 2);
+      symbols.push_back(symbol->Index());
     }
   }
 
@@ -203,7 +202,7 @@ void AnalyseTableGenerator::Print(const std::string &path) const {
 
   output << std::left << space << " ";
   for (const auto symbol_index : symbols) {
-    output << std::left << space << pool_->GetSymbol(symbol_index)->name;
+    output << std::left << space << pool_->GetSymbol(symbol_index)->Name();
   }
 
   output << '\n';
