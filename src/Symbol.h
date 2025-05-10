@@ -1,9 +1,4 @@
-//
-// Created by Administrator on 2021/4/30.
-//
-
-#ifndef SYNTAXPARSER_SYMBOL_H
-#define SYNTAXPARSER_SYMBOL_H
+#pragma once
 
 #include <string>
 
@@ -19,5 +14,3 @@ struct Symbol {
         terminator(terminator),
         start(start) {}
 };
-
-#endif  // SYNTAXPARSER_SYMBOL_H

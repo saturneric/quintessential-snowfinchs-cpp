@@ -1,39 +1,36 @@
-//
-// Created by Administrator on 2021/4/30.
-//
 #include "ItemCollection.h"
 
 size_t ItemCollection::GetHash() const {
   size_t seed = 0;
 
-  std::vector<Item *> cache_sorted(cache.begin(), cache.end());
+  std::vector<ItemPtr> cache_sorted(cache_.begin(), cache_.end());
   std::sort(cache_sorted.begin(), cache_sorted.end(), compare_item_ptr);
 
-  for (auto *const item : cache_sorted) {
+  for (const auto &item : cache_sorted) {
     if (item->generated) {
       continue;
     }
 
-    hash_combine(seed, item->get_production());
-    hash_combine(seed, item->get_dot_index());
-    hash_combine(seed, item->get_terminator());
+    hash_combine(seed, item->GetProduction());
+    hash_combine(seed, item->GetDotIndex());
+    hash_combine(seed, item->GetTerminator());
   }
   return seed;
 }
 
-void ItemCollection::Print(std::ofstream &output) const {
-  output << "I" << index << ": ";
+void ItemCollection::Print(std::stringstream &output) const {
+  output << "I" << index_ << ": ";
 
-  for (const auto &item : cache) {
-    auto p_pdt = item->get_production();
-    int dot_index = item->get_dot_index();
-    output << pool->GetSymbol(p_pdt->left)->name << " -> ";
+  for (const auto &item : cache_) {
+    auto p_pdt = item->GetProduction();
+    int dot_index = item->GetDotIndex();
+    output << pool_->GetSymbol(p_pdt->left)->name << " -> ";
     int i = 0;
     for (const auto &symbol_index : p_pdt->right) {
       if (i > 0) output << " ";
       if (i++ == dot_index) output << "*";
 
-      const auto *symbol = pool->GetSymbol(symbol_index);
+      const auto *symbol = pool_->GetSymbol(symbol_index);
 
       if (symbol->index == 0) {
         output << "[Epsilon]";
@@ -41,49 +38,49 @@ void ItemCollection::Print(std::ofstream &output) const {
       }
 
       if (!symbol->terminator) {
-        output << pool->GetSymbol(symbol_index)->name;
+        output << pool_->GetSymbol(symbol_index)->name;
       } else {
-        output << '"' << pool->GetSymbol(symbol_index)->name << '"';
+        output << '"' << pool_->GetSymbol(symbol_index)->name << '"';
       }
     }
 
     if (i++ == dot_index) output << "*";
 
-    output << L", \"" << pool->GetSymbol(item->get_terminator())->name << "\""
-           << std::endl;
+    output << ", \"" << pool_->GetSymbol(item->GetTerminator())->name << "\""
+           << '\n';
   }
-  output << std::endl;
+  output << '\n';
 }
 
 void ItemCollection::CLOSURE() {
-  bool ifAdd = true;
+  bool if_add = true;
 
-  while (ifAdd) {
-    ifAdd = false;
+  while (if_add) {
+    if_add = false;
 
-    for (const auto &item : items) {
-      int next_symbol = item.second->get_dot_next_symbol();
+    for (const auto &item : items_) {
+      int next_symbol = item.second->GetDotNextSymbol();
 
-      if (next_symbol == 0 || pool->GetSymbol(next_symbol)->terminator) {
+      if (next_symbol == 0 || pool_->GetSymbol(next_symbol)->terminator) {
         continue;
       }
 
-      for (const auto &production : pool->GetProductions()) {
+      for (const auto &production : pool_->GetProductions()) {
         if (production->left == next_symbol) {
           std::vector<int> first_args;
-          auto *p_ic = item.second;
+          auto p_ic = item.second;
           const auto last_right_symbol_count =
-              p_ic->get_right_size() - p_ic->get_dot_index();
+              p_ic->GetRightSize() - p_ic->GetDotIndex();
           for (int i = 1; i <= last_right_symbol_count; i++) {
-            first_args.push_back(p_ic->get_dot_next_i_symbol(i));
+            first_args.push_back(p_ic->GetDotNextISymbol(i));
           }
-          first_args.push_back(p_ic->get_terminator());
+          first_args.push_back(p_ic->GetTerminator());
 
-          const auto *const first_set = pool->FIRST(first_args, 0);
+          const auto *const first_set = pool_->FIRST(first_args, 0);
           for (auto terminator : *first_set) {
             if (terminator == 0) continue;
             if (this->AddItem(production, 0, terminator, true)) {
-              ifAdd = true;
+              if_add = true;
             }
           }
         }
@@ -92,39 +89,39 @@ void ItemCollection::CLOSURE() {
   }
 }
 
-auto ItemCollection::AddItem(const std::shared_ptr<Production> &p_pdt,
-                             int dot_index, int terminator, bool generated)
-    -> bool {
+auto ItemCollection::AddItem(const ProductionPtr &p_pdt, int dot_index,
+                             int terminator, bool generated) -> bool {
   auto hasher = std::hash<int>();
   size_t seed = hasher(reinterpret_cast<long>(p_pdt.get()));
   hash_combine(seed, dot_index);
   hash_combine(seed, terminator);
 
-  auto it = items.find(seed);
-  if (it != items.end()) {
+  auto it = items_.find(seed);
+  if (it != items_.end()) {
     return false;
   }
 
-  auto *p_item = new Item(p_pdt, terminator, generated);
-  p_item->set_dot_index(dot_index);
-  items.insert(std::pair<size_t, Item *>(seed, p_item));
-  cache.push_back(p_item);
+  auto p_item = std::make_shared<Item>(p_pdt, terminator, generated);
+  p_item->SetDotIndex(dot_index);
+  items_.insert({seed, p_item});
+  cache_.push_back(p_item);
 
   return true;
 }
 
-bool ItemCollection::compare_item_ptr(const Item *lhs, const Item *rhs) {
-  if (lhs->get_production() != rhs->get_production()) {
-    return lhs->get_production() < rhs->get_production();
+auto ItemCollection::compare_item_ptr(const ItemPtr &lhs, const ItemPtr &rhs)
+    -> bool {
+  if (lhs->GetProduction() != rhs->GetProduction()) {
+    return lhs->GetProduction() < rhs->GetProduction();
   }
-  if (lhs->get_dot_index() != rhs->get_dot_index()) {
-    return lhs->get_dot_index() < rhs->get_dot_index();
+  if (lhs->GetDotIndex() != rhs->GetDotIndex()) {
+    return lhs->GetDotIndex() < rhs->GetDotIndex();
   }
-  return lhs->get_terminator() < rhs->get_terminator();
+  return lhs->GetTerminator() < rhs->GetTerminator();
 }
 
-auto ItemCollection::GetItems() const -> const std::vector<Item *> & {
-  return cache;
+auto ItemCollection::GetItems() const -> const std::vector<ItemPtr> & {
+  return cache_;
 }
 
-auto ItemCollection::GetIndex() const -> int { return index; }
+auto ItemCollection::GetIndex() const -> int { return index_; }

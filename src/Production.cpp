@@ -1,5 +1,4 @@
-//
-// Created by Administrator on 2021/4/30.
-//
-
 #include "Production.h"
+
+Production::Production(int index, int left, std::vector<int> right)
+    : index(index), left(left), right(std::move(right)) {}

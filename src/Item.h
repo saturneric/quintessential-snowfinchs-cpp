@@ -2,34 +2,32 @@
 
 #include <Production.h>
 
+class Item;
+using ItemPtr = std::shared_ptr<Item>;
+
 class Item {
  public:
   const bool generated = false;
 
-  explicit Item(std::shared_ptr<Production> p_pdt, int m_terminator,
-                bool m_generated = false)
-      : production_(std::move(p_pdt)),
-        terminator_(m_terminator),
-        generated(m_generated) {}
+  explicit Item(ProductionPtr p_pdt, int m_terminator,
+                bool m_generated = false);
 
-  void set_dot_index(int m_dot_index);
+  void SetDotIndex(int m_dot_index);
 
-  [[nodiscard]] int get_dot_index() const { return dot_index_; }
+  [[nodiscard]] auto GetDotIndex() const -> int;
 
-  [[nodiscard]] size_t get_right_size() { return production_->right.size(); }
+  [[nodiscard]] auto GetRightSize() -> size_t;
 
-  int get_dot_next_symbol() const;
+  [[nodiscard]] auto GetDotNextSymbol() const -> int;
 
-  int get_dot_next_i_symbol(int i) const;
+  [[nodiscard]] auto GetDotNextISymbol(int i) const -> int;
 
-  [[nodiscard]] int get_terminator() const { return terminator_; }
+  [[nodiscard]] auto GetTerminator() const -> int;
 
-  [[nodiscard]] std::shared_ptr<Production> get_production() const {
-    return production_;
-  }
+  [[nodiscard]] auto GetProduction() const -> ProductionPtr;
 
  private:
-  std::shared_ptr<Production> production_;
+  ProductionPtr production_;
   int dot_index_ = 0;
   const int terminator_ = 0;
 };

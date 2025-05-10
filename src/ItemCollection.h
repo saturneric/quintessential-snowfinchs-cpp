@@ -1,45 +1,39 @@
-//
-// Created by Administrator on 2021/4/30.
-//
-
-#ifndef SYNTAXPARSER_ITEMCOLLECTION_H
-#define SYNTAXPARSER_ITEMCOLLECTION_H
+#pragma once
 
 #include <GrammarResourcePool.h>
 #include <Item.h>
 
-#include <fstream>
 #include <functional>
-#include <utility>
+#include <sstream>
 
 class ItemCollectionManager;
 
 class ItemCollection {
  public:
   explicit ItemCollection(std::shared_ptr<GrammarResourcePool> pool)
-      : pool(std::move(pool)) {}
+      : pool_(std::move(pool)) {}
 
-  [[nodiscard]] auto GetItems() const -> const std::vector<Item *> &;
+  [[nodiscard]] auto GetItems() const -> const std::vector<ItemPtr> &;
 
   [[nodiscard]] auto GetIndex() const -> int;
 
-  auto AddItem(const std::shared_ptr<Production> &p_pdt, int dot_index,
-               int terminator, bool generated = false) -> bool;
+  auto AddItem(const ProductionPtr &p_pdt, int dot_index, int terminator,
+               bool generated = false) -> bool;
 
   void CLOSURE();
 
-  void Print(std::ofstream &output) const;
+  void Print(std::stringstream &output) const;
 
   [[nodiscard]] auto GetHash() const -> size_t;
 
  private:
-  int index = 0;
+  int index_ = 0;
 
-  std::map<size_t, Item *> items;
+  std::map<size_t, ItemPtr> items_;
 
-  std::vector<Item *> cache;
+  std::vector<ItemPtr> cache_;
 
-  std::shared_ptr<GrammarResourcePool> pool;
+  std::shared_ptr<GrammarResourcePool> pool_;
 
   friend ItemCollectionManager;
 
@@ -49,7 +43,5 @@ class ItemCollection {
     seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
   }
 
-  static auto compare_item_ptr(const Item *lhs, const Item *rhs) -> bool;
+  static auto compare_item_ptr(const ItemPtr &lhs, const ItemPtr &rhs) -> bool;
 };
-
-#endif  // SYNTAXPARSER_ITEMCOLLECTION_H

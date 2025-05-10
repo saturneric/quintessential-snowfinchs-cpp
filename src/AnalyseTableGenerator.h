@@ -14,37 +14,36 @@ class AnalyseTableGenerator {
     const Action action;
     struct Target {
       int index;
-      std::shared_ptr<Production> production;
+      ProductionPtr production;
     } target{};
 
-    Step(Action action, int index) : action(action), target(Target{index}) {}
-    Step(Action action, const std::shared_ptr<Production> &p_pdt)
-        : action(action) {
-      target.production = p_pdt;
-    }
+    Step(Action action, int index);
+    Step(Action action, const ProductionPtr &p_pdt);
   };
 
+  using StepPtr = std::shared_ptr<Step>;
+
   explicit AnalyseTableGenerator(
-      const std::shared_ptr<GrammarResourcePool> p_pool,
-      const std::shared_ptr<ItemCollectionManager> p_icm)
-      : pool(p_pool), icm(p_icm) {}
+      const std::shared_ptr<GrammarResourcePool> &p_pool,
+      const std::shared_ptr<ItemCollectionManager> &p_icm)
+      : pool_(p_pool), icm_(p_icm) {}
 
-  void generate();
+  void Generate();
 
-  const Step *findActionStep(int index, int terminator_symbol) const;
+  [[nodiscard]] auto FindActionStep(int index, int terminator_symbol) const
+      -> StepPtr;
 
-  const Step *findGotoStep(int index, int non_terminator_symbol) const;
+  [[nodiscard]] auto FindGotoStep(int index, int non_terminator_symbol) const
+      -> StepPtr;
 
   void Print(const std::string &path) const;
 
  private:
-  std::map<size_t, Step *> ACTION;
+  std::map<size_t, StepPtr> ACTION_;
+  std::map<size_t, StepPtr> GOTO_;
 
-  std::map<size_t, Step *> GOTO;
-
-  const std::shared_ptr<ItemCollectionManager> icm;
-
-  const std::shared_ptr<GrammarResourcePool> pool;
+  const std::shared_ptr<ItemCollectionManager> icm_;
+  const std::shared_ptr<GrammarResourcePool> pool_;
 
   template <class T>
   void hash_combine(std::size_t &seed, const T &v) const {
@@ -53,7 +52,7 @@ class AnalyseTableGenerator {
   }
 
   void add_action(int index, int terminator_symbol, Action action,
-                  const std::shared_ptr<Production> &target_pdt);
+                  const ProductionPtr &target_pdt);
 
   void add_action(int index, int terminator_symbol, Action action,
                   int target_index);

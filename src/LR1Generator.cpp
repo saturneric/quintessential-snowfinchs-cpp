@@ -1,7 +1,3 @@
-//
-// Created by Administrator on 2021/4/30.
-//
-
 #include "LR1Generator.h"
 
 #include <iostream>
@@ -21,8 +17,8 @@ void LR1Generator::Generate(const std::string& path) {
   }
 
   pool_->FOLLOW();
-  icm_->buildItems();
-  atg_->generate();
+  icm_->BuildItems();
+  atg_->Generate();
 }
 
 LR1Generator::LR1Generator(const Lexer& lexer)

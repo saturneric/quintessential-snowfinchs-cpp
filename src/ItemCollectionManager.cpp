@@ -1,41 +1,35 @@
-//
-// Created by Administrator on 2021/4/30.
-//
-
 #include "ItemCollectionManager.h"
 
-void ItemCollectionManager::buildItems() {
-  const auto *const start_symbol = pool->GetStartSymbol();
-
-  std::string new_symbol_name = start_symbol->name + "'";
+void ItemCollectionManager::BuildItems() {
+  const auto *const start_symbol = pool_->GetStartSymbol();
+  auto new_symbol_name = start_symbol->name + "'";
 
   int new_symbol_index =
-      pool->AddSymbol(new_symbol_name, start_symbol->terminator);
+      pool_->AddSymbol(new_symbol_name, start_symbol->terminator);
 
-  pool->ModifySymbol(start_symbol->index, start_symbol->name.substr(1), false,
-                     false);
+  pool_->ModifySymbol(start_symbol->index, start_symbol->name.substr(1), false,
+                      false);
 
   const auto p_pdt =
-      pool->AddProduction(new_symbol_index, {start_symbol->index});
+      pool_->AddProduction(new_symbol_index, {start_symbol->index});
 
-  this->start_pdt = p_pdt;
+  this->start_pdt_ = p_pdt;
 
-  auto *pi_ic = new ItemCollection(pool);
-
+  auto pi_ic = std::make_shared<ItemCollection>(pool_);
   pi_ic->AddItem(p_pdt, 0, kStopSymbolId);
-
   pi_ic->CLOSURE();
 
-  addItemCollection(0, 0, pi_ic);
+  AddItemCollection(0, 0, pi_ic);
 
   bool if_add = true;
 
   while (if_add) {
     if_add = false;
-    const auto &r_ics = getItemCollections();
-    std::vector<const ItemCollection *> temp_ics(r_ics.begin(), r_ics.end());
-    for (const auto ic : temp_ics) {
-      for (const auto symbol : pool->GetAllSymbols()) {
+    const auto &r_ics = GetItemCollections();
+    std::vector<std::shared_ptr<ItemCollection>> temp_ics(r_ics.begin(),
+                                                          r_ics.end());
+    for (const auto &ic : temp_ics) {
+      for (const auto *const symbol : pool_->GetAllSymbols()) {
         if (symbol->index <= 0) {
           continue;
         }
@@ -47,84 +41,100 @@ void ItemCollectionManager::buildItems() {
   }
 }
 
-ItemCollection *ItemCollectionManager::getItemCollectionByHash(size_t hash) {
-  ItemCollection *p_ic = nullptr;
-  auto it = ic_content_map.find(hash);
-  if (it != ic_content_map.end()) {
+auto ItemCollectionManager::GetItemCollectionByHash(size_t hash)
+    -> std::shared_ptr<ItemCollection> {
+  std::shared_ptr<ItemCollection> p_ic = nullptr;
+  auto it = ic_content_map_.find(hash);
+  if (it != ic_content_map_.end()) {
     p_ic = it->second;
   }
   return p_ic;
 }
 
-bool ItemCollectionManager::addItemCollection(int idx, int symbol,
-                                              ItemCollection *p_ic) {
+auto ItemCollectionManager::AddItemCollection(
+    int idx, int symbol, std::shared_ptr<ItemCollection> p_ic) -> bool {
   size_t ic_hash = p_ic->GetHash();
-  auto it = ic_content_map.find(ic_hash);
-  if (it != ic_content_map.end()) {
+  auto it = ic_content_map_.find(ic_hash);
+  if (it != ic_content_map_.end()) {
     p_ic = it->second;
   } else {
-    p_ic->index = this->index++;
-    ic_content_map.insert(std::pair<size_t, ItemCollection *>(ic_hash, p_ic));
-    ics.push_back(p_ic);
+    p_ic->index_ = this->index_++;
+    ic_content_map_.insert(
+        std::pair<size_t, std::shared_ptr<ItemCollection>>(ic_hash, p_ic));
+    ics_.push_back(p_ic);
   }
 
   auto hasher = std::hash<int>();
   size_t seed = hasher(idx);
   hash_combine(seed, symbol);
 
-  auto it2 = ic_map.find(seed);
-  if (it2 != ic_map.end()) {
+  auto it2 = ic_map_.find(seed);
+  if (it2 != ic_map_.end()) {
     return false;
   }
 
   if (symbol != 0) {
-    auto p_symbol = pool->GetSymbol(symbol);
-    if (p_symbol->terminator)
-      output << "GOTO(" << idx << ", \"" << p_symbol->name << "\")"
-             << std::endl;
-    else
-      output << "GOTO(" << idx << ", " << p_symbol->name << ")" << std::endl;
+    const auto *p_symbol = pool_->GetSymbol(symbol);
+    if (p_symbol->terminator) {
+      output_ << "GOTO(" << idx << ", \"" << p_symbol->name << "\")" << '\n';
+    } else {
+      output_ << "GOTO(" << idx << ", " << p_symbol->name << ")" << '\n';
+    }
   } else {
-    output << "GOTO(" << idx << ", [Epsilon])" << std::endl;
+    output_ << "GOTO(" << idx << ", [Epsilon])" << '\n';
   }
 
-  ic_map.insert(std::pair<size_t, ItemCollection *>(seed, p_ic));
-  p_ic->Print(output);
+  ic_map_.insert({seed, p_ic});
+  p_ic->Print(output_);
   return true;
 }
 
-const ItemCollection *ItemCollectionManager::getGOTO(int idx,
-                                                     int symbol) const {
+std::shared_ptr<ItemCollection> ItemCollectionManager::GetGoto(
+    int idx, int symbol) const {
   auto hasher = std::hash<int>();
   size_t seed = hasher(idx);
   hash_combine(seed, symbol);
 
-  auto it = ic_map.find(seed);
-  if (it != ic_map.end()) {
+  auto it = ic_map_.find(seed);
+  if (it != ic_map_.end()) {
     return it->second;
-  } else {
-    return nullptr;
   }
+  return nullptr;
 }
 
-bool ItemCollectionManager::GOTO(const ItemCollection *p_ic, int symbol) {
-  auto *pt_ic = new ItemCollection(pool);
+bool ItemCollectionManager::GOTO(const std::shared_ptr<ItemCollection> &p_ic,
+                                 int symbol) {
+  auto pt_ic = std::make_shared<ItemCollection>(pool_);
 
-  for (const auto &item : p_ic->cache) {
-    if (item->get_dot_next_symbol() == symbol) {
-      pt_ic->AddItem(item->get_production(), item->get_dot_index() + 1,
-                     item->get_terminator());
+  for (const auto &item : p_ic->cache_) {
+    if (item->GetDotNextSymbol() == symbol) {
+      pt_ic->AddItem(item->GetProduction(), item->GetDotIndex() + 1,
+                     item->GetTerminator());
     }
   }
-  auto *p_temp_ic = this->getItemCollectionByHash(pt_ic->GetHash());
-  if (p_temp_ic == nullptr)
+  auto p_temp_ic = this->GetItemCollectionByHash(pt_ic->GetHash());
+  if (p_temp_ic == nullptr) {
     pt_ic->CLOSURE();
-  else
-    pt_ic = p_temp_ic;
-
-  if (!pt_ic->items.empty()) {
-    return this->addItemCollection(p_ic->index, symbol, pt_ic);
   } else {
-    return false;
+    pt_ic = p_temp_ic;
   }
+
+  if (!pt_ic->items_.empty()) {
+    return this->AddItemCollection(p_ic->index_, symbol, pt_ic);
+  }
+
+  return false;
+}
+
+ItemCollectionManager::ItemCollectionManager(
+    std::shared_ptr<GrammarResourcePool> pool)
+    : pool_(std::move(pool)) {}
+
+auto ItemCollectionManager::GetStartProduction() const -> ProductionPtr {
+  return start_pdt_;
+}
+
+auto ItemCollectionManager::GetItemCollections() const
+    -> std::vector<std::shared_ptr<ItemCollection>> {
+  return ics_;
 }

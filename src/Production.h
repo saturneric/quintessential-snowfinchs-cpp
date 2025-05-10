@@ -1,9 +1,4 @@
-//
-// Created by Administrator on 2021/4/30.
-//
-
-#ifndef SYNTAXPARSER_PRODUCTION_H
-#define SYNTAXPARSER_PRODUCTION_H
+#pragma once
 
 #include <vector>
 
@@ -12,8 +7,7 @@ struct Production {
   const int left;
   const std::vector<int> right;
 
-  Production(int index, int left, std::vector<int> right)
-      : index(index), left(left), right(std::move(right)) {}
+  Production(int index, int left, std::vector<int> right);
 };
 
-#endif  // SYNTAXPARSER_PRODUCTION_H
+using ProductionPtr = std::shared_ptr<Production>;

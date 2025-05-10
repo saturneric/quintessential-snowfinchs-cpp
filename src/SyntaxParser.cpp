@@ -16,8 +16,8 @@ void SyntaxParser::Parse() {
     const auto token = token_queue_.front();
     auto token_id = token.Id();
 
-    const auto *p_step =
-        generator_->findActionStep(status_stack_.top(), token_id);
+    const auto &p_step =
+        generator_->FindActionStep(status_stack_.top(), token_id);
 
     if (p_step == nullptr) {
       print_error();
@@ -87,8 +87,8 @@ void SyntaxParser::Parse() {
         temp_stack.pop();
       }
 
-      const auto *p_goto_step =
-          generator_->findGotoStep(status_stack_.top(), p_pdt->left);
+      const auto &p_goto_step =
+          generator_->FindGotoStep(status_stack_.top(), p_pdt->left);
 
       if (p_goto_step == nullptr) {
         print_error();
@@ -114,7 +114,7 @@ void SyntaxParser::Parse() {
   }
 }
 
-void SyntaxParser::print_production(const std::shared_ptr<Production> &p_pdt) {
+void SyntaxParser::print_production(const ProductionPtr &p_pdt) {
   output_analyse_ << pool_->GetSymbol(p_pdt->left)->name << " -> ";
   int i = 0;
   for (const auto &symbol_index : p_pdt->right) {

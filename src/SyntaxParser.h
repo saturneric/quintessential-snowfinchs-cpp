@@ -42,5 +42,5 @@ class SyntaxParser {
 
   void print_symbol(int symbol_index);
 
-  void print_production(const std::shared_ptr<Production> &p_pdt);
+  void print_production(const ProductionPtr &p_pdt);
 };

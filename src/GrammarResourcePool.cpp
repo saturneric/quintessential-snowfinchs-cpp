@@ -24,9 +24,7 @@ auto GrammarResourcePool::FIRST(const std::vector<int> &symbols,
 
 auto GrammarResourcePool::FIRST(int symbol) -> const std::set<int> * {
   const auto it = firsts_.find(symbol);
-  if (it != firsts_.end()) {
-    return it->second;
-  }
+  if (it != firsts_.end()) return it->second;
 
   auto *non_terminator_symbols = new std::set<int>();
 
@@ -50,9 +48,8 @@ auto GrammarResourcePool::FIRST(int symbol) -> const std::set<int> * {
 
         const auto sec_it = p_non_term_set->find(0);
 
-        if (sec_it != p_non_term_set->end()) {
-          continue;
-        }
+        if (sec_it != p_non_term_set->end()) continue;
+
         break;
       }
     }
@@ -240,7 +237,7 @@ void GrammarResourcePool::ParseProductionStringLine(const std::string &line) {
 
 auto GrammarResourcePool::AddProduction(int left,
                                         std::initializer_list<int> right)
-    -> std::shared_ptr<Production> {
+    -> ProductionPtr {
   std::vector<int> right_vector;
   for (int symbol : right) {
     right_vector.push_back(symbol);
@@ -251,7 +248,7 @@ auto GrammarResourcePool::AddProduction(int left,
   return productions_.back();
 }
 auto GrammarResourcePool::GetProductions() const
-    -> const std::vector<std::shared_ptr<Production>> & {
+    -> const std::vector<ProductionPtr> & {
   return productions_;
 }
 

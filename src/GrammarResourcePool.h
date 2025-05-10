@@ -23,7 +23,7 @@ class GrammarResourcePool {
   void ParseProductionStringLine(const std::string &temp_line);
 
   [[nodiscard]] auto GetProductions() const
-      -> const std::vector<std::shared_ptr<Production>> &;
+      -> const std::vector<ProductionPtr> &;
 
   [[nodiscard]] auto GetSymbol(int symbol_index) const -> const Symbol *;
 
@@ -34,7 +34,7 @@ class GrammarResourcePool {
   auto AddSymbolToken(int index, const std::string &name) -> int;
 
   auto AddProduction(int left, std::initializer_list<int> right)
-      -> std::shared_ptr<Production>;
+      -> ProductionPtr;
 
   [[nodiscard]] auto GetAllSymbols() const
       -> const std::vector<const Symbol *> &;
@@ -47,7 +47,7 @@ class GrammarResourcePool {
  private:
   int pdt_index_ = 0;
   SymbolTable symbol_table_;
-  std::vector<std::shared_ptr<Production>> productions_;
+  std::vector<ProductionPtr> productions_;
   std::map<int, const std::set<int> *> firsts_;
   std::map<int, std::set<int> *> follows_;
 
