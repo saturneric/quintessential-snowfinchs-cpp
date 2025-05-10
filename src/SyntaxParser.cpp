@@ -1,5 +1,6 @@
 #include "SyntaxParser.h"
 
+#include <cassert>
 #include <iostream>
 
 void SyntaxParser::Parse() {
@@ -8,19 +9,20 @@ void SyntaxParser::Parse() {
   token_queue_ = lexer_.Tokens();
 
   // add EOF
-  token_queue_.emplace(kTokenSpecEOF, kEOFSymbol);
+  token_queue_.emplace(pool_->GetSymbol(kEOFSymbolId));
   // add $
-  token_queue_.emplace(kTokenSpecStop, kStopSymbol);
+  token_queue_.emplace(pool_->GetSymbol(kStopSymbolId));
 
   while (!token_queue_.empty()) {
     const auto token = token_queue_.front();
-    const int syntax_symbol_index = pool_->GetSymbolIndex(token.Name());
 
-    std::cout << "syntax symbol id: " << syntax_symbol_index
-              << " token id: " << token.Id() << "\n";
+    const auto symbol = pool_->GetSymbolByToken(
+        token->Type() == SymbolType::kTOKEN ? token->Value() : token->Name());
+    assert(symbol != nullptr);
 
+    const auto symbol_idx = symbol->Index();
     const auto &p_step =
-        generator_->FindActionStep(status_stack_.top(), syntax_symbol_index);
+        generator_->FindActionStep(status_stack_.top(), symbol_idx);
 
     if (p_step == nullptr) {
       print_error();
@@ -31,21 +33,21 @@ void SyntaxParser::Parse() {
       output_analyse_ << "MOVE IN" << "(AUTOMATA STATUS " << status_stack_.top()
                       << "): ";
 
-      print_symbol(syntax_symbol_index);
+      print_symbol(symbol_idx);
 
-      auto *node = new TreeNode(syntax_symbol_index);
-      node->AddValue(token.value);
+      auto *node = new TreeNode(symbol_idx);
+      node->AddValue(token->Name());
 
-      const auto p_symbol = pool_->GetSymbol(syntax_symbol_index);
+      const auto &p_symbol = symbol;
 
       if (p_symbol->IsTerminator()) node->AddInfo("terminator");
       node->AddInfo(p_symbol->Name());
 
       status_stack_.push(p_step->target.index);
-      analyse_stack_.push(syntax_symbol_index);
+      analyse_stack_.push(symbol_idx);
       tree_stack_.push(node);
 
-      buffer_ << token.value << " ";
+      buffer_ << token->Name() << " ";
       token_queue_.pop();
 
     } else if (p_step->action == REDUCE) {
@@ -150,12 +152,12 @@ void SyntaxParser::print_done() {
 void SyntaxParser::print_error() {
   const auto token = token_queue_.front();
   std::string temp_line = buffer_.str();
-  const int syntax_symbol_index = pool_->GetSymbolIndex(token.Name());
+  const int syntax_symbol_index = pool_->GetSymbolIndex(token->Name());
 
   std::cout << "Syntax Parser Found Error: " << '\n'
             << "At: " << temp_line << "-> Next Token{"
             << pool_->GetSymbol(syntax_symbol_index)->Name() << "}"
-            << " " << "Value{" << token.value << "}" << '\n';
+            << " " << "Value{" << token->Name() << "}" << '\n';
 
   std::cout << "AUTOMATA STATUS " << status_stack_.top() << '\n';
 }

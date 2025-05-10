@@ -22,15 +22,19 @@ void LR1Generator::Generate(const std::string& path) {
 }
 
 LR1Generator::LR1Generator(const Lexer& lexer)
-    : pool_(std::make_shared<GrammarResourcePool>()),
+    : pool_(std::make_shared<GrammarResourcePool>(lexer.SymbolTable())),
       icm_(std::make_shared<ItemCollectionManager>(pool_)),
       atg_(std::make_shared<AnalyseTableGenerator>(pool_, icm_)) {
   for (const auto& spec : lexer.TokenSpecs()) {
-    pool_->AddSymbol(spec.name, true);
+    pool_->AddSymbol(spec->Name(), true);
   }
 }
 
 void LR1Generator::Print(const std::string& path) { atg_->Print(path); }
+
+void LR1Generator::PrintCanonicalCollection(const std::string& path) {
+  icm_->Print(path);
+}
 
 auto LR1Generator::Pool() const -> std::shared_ptr<GrammarResourcePool> {
   return pool_;

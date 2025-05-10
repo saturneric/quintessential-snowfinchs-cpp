@@ -25,7 +25,7 @@ class SyntaxParser {
   std::shared_ptr<GrammarResourcePool> pool_;
   std::shared_ptr<AnalyseTableGenerator> generator_;
 
-  std::queue<LexerToken> token_queue_;
+  std::queue<SymbolPtr> token_queue_;
   std::stack<int> analyse_stack_;
   std::stack<int> status_stack_;
   std::stack<TreeNode *> tree_stack_;

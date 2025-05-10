@@ -140,3 +140,9 @@ auto ItemCollectionManager::GetItemCollections() const
     -> std::vector<std::shared_ptr<ItemCollection>> {
   return ics_;
 }
+
+void ItemCollectionManager::Print(const std::string &path) {
+  std::ofstream f(path);
+  f << output_.str();
+  f.close();
+}

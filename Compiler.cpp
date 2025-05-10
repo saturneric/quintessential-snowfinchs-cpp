@@ -21,7 +21,9 @@ auto main(int argc, const char *argv[]) -> int {
     clock_t end;
     start = clock();
 
-    Lexer lexer;
+    auto symbol_table = std::make_shared<SymbolTable>();
+
+    Lexer lexer(symbol_table);
     lexer.LoadTokenSpecs("TokenSpecs.txt");
     lexer.Lex(argv[1]);
     lexer.Print("PrintLexer.txt");
@@ -36,6 +38,7 @@ auto main(int argc, const char *argv[]) -> int {
     LR1Generator generator(lexer);
     generator.Generate("SyntaxInput.txt");
     generator.Print("PrintLR1Table.txt");
+    generator.PrintCanonicalCollection("PrintCCollection.txt");
 
     end = clock();
     times = static_cast<double>(end - start) / CLOCKS_PER_SEC;

@@ -14,6 +14,8 @@ class LR1Generator {
 
   void Print(const std::string& path);
 
+  void PrintCanonicalCollection(const std::string& path);
+
   [[nodiscard]] auto Pool() const -> std::shared_ptr<GrammarResourcePool>;
 
   [[nodiscard]] auto Generator() const

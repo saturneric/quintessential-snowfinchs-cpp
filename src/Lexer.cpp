@@ -28,9 +28,15 @@ void Lexer::Lex(const std::string& path) {
       std::smatch match;
       if (std::regex_search(start, input.cend(), match, re)) {
         const auto value = match.str(1);
-
         assert(token_specs_index_.count(id) != 0);
-        tokens_.emplace_back(token_specs_index_[id], value);
+
+        auto token_spec_symbol = token_specs_index_[id];
+        assert(token_spec_symbol != nullptr);
+
+        auto token_symbol = symbol_table_->AddSymbol(SymbolType::kTOKEN, value,
+                                                     token_spec_symbol->Name());
+
+        tokens_.emplace_back(token_symbol);
 
         start += static_cast<long>(value.size());
         matched = true;
@@ -57,12 +63,16 @@ void Lexer::LoadTokenSpecs(const std::string& path) {
   while (infile >> name) {
     if (name == "NONE") continue;
     if (!(infile >> pattern)) break;
-    token_specs_.push_back({id++, name, pattern});
-    token_specs_index_.insert({token_specs_.back().id, token_specs_.back()});
+
+    auto symbol =
+        symbol_table_->AddSymbol(SymbolType::kTOKEN_SPEC, name, pattern);
+
+    token_specs_.push_back(symbol);
+    token_specs_index_.insert({symbol->Index(), symbol});
   }
 
   for (const auto& spec : token_specs_) {
-    regexes_.insert({spec.id, std::regex("^(" + spec.pattern + ")")});
+    regexes_.insert({spec->Index(), std::regex("^(" + spec->Value() + ")")});
   }
 }
 
@@ -70,18 +80,26 @@ void Lexer::Print(const std::string& path) {
   std::ofstream f(path);
 
   for (const auto& token : tokens_) {
-    f << token.Name() << "(" << token.Id() << ")" << "[" << token.value << "]"
+    f << token->Name() << "(" << token->Index() << ")" << "[" << token->Value()
+      << "]"
       << "\n";
   }
 
   f.close();
 }
 
-auto Lexer::Tokens() const -> std::queue<LexerToken> {
-  return std::queue<LexerToken, std::deque<LexerToken>>{
-      std::deque<LexerToken>{tokens_.cbegin(), tokens_.cend()}};
+auto Lexer::Tokens() const -> std::queue<SymbolPtr> {
+  return std::queue<SymbolPtr, std::deque<SymbolPtr>>{
+      std::deque<SymbolPtr>{tokens_.cbegin(), tokens_.cend()}};
 }
 
-auto Lexer::TokenSpecs() const -> std::vector<LexerTokenSpec> {
+auto Lexer::TokenSpecs() const -> std::vector<SymbolPtr> {
   return token_specs_;
+}
+
+Lexer::Lexer(std::shared_ptr<class SymbolTable> symbol_table)
+    : symbol_table_(std::move(symbol_table)) {}
+
+auto Lexer::SymbolTable() const -> std::shared_ptr<class SymbolTable> {
+  return symbol_table_;
 }

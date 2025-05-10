@@ -4,11 +4,15 @@
 #include <SymbolTable.h>
 
 #include <set>
+#include <utility>
 
 class GrammarResourcePool {
  public:
   using SymbolSet = std::set<int>;
   using SymbolSetPtr = std::shared_ptr<SymbolSet>;
+
+  explicit GrammarResourcePool(std::shared_ptr<SymbolTable> symbol_table)
+      : symbol_table_(std::move(symbol_table)) {}
 
   auto FIRST(const std::vector<int> &symbols, int start_index) -> SymbolSetPtr;
 
@@ -47,7 +51,7 @@ class GrammarResourcePool {
 
  private:
   int pdt_index_ = 0;
-  SymbolTable symbol_table_;
+  std::shared_ptr<SymbolTable> symbol_table_;
   std::vector<ProductionPtr> productions_;
   std::map<int, SymbolSetPtr> firsts_;
   std::map<int, SymbolSetPtr> follows_;

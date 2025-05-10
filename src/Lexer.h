@@ -4,31 +4,15 @@
 #include <queue>
 #include <regex>
 #include <string>
-#include <utility>
 #include <vector>
+
+#include "SymbolTable.h"
 
 constexpr int kTokenIndexStart = 1 << 16;
 
-struct LexerTokenSpec {
-  int id;
-  std::string name;
-  std::string pattern;
-};
-
-struct LexerToken {
-  LexerTokenSpec spec;
-  std::string value;
-
-  LexerToken(LexerTokenSpec spec, std::string value)
-      : spec(std::move(spec)), value(std::move(value)) {}
-
-  [[nodiscard]] auto Id() const -> int { return spec.id; }
-  [[nodiscard]] auto Name() const -> std::string { return spec.name; }
-};
-
 class Lexer {
  public:
-  Lexer() = default;
+  explicit Lexer(std::shared_ptr<SymbolTable> symbol_table);
 
   void Lex(const std::string& path);
 
@@ -36,13 +20,17 @@ class Lexer {
 
   void Print(const std::string& path);
 
-  [[nodiscard]] auto Tokens() const -> std::queue<LexerToken>;
+  [[nodiscard]] auto Tokens() const -> std::queue<SymbolPtr>;
 
-  [[nodiscard]] auto TokenSpecs() const -> std::vector<LexerTokenSpec>;
+  [[nodiscard]] auto TokenSpecs() const -> std::vector<SymbolPtr>;
+
+  [[nodiscard]] auto SymbolTable() const -> std::shared_ptr<SymbolTable>;
 
  private:
-  std::vector<LexerToken> tokens_;
-  std::vector<LexerTokenSpec> token_specs_;
-  std::map<int, LexerTokenSpec> token_specs_index_;
+  std::shared_ptr<class SymbolTable> symbol_table_;
+
+  std::vector<SymbolPtr> tokens_;
+  std::vector<SymbolPtr> token_specs_;
+  std::map<int, SymbolPtr> token_specs_index_;
   std::map<int, std::regex> regexes_;
 };

@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "Lexer.h"
 #include "Symbol.h"
 
 const std::string kEmptySymbol = "ε";
@@ -16,9 +15,6 @@ const int kStopSymbolId = -1;
 const int kEOFSymbolId = 1;
 
 const char kStartSymbolPrefix = '@';
-
-const struct LexerTokenSpec kTokenSpecEOF = {kEOFSymbolId, kEOFSymbol, {}};
-const struct LexerTokenSpec kTokenSpecStop = {kStopSymbolId, kStopSymbol, {}};
 
 class SymbolTable {
   int index_ = 1 << 10;
