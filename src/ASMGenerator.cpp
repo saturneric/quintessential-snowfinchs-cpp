@@ -82,7 +82,7 @@ auto ASMGenerator::format_operand(const std::string& operand) -> std::string {
   return operand + "(%rip)";
 }
 
-auto ASMGenerator::is_variable(const std::string& s) -> bool {
+auto ASMGenerator::is_variable(const std::string& s) const -> bool {
   if (s.empty()) return false;
   if (std::isdigit(s[0]) || s[0] == '-') return false;
   return true;
@@ -97,7 +97,11 @@ auto ASMGenerator::is_reg(const std::string& s) -> bool {
 auto ASMGenerator::generate_data_segment() const -> std::vector<std::string> {
   std::vector<std::string> ret;
   for (const auto& c : constants_) {
-    ret.emplace_back("const_" + c + ": .quad " + c);
+    if (!is_variable(c)) {
+      ret.emplace_back("const_" + c + ": .quad " + c);
+    } else {
+      ret.emplace_back(c + ": .quad 0");
+    }
   }
   return ret;
 }
@@ -109,12 +113,6 @@ void ASMGenerator::alloc_reg() {
   };
 
   reg_alloc_.clear();
-
-  std::cout << "[MCS Order]: ";
-  for (const auto& var : mcs_order_) {
-    std::cout << var << " ";
-  }
-  std::cout << '\n';
 
   std::set<std::string> spilled_vars;
 
@@ -139,100 +137,7 @@ void ASMGenerator::alloc_reg() {
     }
   }
 
-  for (const auto& [var, reg] : reg_alloc_) {
-    std::cout << "Variable: " << var << " => Register: " << reg << "\n";
-  }
-
-  std::vector<IRInstructionA2> n_ir;
-
-  int temp_counter = 0;
-  auto new_temp = [&]() {
-    return "spill_tmp" + std::to_string(temp_counter++);
-  };
-
-  for (const auto& i : ir_) {
-    bool use_spilled = is_variable(i.arg2) && spilled_vars.count(i.arg2) != 0U;
-    bool def_spilled = is_variable(i.arg1) && spilled_vars.count(i.arg1) != 0U;
-
-    if (use_spilled && def_spilled) {
-      std::string tmp_backup_0 = new_temp();
-      n_ir.push_back({"store", tmp_backup_0, "%r10"});  // save %r10
-      n_ir.push_back({"load", "%r10", reg_alloc_[i.arg2]});
-
-      std::string tmp_backup_1 = new_temp();
-      n_ir.push_back({"store", tmp_backup_1, "%r11"});  // save %r11
-      n_ir.push_back({"load", "%r11", reg_alloc_[i.arg1]});
-
-      n_ir.push_back({i.op, "%r11", "%r10"});
-
-      n_ir.push_back({"store", reg_alloc_[i.arg1], "%r11"});
-      n_ir.push_back({"load", "%r10", tmp_backup_0});  // restore %r10
-      n_ir.push_back({"load", "%r11", tmp_backup_1});  // restore %r11
-    }
-
-    else if (use_spilled) {
-      std::string tmp_backup = new_temp();
-      n_ir.push_back({"store", tmp_backup, "%r11"});  // save %r11
-      n_ir.push_back({"load", "%r11", reg_alloc_[i.arg2]});
-      n_ir.push_back({i.op, reg_alloc_[i.arg1], "%r11"});
-      n_ir.push_back({"load", "%r11", tmp_backup});  // restore %r11
-    }
-
-    else if (def_spilled) {
-      std::string tmp_backup = new_temp();
-      n_ir.push_back({"store", tmp_backup, "%r11"});  // save %r11
-      n_ir.push_back({"load", "%r11", reg_alloc_[i.arg1]});
-      n_ir.push_back({i.op, "%r11", reg_alloc_[i.arg2]});
-      n_ir.push_back({"store", reg_alloc_[i.arg1], "%r11"});
-      n_ir.push_back({"load", "%r11", tmp_backup});  // restore %r11
-    }
-
-    else {
-      n_ir.push_back({i.op, is_variable(i.arg1) ? reg_alloc_[i.arg1] : i.arg1,
-                      is_variable(i.arg2) ? reg_alloc_[i.arg2] : i.arg2});
-    }
-  }
-
-  ir_opt_ = n_ir;
-}
-
-void InterferenceGraph::AddVariable(const std::string& var) { adj_list_[var]; }
-
-void InterferenceGraph::AddEdge(const std::string& var1,
-                                const std::string& var2) {
-  if (var1 == var2) return;
-  adj_list_[var1].insert(var2);
-  adj_list_[var2].insert(var1);
-}
-
-void InterferenceGraph::RemoveEdge(const std::string& var1,
-                                   const std::string& var2) {
-  if (var1 == var2) return;
-  adj_list_[var1].erase(var2);
-  adj_list_[var2].erase(var1);
-}
-
-auto InterferenceGraph::Neighbors(const std::string& var) const
-    -> std::unordered_set<std::string> {
-  auto it = adj_list_.find(var);
-  return it != adj_list_.end() ? it->second : std::unordered_set<std::string>{};
-}
-
-auto InterferenceGraph::Variables() const -> std::vector<std::string> {
-  std::vector<std::string> vars;
-  vars.reserve(adj_list_.size());
-  for (const auto& [key, _] : adj_list_) {
-    vars.push_back(key);
-  }
-  return vars;
-}
-
-void InterferenceGraph::Print() const {
-  for (const auto& [var, neighbors] : adj_list_) {
-    std::cout << var << " inf: ";
-    for (const auto& n : neighbors) std::cout << n << " ";
-    std::cout << "\n";
-  }
+  ir_opt_ = handle_spling_var(spilled_vars);
 }
 
 void ASMGenerator::build_inf_graph() {
@@ -365,4 +270,78 @@ void ASMGenerator::optimums() {
   }
 
   ir_opt_ = n_ir;
+}
+
+auto ASMGenerator::bounded_reg(const std::string& operand) -> std::string {
+  if (operand.empty()) return operand;
+
+  if (is_reg(operand)) return operand;
+  if (!is_variable(operand)) return operand;
+
+  auto it = reg_alloc_.find(operand);
+  if (it != reg_alloc_.end()) return it->second;
+
+  throw std::runtime_error("Operand not found in register allocation: " +
+                           operand);
+}
+
+auto ASMGenerator::handle_spling_var(const std::set<std::string>& spilled_vars)
+    -> std::vector<IRInstructionA2> {
+  std::vector<IRInstructionA2> n_ir;
+  int temp_counter = 0;
+  auto new_temp = [&]() {
+    return "spill_tmp" + std::to_string(temp_counter++);
+  };
+
+  for (const auto& i : ir_) {
+    bool use_spilled = is_variable(i.arg2) && spilled_vars.count(i.arg2) != 0U;
+    bool def_spilled = is_variable(i.arg1) && spilled_vars.count(i.arg1) != 0U;
+
+    if (i.op == "mov" && use_spilled && def_spilled) {
+      std::string tmp_backup_0 = new_temp();
+      n_ir.push_back({"store", tmp_backup_0, "%r10"});
+      n_ir.push_back({"load", "%r10", bounded_reg(i.arg2)});
+      n_ir.push_back({"mov", bounded_reg(i.arg1), "%rax"});
+      n_ir.push_back({"load", "%rax", tmp_backup_0});
+    }
+
+    else if (i.op != "mov" && use_spilled && def_spilled) {
+      std::string tmp_backup_0 = new_temp();
+      n_ir.push_back({"store", tmp_backup_0, "%r10"});  // save %r10
+      n_ir.push_back({"load", "%r10", bounded_reg(i.arg2)});
+
+      std::string tmp_backup_1 = new_temp();
+      n_ir.push_back({"store", tmp_backup_1, "%r11"});  // save %r11
+      n_ir.push_back({"load", "%r11", bounded_reg(i.arg1)});
+
+      n_ir.push_back({i.op, "%r11", "%r10"});
+
+      n_ir.push_back({"store", bounded_reg(i.arg1), "%r11"});
+      n_ir.push_back({"load", "%r10", tmp_backup_0});  // restore %r10
+      n_ir.push_back({"load", "%r11", tmp_backup_1});  // restore %r11
+    }
+
+    else if (i.op != "mov" && use_spilled) {
+      std::string tmp_backup = new_temp();
+      n_ir.push_back({"store", tmp_backup, "%r11"});  // save %r11
+      n_ir.push_back({"load", "%r11", bounded_reg(i.arg2)});
+      n_ir.push_back({i.op, bounded_reg(i.arg1), "%r11"});
+      n_ir.push_back({"load", "%r11", tmp_backup});  // restore %r11
+    }
+
+    else if (i.op != "mov" && def_spilled) {
+      std::string tmp_backup = new_temp();
+      n_ir.push_back({"store", tmp_backup, "%r11"});  // save %r11
+      n_ir.push_back({"load", "%r11", bounded_reg(i.arg1)});
+      n_ir.push_back({i.op, "%r11", bounded_reg(i.arg2)});
+      n_ir.push_back({"store", bounded_reg(i.arg1), "%r11"});
+      n_ir.push_back({"load", "%r11", tmp_backup});  // restore %r11
+    }
+
+    else {
+      n_ir.push_back({i.op, bounded_reg(i.arg1), bounded_reg(i.arg2)});
+    }
+  }
+
+  return n_ir;
 }

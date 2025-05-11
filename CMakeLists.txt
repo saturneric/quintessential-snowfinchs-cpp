@@ -10,4 +10,4 @@ include_directories(src)
 
 aux_source_directory(src SRC_FILES)
 
-add_executable(LR1Compiler main.cpp ${SRC_FILES})
+add_executable(compiler main.cpp ${SRC_FILES})

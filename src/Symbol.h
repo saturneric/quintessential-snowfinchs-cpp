@@ -2,13 +2,13 @@
 
 #include <map>
 #include <string>
-#include <utility>
 
 enum class SymbolType : uint8_t {
   kTOKEN_SPEC,
   kTOKEN,
   kSYNTAX,
   kAST,
+  kSEMANTIC,
 };
 
 class Symbol {

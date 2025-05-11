@@ -1,18 +1,8 @@
 #include "SymbolTable.h"
 
 #include <memory>
-#include <vector>
 
-SymbolTable::SymbolTable() {
-  auto empty = AddSymbol(SymbolType::kSYNTAX, kEmptySymbolId, kEmptySymbol);
-  empty->SetTerminator(false);
-
-  auto stop = AddSymbol(SymbolType::kSYNTAX, kStopSymbolId, kStopSymbol);
-  stop->SetTerminator(true);
-
-  auto eof = AddSymbol(SymbolType::kSYNTAX, kEOFSymbolId, kEOFSymbol);
-  eof->SetTerminator(true);
-}
+SymbolTable::SymbolTable() = default;
 
 auto SymbolTable::AddSymbol(SymbolType type, int index, const std::string &name,
                             const std::string &value) -> SymbolPtr {
@@ -43,7 +33,20 @@ auto SymbolTable::AddASTSymbol(const std::string &name,
       std::make_shared<class Symbol>(SymbolType::kAST, index_++, name, value);
   table_[SymbolType::kAST].insert({symbol->Name(), symbol});
 
-  cache_.insert(std::pair<int, SymbolPtr>(symbol->Index(), symbol));
+  cache_.insert({symbol->Index(), symbol});
+  return symbol;
+}
+
+auto SymbolTable::AddSemanticSymbol(int scope, const std::string &name,
+                                    const std::string &value) -> SymbolPtr {
+  if (semantic_table_.count(scope) == 0) semantic_table_[scope] = {};
+
+  while (cache_.count(index_) != 0) index_++;
+  auto symbol =
+      std::make_shared<class Symbol>(SymbolType::kAST, index_++, name, value);
+  semantic_table_[scope].insert({symbol->Name(), symbol});
+
+  cache_.insert({symbol->Index(), symbol});
   return symbol;
 }
 
@@ -88,17 +91,13 @@ void SymbolTable::ModifySymbol(int idx, const std::string &name,
   p_sym->SetStartSymbol(start);
 }
 
-auto SymbolTable::GetSyntaxStartSymbol() const -> SymbolPtr {
-  for (const auto &symbol : GetAllSyntaxSymbols()) {
-    if (symbol->IsSyntaxStartSymbol()) return symbol;
-  }
+auto SymbolTable::SearchSemanticSymbol(int scope, const std::string &name) const
+    -> SymbolPtr {
+  if (semantic_table_.count(scope) == 0) return nullptr;
 
-  throw std::runtime_error("Start Symbol NOT Found");
-}
-auto SymbolTable::GetAllSyntaxSymbols() const -> std::vector<SymbolPtr> {
-  const auto type_table = table_.at(SymbolType::kSYNTAX);
-  std::vector<SymbolPtr> symbols;
+  const auto type_table = semantic_table_.at(scope);
+  const auto &it = type_table.find(name);
 
-  for (auto const &i : type_table) symbols.push_back(i.second);
-  return symbols;
+  if (it == type_table.end()) return nullptr;
+  return it->second;
 }
