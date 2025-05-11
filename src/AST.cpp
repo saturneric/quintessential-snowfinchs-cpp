@@ -15,6 +15,7 @@ const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
     {ASTNodeType::kRETURN, "Return"},
     {ASTNodeType::kVALUE, "Value"},
     {ASTNodeType::kTYPE, "Type"},
+    {ASTNodeType::kIDENT, "Identity"},
 };
 
 auto GenerateASTSymbol(const SymbolTablePtr& table, const SymbolPtr& symbol) {
@@ -352,3 +353,5 @@ void AST::LoadBinding(const std::string& path) {
 
 AST::AST(std::shared_ptr<SymbolTable> symbol_table)
     : symbol_table_(std::move(symbol_table)) {};
+
+void AST::SetRoot(const ASTNodePtr& root) { root_ = root; }

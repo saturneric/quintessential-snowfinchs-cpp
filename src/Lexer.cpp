@@ -61,7 +61,6 @@ void Lexer::LoadTokenSpecs(const std::string& path) {
   token_specs_.clear();
 
   while (infile >> name) {
-    if (name == "NONE") continue;
     if (!(infile >> pattern)) break;
 
     auto symbol =

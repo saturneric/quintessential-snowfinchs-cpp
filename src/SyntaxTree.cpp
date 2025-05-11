@@ -39,3 +39,7 @@ void SyntaxTree::Print(std::ostream &stream) {
   do_tree_node_print(root_, stream);
   stream.flush();
 }
+
+auto MakeSyntaxTreeNode(const std::string &name) -> std::shared_ptr<TreeNode> {
+  return std::make_shared<TreeNode>(nullptr);
+}

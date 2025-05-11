@@ -16,6 +16,7 @@ enum class ASTNodeType : char {
   kRETURN,
   kTYPE,
   kVALUE,
+  kIDENT,
 };
 
 class ASTNode;
@@ -23,6 +24,8 @@ using ASTNodePtr = std::shared_ptr<ASTNode>;
 
 class ASTNode {
  public:
+  ASTNode() = default;
+
   ASTNode(ASTNodeType type, SymbolPtr opera);
 
   ASTNode(ASTNodeType type, SymbolPtr opera,
@@ -53,6 +56,8 @@ class AST {
   void LoadBinding(const std::string &path);
 
   auto Build(const SyntaxTree &tree) -> bool;
+
+  void SetRoot(const ASTNodePtr &root);
 
   void Print(const std::string &path);
 

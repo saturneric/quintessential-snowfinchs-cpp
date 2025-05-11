@@ -80,7 +80,7 @@ void AnalyseTableGenerator::Generate() {
 
   for (const auto &ic : ics) {
     for (const auto &item : ic->GetItems()) {
-      if (item->GetProduction() == icm_->GetStartProduction() &&
+      if (item->GetProduction()->index == icm_->GetStartProduction()->index &&
           item->GetDotNextSymbol() == kEmptySymbolId &&
           item->GetTerminator() == kStopSymbolId) {
         this->add_action(ic->GetIndex(), kStopSymbolId, ACC, 0);
@@ -90,6 +90,14 @@ void AnalyseTableGenerator::Generate() {
         const auto &p_ic = icm_->GetGoto(ic->GetIndex(), next_symbol);
         if (pool_->GetSymbol(next_symbol)->IsTerminator()) {
           if (p_ic != nullptr) {
+            int left = item->GetProduction()->left;
+            std::string left_name = pool_->GetSymbol(left)->Name();
+            std::string terminator_name =
+                pool_->GetSymbol(item->GetTerminator())->Name();
+            std::cout << "[CHECK MOVE] state=" << ic->GetIndex()
+                      << ", left=" << left_name
+                      << ", terminator=" << terminator_name << "\n";
+
             this->add_action(ic->GetIndex(), next_symbol, MOVE,
                              p_ic->GetIndex());
           }
@@ -99,6 +107,14 @@ void AnalyseTableGenerator::Generate() {
           }
         }
       } else {
+        int left = item->GetProduction()->left;
+        std::string left_name = pool_->GetSymbol(left)->Name();
+        std::string terminator_name =
+            pool_->GetSymbol(item->GetTerminator())->Name();
+        std::cout << "[CHECK REDUCE] state=" << ic->GetIndex()
+                  << ", left=" << left_name
+                  << ", terminator=" << terminator_name << "\n";
+
         if (item->GetDotNextSymbol() == kEmptySymbolId) {
           if (item->GetProduction()->left != pool_->GetStartSymbol()->Index()) {
             this->add_action(ic->GetIndex(), item->GetTerminator(), REDUCE,

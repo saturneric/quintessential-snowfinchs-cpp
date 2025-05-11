@@ -14,18 +14,19 @@ auto BinOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
     -> std::string {
   auto children = node->Children();
 
-  if (node->Children().size() < 2) return "";
+  if (children.size() != 2) return {};
 
   auto lhs = ctx->ExpRoute(children.front());
   auto rhs = ctx->ExpRoute(children.back());
   auto temp = ctx->NewTempVariable();
 
-  auto opera = node->Operation()->Name();
-  if (opera == "PLUS") ctx->AppendInstruction({"add", lhs, rhs, temp});
-  if (opera == "MULT") ctx->AppendInstruction({"mul", lhs, rhs, temp});
-  if (opera == "SLASH") ctx->AppendInstruction({"div", lhs, rhs, temp});
-  if (opera == "SUB") ctx->AppendInstruction({"sub", lhs, rhs, temp});
-  if (opera == "PERCENT") ctx->AppendInstruction({"mod", lhs, rhs, temp});
+  auto opera = node->Operation()->Value();
+
+  if (opera == "+") ctx->AppendInstruction({"add", lhs, rhs, temp});
+  if (opera == "*") ctx->AppendInstruction({"mul", lhs, rhs, temp});
+  if (opera == "/") ctx->AppendInstruction({"div", lhs, rhs, temp});
+  if (opera == "-") ctx->AppendInstruction({"sub", lhs, rhs, temp});
+  if (opera == "%") ctx->AppendInstruction({"mod", lhs, rhs, temp});
   return temp;
 }
 
@@ -33,14 +34,14 @@ auto UnOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
     -> std::string {
   auto children = node->Children();
 
-  if (node->Children().empty()) return "";
+  if (children.empty()) return {};
 
   auto operand = ctx->ExpRoute(children.front());
   auto temp = ctx->NewTempVariable();
 
   ctx->AppendInstruction({"mov", operand, {}, temp});
 
-  if (node->Operation()->Name() == "SUB") {
+  if (node->Operation()->Value() == "-") {
     auto temp1 = ctx->NewTempVariable();
     ctx->AppendInstruction({"neg", temp, {}, temp1});
     temp = temp1;
@@ -49,17 +50,13 @@ auto UnOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   return temp;
 }
 
-auto DeclareExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
+auto MeaninglessNodeHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
     -> std::string {
-  auto children = node->Children();
+  for (const auto& child : node->Children()) {
+    ctx->ExpRoute(child);
+  }
 
-  if (node->Children().size() < 3) return "";
-
-  auto rhs = ctx->ExpRoute(children[2]);
-  auto lhs = ctx->ExpRoute(children[1]);
-
-  ctx->AppendInstruction({"mov", rhs, "", lhs});
-  return "";
+  return {};
 }
 
 auto ReturnExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
@@ -78,29 +75,12 @@ auto AssignExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
     -> std::string {
   auto children = node->Children();
 
-  if (node->Children().size() < 2) return "";
+  if (node->Children().size() != 2) return "";
 
   auto rhs = ctx->ExpRoute(node->Children().back());
   auto lhs = ctx->ExpRoute(node->Children().front());
 
-  if (node->Operation()->Name() == "MULT_EQUAL") {
-    auto temp = ctx->NewTempVariable();
-    ctx->AppendInstruction({"mul", lhs, rhs, temp});
-    rhs = temp;
-  }
-
   ctx->AppendInstruction({"mov", rhs, "", lhs});
-
-  return "";
-}
-
-auto ProgramExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
-    -> std::string {
-  auto children = node->Children();
-
-  for (const auto& child : children) {
-    ctx->ExpRoute(child);
-  }
 
   return "";
 }
@@ -142,12 +122,13 @@ void PrintInstructionA2s(std::ostream& f,
 std::map<ASTNodeType, IRGenerator::ExpHandler>
     IRGenerator::exp_handler_resiter = {
         {ASTNodeType::kASSIGN, AssignExpHandler},
-        {ASTNodeType::kDECLARE, DeclareExpHandler},
+        {ASTNodeType::kDECLARE, MeaninglessNodeHandler},
         {ASTNodeType::kRETURN, ReturnExpHandler},
         {ASTNodeType::kUN_OP, UnOpExpHandler},
         {ASTNodeType::kBIN_OP, BinOpExpHandler},
         {ASTNodeType::kVALUE, ValueExpHandler},
-        {ASTNodeType::kPROGRAM, ProgramExpHandler},
+        {ASTNodeType::kPROGRAM, MeaninglessNodeHandler},
+        {ASTNodeType::kIDENT, ValueExpHandler},
 };
 
 auto IRGenerator::do_ir_generate(Context* ctx, const ASTNodePtr& node)

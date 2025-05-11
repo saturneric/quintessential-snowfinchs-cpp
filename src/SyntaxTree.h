@@ -44,6 +44,8 @@ class TreeNode {
   std::vector<SymbolPtr> tokens_symbols_;
 };
 
+using TreeNodePtr = std::shared_ptr<TreeNode>;
+
 class SyntaxTree {
  public:
   [[nodiscard]] auto Root() const -> TreeNode * { return root_; }
@@ -59,3 +61,5 @@ class SyntaxTree {
 
   void do_tree_node_print(TreeNode *thisNode, std::ostream &stream);
 };
+
+auto MakeSyntaxTreeNode(const std::string &name) -> std::shared_ptr<TreeNode>;
