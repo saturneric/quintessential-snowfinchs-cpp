@@ -142,7 +142,8 @@ void SyntaxParser::print_done() {
 void SyntaxParser::print_error() {
   const auto token = token_queue_.front();
   std::string temp_line = buffer_.str();
-  const int syntax_symbol_index = pool_->GetSymbolIndex(token->Name());
+
+  const int syntax_symbol_index = pool_->GetSymbolIndex(token->Value());
 
   std::cout << "Syntax Parser Found Error: " << '\n'
             << "At: " << temp_line << "-> Next Token{"

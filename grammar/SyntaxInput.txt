@@ -19,8 +19,9 @@ declarator -> "INT" "VALUE_ID" "EQUAL" root_expression
 left_value -> "VALUE_ID"
 left_value -> "LEFT_BRACKET" left_value "RIGHT_BRACKET"
 
-root_expression -> left_expression
-root_expression -> left_expression binary_operator right_expression
+root_expression -> left_expression more_root_expressions
+more_root_expressions -> binary_operator right_expression more_root_expressions
+more_root_expressions -> ε
 
 left_expression -> expression
 right_expression -> expression

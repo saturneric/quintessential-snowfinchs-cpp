@@ -93,6 +93,15 @@ auto HandleReturn(const ASTNodePtr& /*parent*/, TreeNode* syntax,
   return ast;
 }
 
+auto HandleBinaryOpera(const ASTNodePtr& /*parent*/, TreeNode* syntax,
+                       const SymbolTablePtr& table, const AST::RouterFunc& f)
+    -> ASTNodePtr {
+  auto tokens = syntax->Tokens();
+  if (tokens.empty()) return nullptr;
+  return std::make_shared<ASTNode>(ASTNodeType::kBIN_OP,
+                                   GenerateASTSymbol(table, tokens.front()));
+}
+
 auto HandleRootExpression(const ASTNodePtr& parent, TreeNode* syntax,
                           const SymbolTablePtr& table, const AST::RouterFunc& f)
     -> ASTNodePtr {
@@ -100,18 +109,34 @@ auto HandleRootExpression(const ASTNodePtr& parent, TreeNode* syntax,
   if (syntax_children.empty()) return nullptr;
 
   // <exp> <binop> <exp>
-  if (syntax_children.size() == 3) {
-    auto* binary_operator = syntax_children[1];
+  if (syntax_children.size() == 2) {
+    auto grandsons = syntax_children.back()->GetChildren();
+    if (grandsons.empty()) {
+      return HandleUselessSyntaxNode(parent, syntax, table, f);
+    }
 
-    auto tokens = binary_operator->Tokens();
+    auto tokens = grandsons.front()->Tokens();
     if (tokens.empty()) return nullptr;
 
-    auto ast = std::make_shared<ASTNode>(
-        ASTNodeType::kBIN_OP, GenerateASTSymbol(table, tokens.back()));
+    auto v_ast = std::make_shared<ASTNode>(ASTNodeType::kVALUE, nullptr);
 
-    ast->AddChildren(f(ast, syntax_children.front()));
-    ast->AddChildren(f(ast, syntax_children.back()));
-    return ast;
+    v_ast->AddChildren(f(v_ast, syntax_children.front()));
+    v_ast->AddChildren(f(v_ast, syntax_children.back()));
+
+    auto children = v_ast->Children();
+    auto left = v_ast->Children().front();
+
+    for (size_t i = 1; i + 1 < children.size(); i += 2) {
+      const auto& binop_ast = children[i];
+      const auto& r_exp_ast = children[i + 1];
+
+      binop_ast->AddChildren(left);
+      binop_ast->AddChildren(r_exp_ast);
+
+      left = binop_ast;
+    }
+
+    return left;
   }
 
   // <exp>
@@ -213,6 +238,7 @@ std::map<std::string, AST::HandlerFunc> AST::handler_registry = {
     {"DeclaratorNode", HandleDeclarator},
     {"ExpressionNode", HandleExpression},
     {"LeftValueNode", HandleLeftValue},
+    {"BinaryOperaNode", HandleBinaryOpera},
 };
 
 void AST::do_ast_node_print(const ASTNodePtr& node, std::ofstream& stream) {
