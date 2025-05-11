@@ -19,7 +19,6 @@
 %{
 #include <memory>
 
-#include "SyntaxTree.h"
 #include "Driver.hpp"
 %}
 

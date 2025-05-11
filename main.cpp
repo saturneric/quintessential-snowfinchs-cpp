@@ -2,12 +2,8 @@
 #include <iostream>
 
 #include "ASMGenerator.h"
-#include "AST.h"
 #include "Driver.hpp"
 #include "IRGenerator.h"
-#include "LR1Generator.h"
-#include "Lexer.h"
-#include "SyntaxParser.h"
 
 auto main(int argc, const char *argv[]) -> int {
   try {
