@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.17)
-project(syntaxParser)
+project(L1Compiler)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS_RELEASE "/Ox")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_CXX_FLAGS_RELEASE "/Ox")
-
 include_directories(src)
+include_directories(compiler include)
 
 aux_source_directory(src SRC_FILES)
 

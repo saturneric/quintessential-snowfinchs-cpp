@@ -1,6 +1,9 @@
 #include <ctime>
 #include <iostream>
 
+//
+#include <cxxopts.hpp>
+
 #include "ASMGenerator.h"
 #include "Driver.hpp"
 #include "IRGenerator.h"
@@ -19,6 +22,7 @@ auto RunOperation(const std::string &name, Opera f) -> bool {
   std::cout << name << " " << "Run time = " << times << "s MicroSeconds"
             << " = " << times * 1000 << "ms" << "\n";
   std::cout << name << " " << "Ret = " << ret << "\n";
+  std::cout << "\n";
 
   return ret;
 }
@@ -26,23 +30,31 @@ auto RunOperation(const std::string &name, Opera f) -> bool {
 
 auto main(int argc, const char *argv[]) -> int {
   try {
-    std::cout << "L1 Compiler Based on Bison"
-              << "\n";
+    cxxopts::Options options("L1 Compiler", "A toy compiler using Bison");
 
-    if (argc < 2) {
-      printf("Usage: <Input Path>\n");
-      return -1;
+    options.add_options()("d,debug", "Enable debug output")(
+        "i,input", "Input file", cxxopts::value<std::string>())(
+        "o,output", "Output file", cxxopts::value<std::string>())(
+        "h,help", "Print usage");
+
+    auto result = options.parse(argc, argv);
+
+    if (result.count("help") != 0U) {
+      std::cout << options.help() << '\n';
+      return 0;
     }
 
-    const auto target = std::string{argv[1]};
+    auto debug = result["debug"].as<bool>();
+    auto input = result["input"].as<std::string>();
+    auto output = result["output"].as<std::string>();
 
     auto symbol_table = std::make_shared<SymbolTable>();
     Driver driver(symbol_table);
 
     auto ret = RunOperation("Lexer & Syntax Parser", [&]() {
-      driver.Parse(target);
-      driver.Print("PrintAST.txt");
-      return true;
+      auto ret = driver.Parse(input);
+      if (debug) driver.Print("PrintAST.txt");
+      return ret == 0;
     });
 
     if (!ret) return 42;
@@ -59,16 +71,16 @@ auto main(int argc, const char *argv[]) -> int {
 
     ret = RunOperation("IR Generator", [&]() {
       ir = irg.Generate(driver.AST());
-      irg.Print3Addr("PrintIR3.txt");
-      irg.Print2Addr("PrintIR2.txt");
+      if (debug) irg.Print3Addr("PrintIR3.txt");
+      if (debug) irg.Print2Addr("PrintIR2.txt");
       return true;
     });
 
     ASMGenerator asm_gen(ir);
 
     ret = RunOperation("ASM Generator", [&]() {
-      asm_gen.Generate("ASM.S");
-      asm_gen.PrintIR("PrintIROpt.txt");
+      asm_gen.Generate(output);
+      if (debug) asm_gen.PrintIR("PrintIROpt.txt");
       return true;
     });
 
