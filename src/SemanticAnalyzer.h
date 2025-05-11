@@ -2,6 +2,8 @@
 
 #include "AST.h"
 
+enum class ExpType { kINT, kBOOL, kVOID };
+
 class SemanticAnalyzer {
  public:
   explicit SemanticAnalyzer(SymbolTablePtr symbol_table);
@@ -9,7 +11,6 @@ class SemanticAnalyzer {
   auto Analyze(const AST& ast) -> bool;
 
  private:
-  enum class ExpType : uint8_t { kINT, kBOOL, kVOID };
   SymbolTablePtr symbol_table_;
   int scopes_ = 0;
   bool succ_;
