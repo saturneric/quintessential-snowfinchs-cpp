@@ -1,9 +1,10 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <string>
 
-enum class SymbolType : uint8_t {
+enum class SymbolType {
   kTOKEN_SPEC,
   kTOKEN,
   kSYNTAX,

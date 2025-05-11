@@ -54,8 +54,7 @@ auto SymbolTable::Symbol(int symbol_index) const -> SymbolPtr {
   const auto &it = cache_.find(symbol_index);
   if (it != cache_.end()) return it->second;
 
-  throw std::runtime_error("Symbol by Index" + std::to_string(symbol_index) +
-                           " NOT Found");
+  return nullptr;
 }
 
 auto SymbolTable::SymbolIndex(SymbolType type, const std::string &name) const
@@ -63,9 +62,7 @@ auto SymbolTable::SymbolIndex(SymbolType type, const std::string &name) const
   const auto type_table = table_.at(type);
   const auto &it = type_table.find(name);
 
-  if (it == type_table.end()) {
-    throw std::runtime_error("Symbol by Name " + name + " NOT Found");
-  }
+  if (it == type_table.end()) return -1;
 
   return it->second->Index();
 }

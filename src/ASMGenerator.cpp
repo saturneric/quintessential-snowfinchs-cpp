@@ -1,6 +1,7 @@
 #include "ASMGenerator.h"
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <regex>
 #include <set>

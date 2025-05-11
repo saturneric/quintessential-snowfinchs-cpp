@@ -1,6 +1,6 @@
 #include "SemanticAnalyzer.h"
 
-#include <iostream>
+#include <algorithm>
 
 auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
   if (!node) {
