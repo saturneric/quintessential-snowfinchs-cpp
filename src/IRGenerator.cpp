@@ -83,7 +83,7 @@ auto AssignExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   auto rhs = ctx->ExpRoute(node->Children().back());
   auto lhs = ctx->ExpRoute(node->Children().front());
 
-  if (node->Operation()->Value() == "MULT_EQUAL") {
+  if (node->Operation()->Name() == "MULT_EQUAL") {
     auto temp = ctx->NewTempVariable();
     ctx->AppendInstruction({"mul", lhs, rhs, temp});
     rhs = temp;
