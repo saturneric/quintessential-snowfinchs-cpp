@@ -54,5 +54,7 @@ class ASMGenerator {
   auto handle_spling_var(const std::set<std::string>& spilled_vars)
       -> std::vector<IRInstructionA2>;
 
+  static auto gen_safe_var_label(const std::string& val) -> std::string;
+
   [[nodiscard]] auto generate_data_segment() const -> std::vector<std::string>;
 };

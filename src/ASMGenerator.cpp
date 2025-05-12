@@ -67,11 +67,9 @@ void ASMGenerator::translate(const IRInstructionA2& i) {
 
     asm_.push_back(r32_ ? "cltd" : "cqto");
     if (!is_variable(i.arg2)) {
-      int val = std::stoi(i.arg2);
-      std::string const_label = "const_" + (val < 0 ? "n" + std::to_string(-val)
-                                                    : std::to_string(val));
-      constants_.insert(const_label);
-      asm_.push_back("idiv" + suffix + " " + format_operand(const_label));
+      constants_.insert(i.arg2);
+      asm_.push_back("idiv" + suffix + " " +
+                     format_operand(gen_safe_var_label(i.arg2)));
     } else {
       asm_.push_back("idiv" + suffix + " " + format_operand(i.arg2));
     }
@@ -125,8 +123,8 @@ auto ASMGenerator::generate_data_segment() const -> std::vector<std::string> {
 
   for (const auto& c : constants_) {
     if (!is_variable(c)) {
-      ret.push_back("const_" + c + std::string{r32_ ? ": .int " : ": .quad "} +
-                    c);
+      ret.push_back(gen_safe_var_label(c) +
+                    std::string{r32_ ? ": .int " : ": .quad "} + c);
     } else {
       ret.push_back(c + std::string{r32_ ? ": .int 0" : ": .quad 0"});
     }
@@ -383,4 +381,16 @@ auto ASMGenerator::handle_spling_var(const std::set<std::string>& spilled_vars)
   }
 
   return n_ir;
+}
+
+auto ASMGenerator::gen_safe_var_label(const std::string& val) -> std::string {
+  std::string label = "const_";
+  for (char ch : val) {
+    if (ch == '-') {
+      label += "n";
+    } else {
+      label += ch;
+    }
+  }
+  return label;
 }

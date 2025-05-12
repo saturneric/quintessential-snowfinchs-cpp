@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <iostream>
 
+#include "Utils.h"
+
 auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
   if (!node) {
     error(nullptr, "The AST is empty");
@@ -84,6 +86,10 @@ auto SemanticAnalyzer::visit_expr(const ASTNodePtr& expr) -> ExpType {
 
   switch (expr->Type()) {
     case ASTNodeType::kVALUE: {
+      int val;
+      if (!SafeParseInt(expr->Operation()->Value(), val)) {
+        error(expr, "Integer Overflow");
+      }
       return ExpType::kINT;
     }
 
