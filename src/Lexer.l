@@ -89,7 +89,7 @@
 
 0                       { return yy::parser::make_VALUE_INTEGER("0"); }
 
-"-"?[1-9][0-9]*         { 
+[1-9][0-9]*         { 
                           return yy::parser::make_VALUE_INTEGER(YYText());
                         }
 
