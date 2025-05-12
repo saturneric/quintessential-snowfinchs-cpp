@@ -1,0 +1,1 @@
+int main() { int y = 0xffffffff; return y; }

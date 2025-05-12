@@ -36,7 +36,10 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
       auto var = target->Operation()->Value();
 
       auto sym = lookup(var);
-      if (!sym) error(node, "Undeclared variables: " + var);
+      if (!sym) {
+        error(node, "Undeclared variables: " + var);
+        break;
+      }
 
       auto expr_type = visit_expr(value);
 
@@ -72,19 +75,6 @@ auto SemanticAnalyzer::visit_expr(const ASTNodePtr& expr) -> ExpType {
 
   switch (expr->Type()) {
     case ASTNodeType::kVALUE: {
-      auto var = expr->Operation()->Value();
-
-      if (is_integer_literal(var)) {
-        return ExpType::kINT;
-      }
-
-      auto sym = lookup(var);
-      if (!sym) {
-        error(expr, "Undeclared variables: " + var);
-      }
-      if (sym->MetaData("initialization").empty()) {
-        error(expr, "Variable not initialized: " + var);
-      }
       return ExpType::kINT;
     }
 

@@ -1,6 +1,7 @@
 %{
   #include "Driver.hpp"
   #include "Parser.hpp"
+  #include "Utils.h"
 
   using token = yy::parser::token;
 %}
@@ -70,9 +71,24 @@
 "char"              { return yy::parser::make_CHAR(); }
 "int"               { return yy::parser::make_INT(); }
 
+0[xX][A-Fa-f0-9]+       {
+                          int val;
+                          if (!SafeParseInt(YYText(), val, 16)) {
+                            std::cerr << "Integer literal overflow or format error: " << YYText() << '\n';
+                            exit(7);
+                          }
+                          return yy::parser::make_VALUE_INTEGER(std::stoi(YYText(), nullptr, 16));
+                        }
+
 [0-9]+                  { 
+                          int val;
+                          if (!SafeParseInt(YYText(), val, 10)) {
+                            std::cerr << "Integer literal overflow or format error: " << YYText() << '\n';
+                            exit(7);
+                          }
                           return yy::parser::make_VALUE_INTEGER(std::atoi(YYText()));
                         }
+
 
 [A-Za-z_][A-Za-z0-9_]*  {
                           return yy::parser::make_VALUE_ID(YYText());
