@@ -1,0 +1,15 @@
+int main() {
+    // this is a comment
+    /* this
+        is 
+        a
+        multiline
+        comment
+    */ int x = 10; /* another 
+        one
+        right
+        after?
+        */
+
+        return x; // this is also comment 
+}

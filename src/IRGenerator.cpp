@@ -198,22 +198,22 @@ IRGenerator::IRGenerator()
 void IRGenerator::convert_instructions() {
   std::vector<IRInstructionA2> result;
 
-  for (const auto& instr : instructions_ssa_) {
-    if (instr.op == "add" || instr.op == "sub" || instr.op == "mul" ||
-        instr.op == "div") {
-      if (instr.result != instr.arg1) {
-        result.push_back({"mov", instr.result, instr.arg1});
+  for (const auto& i : instructions_ssa_) {
+    if (i.op == "add" || i.op == "sub" || i.op == "mul" || i.op == "div" ||
+        i.op == "mod") {
+      if (i.result != i.arg1) {
+        result.push_back({"mov", i.result, i.arg1});
       }
-      result.push_back({instr.op, instr.result, instr.arg2});
-    } else if (instr.op == "neg") {
-      result.push_back({"mov", instr.result, instr.arg1});
-      result.push_back({instr.op, instr.result});
-    } else if (instr.op == "mov") {
-      result.push_back({instr.op, instr.result, instr.arg1});
-    } else if (instr.op == "rtn") {
-      result.push_back({instr.op, instr.arg1});
+      result.push_back({i.op, i.result, i.arg2});
+    } else if (i.op == "neg") {
+      result.push_back({"mov", i.result, i.arg1});
+      result.push_back({i.op, i.result});
+    } else if (i.op == "mov") {
+      result.push_back({i.op, i.result, i.arg1});
+    } else if (i.op == "rtn") {
+      result.push_back({i.op, i.arg1});
     } else {
-      std::cout << "Unsupported op: " << instr.op << '\n';
+      std::cout << "Unsupported op: " << i.op << '\n';
     }
   }
 

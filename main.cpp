@@ -33,7 +33,8 @@ auto main(int argc, const char *argv[]) -> int {
     cxxopts::Options options("L1 Compiler", "A toy compiler using Bison");
 
     options.add_options()("d,debug", "Enable debug output")(
-        "i,input", "Input file", cxxopts::value<std::string>())(
+        "r64", "64 Bit Mode")("i,input", "Input file",
+                              cxxopts::value<std::string>())(
         "o,output", "Output file", cxxopts::value<std::string>())(
         "h,help", "Print usage");
 
@@ -45,6 +46,7 @@ auto main(int argc, const char *argv[]) -> int {
     }
 
     auto debug = result["debug"].as<bool>();
+    auto r64 = result["r64"].as<bool>();
     auto input = result["input"].as<std::string>();
     auto output = result["output"].as<std::string>();
 
@@ -76,7 +78,7 @@ auto main(int argc, const char *argv[]) -> int {
       return true;
     });
 
-    ASMGenerator asm_gen(ir);
+    ASMGenerator asm_gen(!r64, ir);
 
     ret = RunOperation("ASM Generator", [&]() {
       asm_gen.Generate(output);

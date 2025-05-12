@@ -1,0 +1,11 @@
+int main() {
+  int queen = 1;
+  int male = 100;
+  int woman = 10000;
+  
+  // mating math
+  int mating = queen * male * 100;
+  male = 0;
+  woman += mating;
+  return woman;
+}

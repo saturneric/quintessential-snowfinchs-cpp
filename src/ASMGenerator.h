@@ -10,13 +10,14 @@
 
 class ASMGenerator {
  public:
-  explicit ASMGenerator(const std::vector<IRInstructionA2>& ir);
+  explicit ASMGenerator(bool r32, const std::vector<IRInstructionA2>& ir);
 
   void Generate(const std::string& path);
 
   void PrintIR(const std::string& path);
 
  private:
+  bool r32_;
   InterferenceGraph inf_graph_;
   std::vector<IRInstructionA2> ir_;
   std::vector<IRInstructionA2> ir_opt_;
@@ -36,7 +37,7 @@ class ASMGenerator {
 
   static auto is_reg(const std::string& s) -> bool;
 
-  static auto format_operand(const std::string& operand) -> std::string;
+  auto format_operand(const std::string& operand) -> std::string;
 
   void alloc_reg();
 

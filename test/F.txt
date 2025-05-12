@@ -1,0 +1,6 @@
+int main () {
+int i; 
+int j;
+int z = i + j;
+return 0;
+}

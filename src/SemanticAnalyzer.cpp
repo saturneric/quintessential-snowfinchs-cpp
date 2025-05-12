@@ -1,6 +1,7 @@
 #include "SemanticAnalyzer.h"
 
 #include <algorithm>
+#include <iostream>
 
 auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
   if (!node) {
@@ -15,34 +16,40 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
         error(node, "Redefine: " + name);
       }
 
-      if (!node->Children().empty()) {
-        auto expr_type = visit_expr(node->Children().front());
-        if (expr_type != ExpType::kINT) {
-          error(node, "Type mismatch, expecting int");
-        }
-        lookup(name)->SetMetaData("initialization", "1");
-      }
+      auto children = node->Children();
+      if (children.empty()) break;
+
+      const auto& assign = children.front();
+      auto expr_type = visit(assign);
+
+      lookup(name)->SetMetaData("initialization", "1");
       break;
     }
 
     case ASTNodeType::kASSIGN: {
       auto children = node->Children();
-
       if (children.empty()) break;
 
       auto& target = children.front();
       auto& value = children.back();
 
       auto var = target->Operation()->Value();
+
       auto sym = lookup(var);
       if (!sym) error(node, "Undeclared variables: " + var);
 
       auto expr_type = visit_expr(value);
 
+      sym->SetMetaData("initialization", "1");
       break;
     }
 
     case ASTNodeType::kRETURN: {
+      auto children = node->Children();
+
+      if (children.empty()) break;
+      auto& value = children.back();
+      auto expr_type = visit_expr(value);
       break;
     }
     case ASTNodeType::kPROGRAM:
@@ -64,20 +71,22 @@ auto SemanticAnalyzer::visit_expr(const ASTNodePtr& expr) -> ExpType {
   if (expr == nullptr) return ExpType::kINT;
 
   switch (expr->Type()) {
-    case ASTNodeType::kVALUE:
-      if (is_integer_literal(expr->Operation()->Value())) {
-        return ExpType::kINT;
-      } else {
-        auto var = expr->Operation()->Value();
-        auto sym = lookup(var);
-        if (!sym) {
-          error(expr, "Undeclared variables: " + var);
-        }
-        if (sym->MetaData("initialization").empty()) {
-          error(expr, "Variable not initialized: " + var);
-        }
+    case ASTNodeType::kVALUE: {
+      auto var = expr->Operation()->Value();
+
+      if (is_integer_literal(var)) {
         return ExpType::kINT;
       }
+
+      auto sym = lookup(var);
+      if (!sym) {
+        error(expr, "Undeclared variables: " + var);
+      }
+      if (sym->MetaData("initialization").empty()) {
+        error(expr, "Variable not initialized: " + var);
+      }
+      return ExpType::kINT;
+    }
 
     case ASTNodeType::kIDENT: {
       auto var = expr->Operation()->Value();

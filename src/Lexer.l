@@ -9,7 +9,20 @@
 %option noyywrap nounput noinput batch debug
 %option outfile="Lexer.yy.cpp"
 
+%x COMMENT
 %%
+
+"/*"           { BEGIN(COMMENT); }
+
+<COMMENT>{
+  "*/"         { BEGIN(INITIAL); }
+  [^*]+        ;
+  "*"[^/]      ;
+  .            ;
+}
+
+[ \t\r\n]+          ;
+"//".*              ;
 
 "{"                 { return yy::parser::make_OPENING_BRACE(); }
 "}"                 { return yy::parser::make_CLOSING_BRACE(); }
@@ -56,8 +69,6 @@
 "void"              { return yy::parser::make_VOID(); }
 "char"              { return yy::parser::make_CHAR(); }
 "int"               { return yy::parser::make_INT(); }
-
-[ \t\r\n]+          ;
 
 [0-9]+                  { 
                           return yy::parser::make_VALUE_INTEGER(std::atoi(YYText()));

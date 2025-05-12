@@ -6,7 +6,8 @@
 #include <regex>
 #include <set>
 
-ASMGenerator::ASMGenerator(const std::vector<IRInstructionA2>& ir) : ir_(ir) {}
+ASMGenerator::ASMGenerator(bool r32, const std::vector<IRInstructionA2>& ir)
+    : r32_(r32), ir_(ir) {}
 
 void ASMGenerator::Generate(const std::string& path) {
   all_vars();
@@ -31,38 +32,60 @@ static auto is_immediate(const std::string& s) -> bool {
 }
 
 void ASMGenerator::translate(const IRInstructionA2& i) {
+  std::string suffix = r32_ ? "l" : "q";
+  std::string acc_reg = r32_ ? "%eax" : "%rax";
+  std::string rem_reg = r32_ ? "%edx" : "%rdx";
+
   if (i.op == "mov") {
-    asm_.push_back("movq " + format_operand(i.arg2) + ", " +
-                   format_operand(i.arg1));
+    if (r32_ && !is_variable(i.arg2) && !is_reg(i.arg1)) {
+      asm_.push_back("mov" + suffix + " " + format_operand(i.arg2) + ", " +
+                     acc_reg);
+      asm_.push_back("mov" + suffix + " " + acc_reg + ", " +
+                     format_operand(i.arg1));
+    } else {
+      asm_.push_back("mov" + suffix + " " + format_operand(i.arg2) + ", " +
+                     format_operand(i.arg1));
+    }
+
   } else if (i.op == "load") {
     constants_.insert(i.arg2);
-    asm_.push_back("movq " + format_operand(i.arg2) + ", " +
+    asm_.push_back("mov" + suffix + " " + format_operand(i.arg2) + ", " +
                    format_operand(i.arg1));
   } else if (i.op == "store") {
     constants_.insert(i.arg1);
-    asm_.push_back("movq " + format_operand(i.arg2) + ", " +
+    asm_.push_back("mov" + suffix + " " + format_operand(i.arg2) + ", " +
                    format_operand(i.arg1));
   } else if (i.op == "add") {
-    emit_binary_op("addq", i);
+    emit_binary_op("add" + suffix, i);
   } else if (i.op == "sub") {
-    emit_binary_op("subq", i);
+    emit_binary_op("sub" + suffix, i);
   } else if (i.op == "mul") {
-    emit_binary_op("imulq", i);
-  } else if (i.op == "div") {
-    asm_.push_back("movq " + format_operand(i.arg1) + ", %rax");
-    asm_.push_back("cqto");
+    emit_binary_op("imul" + suffix, i);
+  } else if (i.op == "div" || i.op == "mod") {
+    asm_.push_back("mov" + suffix + " " + format_operand(i.arg1) + ", " +
+                   acc_reg);
+
+    asm_.push_back(r32_ ? "cltd" : "cqto");
     if (!is_variable(i.arg2)) {
       std::string const_label = "const_" + i.arg2;
       constants_.insert(i.arg2);
-      asm_.push_back("idivq " + format_operand(const_label));
+      asm_.push_back("idiv" + suffix + " " + format_operand(const_label));
     } else {
-      asm_.push_back("idivq " + format_operand(i.arg2));
+      asm_.push_back("idiv" + suffix + " " + format_operand(i.arg2));
     }
-    asm_.push_back("movq %rax, " + format_operand(i.arg1));
+
+    if (i.op == "mod") {
+      asm_.push_back("mov" + suffix + " " + rem_reg + ", " +
+                     format_operand(i.arg1));
+    } else {
+      asm_.push_back("mov" + suffix + " " + acc_reg + ", " +
+                     format_operand(i.arg1));
+    }
   } else if (i.op == "neg") {
-    asm_.push_back("negq " + format_operand(i.arg1));
+    asm_.push_back("neg" + suffix + " " + format_operand(i.arg1));
   } else if (i.op == "rtn") {
-    asm_.push_back("movq " + format_operand(i.arg1) + ", %rax");
+    asm_.push_back("mov" + suffix + " " + format_operand(i.arg1) +
+                   std::string{r32_ ? ", %eax" : ", %rax"});
     asm_.push_back("ret");
   } else {
     asm_.push_back("# unsupported op: " + i.op);
@@ -80,7 +103,7 @@ auto ASMGenerator::format_operand(const std::string& operand) -> std::string {
   if (std::isdigit(operand[0]) || operand[0] == '-') {
     return "$" + operand;
   }
-  return operand + "(%rip)";
+  return r32_ ? operand : operand + "(%rip)";
 }
 
 auto ASMGenerator::is_variable(const std::string& s) const -> bool {
@@ -97,24 +120,34 @@ auto ASMGenerator::is_reg(const std::string& s) -> bool {
 
 auto ASMGenerator::generate_data_segment() const -> std::vector<std::string> {
   std::vector<std::string> ret;
+
   for (const auto& c : constants_) {
     if (!is_variable(c)) {
-      ret.emplace_back("const_" + c + ": .quad " + c);
+      ret.push_back("const_" + c + std::string{r32_ ? ": .int " : ": .quad "} +
+                    c);
     } else {
-      ret.emplace_back(c + ": .quad 0");
+      ret.push_back(c + std::string{r32_ ? ": .int 0" : ": .quad 0"});
     }
   }
   return ret;
 }
 
-void ASMGenerator::alloc_reg() {
-  const std::vector<std::string> registers = {
-      "%rbx", "%rcx", "%rsi", "%rdi", "%r8",  "%r9",
-      "%r10", "%r11", "%r12", "%r13", "%r14", "%r15",
-  };
+const std::vector<std::string> kRegisters64 = {
+    "%rbx", "%rcx", "%rsi", "%rdi", "%r8",  "%r9",
+    "%r10", "%r11", "%r12", "%r13", "%r14", "%r15",
+};
 
+const std::vector<std::string> kRegisters32 = {
+    "%ebx",
+    "%ecx",
+    "%esi",
+    "%edi",
+};
+
+void ASMGenerator::alloc_reg() {
   reg_alloc_.clear();
 
+  auto registers = r32_ ? kRegisters32 : kRegisters64;
   std::set<std::string> spilled_vars;
 
   for (const auto& var : mcs_order_) {
@@ -134,6 +167,7 @@ void ASMGenerator::alloc_reg() {
 
     if (reg_alloc_.count(var) == 0) {
       reg_alloc_[var] = "spill_" + var;
+      constants_.insert(reg_alloc_[var]);
       spilled_vars.insert(var);
     }
   }
@@ -178,7 +212,7 @@ void ASMGenerator::generate_gcc_asm(const std::string& path) {
   std::vector<std::string> lines;
   lines.emplace_back(".data");
   for (const auto& var : data_vars) {
-    lines.emplace_back(var + ":" + " .quad 0");
+    lines.emplace_back(var + ":" + std::string{r32_ ? ".int 0" : " .quad 0"});
   }
   for (const auto& line : generate_data_segment()) {
     lines.emplace_back(line);
@@ -298,45 +332,48 @@ auto ASMGenerator::handle_spling_var(const std::set<std::string>& spilled_vars)
     bool use_spilled = is_variable(i.arg2) && spilled_vars.count(i.arg2) != 0U;
     bool def_spilled = is_variable(i.arg1) && spilled_vars.count(i.arg1) != 0U;
 
+    const std::string reg_0 = r32_ ? "%edi" : "%r10";
+    const std::string reg_1 = r32_ ? "%esi" : "%r11";
+
     if (i.op == "mov" && use_spilled && def_spilled) {
-      std::string tmp_backup_0 = new_temp();
-      n_ir.push_back({"store", tmp_backup_0, "%r10"});
-      n_ir.push_back({"load", "%r10", bounded_reg(i.arg2)});
-      n_ir.push_back({"mov", bounded_reg(i.arg1), "%rax"});
-      n_ir.push_back({"load", "%rax", tmp_backup_0});
+      std::string tmp_backup = new_temp();
+      n_ir.push_back({"store", tmp_backup, reg_0});
+      n_ir.push_back({"load", reg_0, bounded_reg(i.arg2)});
+      n_ir.push_back({"mov", bounded_reg(i.arg1), reg_0});
+      n_ir.push_back({"load", reg_0, tmp_backup});
     }
 
     else if (i.op != "mov" && use_spilled && def_spilled) {
       std::string tmp_backup_0 = new_temp();
-      n_ir.push_back({"store", tmp_backup_0, "%r10"});  // save %r10
-      n_ir.push_back({"load", "%r10", bounded_reg(i.arg2)});
+      n_ir.push_back({"store", tmp_backup_0, reg_0});  // save %r10
+      n_ir.push_back({"load", reg_0, bounded_reg(i.arg2)});
 
       std::string tmp_backup_1 = new_temp();
-      n_ir.push_back({"store", tmp_backup_1, "%r11"});  // save %r11
-      n_ir.push_back({"load", "%r11", bounded_reg(i.arg1)});
+      n_ir.push_back({"store", tmp_backup_1, reg_1});  // save %r11
+      n_ir.push_back({"load", reg_1, bounded_reg(i.arg1)});
 
-      n_ir.push_back({i.op, "%r11", "%r10"});
+      n_ir.push_back({i.op, reg_1, reg_0});
 
-      n_ir.push_back({"store", bounded_reg(i.arg1), "%r11"});
-      n_ir.push_back({"load", "%r10", tmp_backup_0});  // restore %r10
-      n_ir.push_back({"load", "%r11", tmp_backup_1});  // restore %r11
+      n_ir.push_back({"store", bounded_reg(i.arg1), reg_1});
+      n_ir.push_back({"load", reg_0, tmp_backup_0});  // restore %r10
+      n_ir.push_back({"load", reg_1, tmp_backup_1});  // restore %r11
     }
 
     else if (i.op != "mov" && use_spilled) {
       std::string tmp_backup = new_temp();
-      n_ir.push_back({"store", tmp_backup, "%r11"});  // save %r11
-      n_ir.push_back({"load", "%r11", bounded_reg(i.arg2)});
-      n_ir.push_back({i.op, bounded_reg(i.arg1), "%r11"});
-      n_ir.push_back({"load", "%r11", tmp_backup});  // restore %r11
+      n_ir.push_back({"store", tmp_backup, reg_1});  // save %r11
+      n_ir.push_back({"load", reg_1, bounded_reg(i.arg2)});
+      n_ir.push_back({i.op, bounded_reg(i.arg1), reg_1});
+      n_ir.push_back({"load", reg_1, tmp_backup});  // restore %r11
     }
 
     else if (i.op != "mov" && def_spilled) {
       std::string tmp_backup = new_temp();
-      n_ir.push_back({"store", tmp_backup, "%r11"});  // save %r11
-      n_ir.push_back({"load", "%r11", bounded_reg(i.arg1)});
-      n_ir.push_back({i.op, "%r11", bounded_reg(i.arg2)});
-      n_ir.push_back({"store", bounded_reg(i.arg1), "%r11"});
-      n_ir.push_back({"load", "%r11", tmp_backup});  // restore %r11
+      n_ir.push_back({"store", tmp_backup, reg_1});  // save %r11
+      n_ir.push_back({"load", reg_1, bounded_reg(i.arg1)});
+      n_ir.push_back({i.op, reg_1, bounded_reg(i.arg2)});
+      n_ir.push_back({"store", bounded_reg(i.arg1), reg_1});
+      n_ir.push_back({"load", reg_1, tmp_backup});  // restore %r11
     }
 
     else {

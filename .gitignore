@@ -34,4 +34,5 @@
 # project
 .vscode
 .cache
-build
+build*
+.runtime

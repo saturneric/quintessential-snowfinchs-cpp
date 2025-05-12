@@ -1,12 +1,19 @@
-main() {
+int main() {
   int a1 = 1;
   int a2 = 2;
   int a3 = 3;
   int a4 = 4;
   int a5 = 10;
+  int a6;
+  int a7;
 
-  a1 = a2 + a3;
-  a4 *= a5 - a1;
+  a6 = 2;
+  a1 = a2 + a3 * -9;
+  a4 *= a5 - a1 * 100;
+  a6 /= a6 - -a1 * 100;
+  a6 %= a6 - a1 / a3;
+  a7 = 100 % 7;
+  a6 += 5;
 
-  return a4;
+  return a6;
 }
