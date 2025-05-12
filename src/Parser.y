@@ -29,8 +29,7 @@
 %type <ASTNodePtr> simple_statement return_statement declarator left_value
 %type <ASTNodePtr> expression additive multiplicative unary primary
 
-%token <int> VALUE_INTEGER
-%token <std::string> VALUE_ID
+%token <std::string> VALUE_ID VALUE_INTEGER
 %token EQUAL PLUS_EQUAL SUB_EQUAL MULT_EQUAL SLASH_EQUAL PERCENT_EQUAL
 %token PLUS SUB MULT SLASH PERCENT
 %token SEMICOLON LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE CLOSING_BRACE
@@ -211,7 +210,7 @@ primary:
     }
     | VALUE_INTEGER
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kVALUE, "primary", std::to_string($1), drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kVALUE, "primary", $1, drv);
     }
     | VALUE_ID
     {

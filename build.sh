@@ -1,11 +1,10 @@
 #!/bin/bash
+set -e
 
 if ! command -v cmake &> /dev/null; then
   echo "cmake not found, installing..."
   sudo pacman -Sy --noconfirm cmake
 fi
-
-set -e
 
 SOURCE_DIR=$(pwd)
 BUILD_DIR="$SOURCE_DIR/build"

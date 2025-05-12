@@ -55,9 +55,18 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
       auto expr_type = visit_expr(value);
       break;
     }
-    case ASTNodeType::kPROGRAM:
-    default:
+    case ASTNodeType::kPROGRAM: {
+      bool has_return = false;
+      for (auto& c : node->Children()) {
+        if (c->Type() == ASTNodeType::kRETURN) has_return = true;
+        visit(c);
+      }
+      if (!has_return) error(node, "Return statement not found");
+      break;
+    }
+    default: {
       for (auto& c : node->Children()) visit(c);
+    }
   }
   return node;
 }

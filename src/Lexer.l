@@ -4,6 +4,7 @@
   #include "Utils.h"
 
   using token = yy::parser::token;
+  int comment_depth = 0;
 %}
 
 %option c++
@@ -13,13 +14,24 @@
 %x COMMENT
 %%
 
-"/*"           { BEGIN(COMMENT); }
+"/*" {
+  comment_depth = 1;
+  BEGIN(COMMENT);
+}
 
 <COMMENT>{
-  "*/"         { BEGIN(INITIAL); }
-  [^*]+        ;
-  "*"[^/]      ;
-  .            ;
+  "/*" {
+    ++comment_depth;
+  }
+
+  "*/" {
+    --comment_depth;
+    if (comment_depth == 0) {
+      BEGIN(INITIAL);
+    }
+  }
+
+  .|\n ;
 }
 
 [ \t\r\n]+          ;
@@ -49,7 +61,7 @@
 "/"                 { return yy::parser::make_SLASH(); }
 "%"                 { return yy::parser::make_PERCENT(); }
 
-"STRUCT"            { return yy::parser::make_STRUCT(); }
+"struct"            { return yy::parser::make_STRUCT(); }
 "if"                { return yy::parser::make_IF(); }
 "else"              { return yy::parser::make_ELSE(); }
 "while"             { return yy::parser::make_WHILE(); }
@@ -72,23 +84,14 @@
 "int"               { return yy::parser::make_INT(); }
 
 0[xX][A-Fa-f0-9]+       {
-                          int val;
-                          if (!SafeParseInt(YYText(), val, 16)) {
-                            std::cerr << "Integer literal overflow or format error: " << YYText() << '\n';
-                            exit(7);
-                          }
-                          return yy::parser::make_VALUE_INTEGER(std::stoi(YYText(), nullptr, 16));
+                          return yy::parser::make_VALUE_INTEGER(YYText());
                         }
 
-[0-9]+                  { 
-                          int val;
-                          if (!SafeParseInt(YYText(), val, 10)) {
-                            std::cerr << "Integer literal overflow or format error: " << YYText() << '\n';
-                            exit(7);
-                          }
-                          return yy::parser::make_VALUE_INTEGER(std::atoi(YYText()));
-                        }
+0                       { return yy::parser::make_VALUE_INTEGER("0"); }
 
+"-"?[1-9][0-9]*         { 
+                          return yy::parser::make_VALUE_INTEGER(YYText());
+                        }
 
 [A-Za-z_][A-Za-z0-9_]*  {
                           return yy::parser::make_VALUE_ID(YYText());

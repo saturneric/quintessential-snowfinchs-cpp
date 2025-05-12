@@ -209,11 +209,8 @@ namespace yy {
         value.YY_MOVE_OR_COPY< ASTNodePtr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
-        value.YY_MOVE_OR_COPY< int > (YY_MOVE (that.value));
-        break;
-
       case symbol_kind::S_VALUE_ID: // VALUE_ID
+      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
         value.YY_MOVE_OR_COPY< std::string > (YY_MOVE (that.value));
         break;
@@ -251,11 +248,8 @@ namespace yy {
         value.move< ASTNodePtr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
-        value.move< int > (YY_MOVE (that.value));
-        break;
-
       case symbol_kind::S_VALUE_ID: // VALUE_ID
+      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
         value.move< std::string > (YY_MOVE (that.value));
         break;
@@ -293,11 +287,8 @@ namespace yy {
         value.copy< ASTNodePtr > (that.value);
         break;
 
-      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
-        value.copy< int > (that.value);
-        break;
-
       case symbol_kind::S_VALUE_ID: // VALUE_ID
+      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
         value.copy< std::string > (that.value);
         break;
@@ -333,11 +324,8 @@ namespace yy {
         value.move< ASTNodePtr > (that.value);
         break;
 
-      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
-        value.move< int > (that.value);
-        break;
-
       case symbol_kind::S_VALUE_ID: // VALUE_ID
+      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
         value.move< std::string > (that.value);
         break;
@@ -614,11 +602,8 @@ namespace yy {
         yylhs.value.emplace< ASTNodePtr > ();
         break;
 
-      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
-        yylhs.value.emplace< int > ();
-        break;
-
       case symbol_kind::S_VALUE_ID: // VALUE_ID
+      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
         yylhs.value.emplace< std::string > ();
         break;
@@ -642,7 +627,7 @@ namespace yy {
           switch (yyn)
             {
   case 2: // program: INT VALUE_ID LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE statements CLOSING_BRACE
-#line 51 "Parser.y"
+#line 50 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kPROGRAM, "program", yystack_[5].value.as < std::string > (), drv);
       drv.SetSyntaxTreeRoot(yylhs.value.as < ASTNodePtr > ());
@@ -650,52 +635,52 @@ namespace yy {
         yylhs.value.as < ASTNodePtr > ()->AddChildren(child);
       }
     }
-#line 654 "Parser.cpp"
+#line 639 "Parser.cpp"
     break;
 
   case 3: // statements: %empty
-#line 62 "Parser.y"
+#line 61 "Parser.y"
     {
       yylhs.value.as < std::vector<ASTNodePtr> > () = {};
     }
-#line 662 "Parser.cpp"
+#line 647 "Parser.cpp"
     break;
 
   case 4: // statements: statement statements
-#line 66 "Parser.y"
+#line 65 "Parser.y"
     {
       yystack_[0].value.as < std::vector<ASTNodePtr> > ().insert(yystack_[0].value.as < std::vector<ASTNodePtr> > ().begin(), yystack_[1].value.as < ASTNodePtr > ());
       yylhs.value.as < std::vector<ASTNodePtr> > () = yystack_[0].value.as < std::vector<ASTNodePtr> > ();
     }
-#line 671 "Parser.cpp"
+#line 656 "Parser.cpp"
     break;
 
   case 5: // statement: declarator SEMICOLON
-#line 74 "Parser.y"
+#line 73 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 679 "Parser.cpp"
+#line 664 "Parser.cpp"
     break;
 
   case 6: // statement: simple_statement SEMICOLON
-#line 78 "Parser.y"
+#line 77 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 687 "Parser.cpp"
+#line 672 "Parser.cpp"
     break;
 
   case 7: // statement: return_statement SEMICOLON
-#line 82 "Parser.y"
+#line 81 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 695 "Parser.cpp"
+#line 680 "Parser.cpp"
     break;
 
   case 8: // simple_statement: left_value assign_operator expression
-#line 89 "Parser.y"
+#line 88 "Parser.y"
     {
       if (yystack_[1].value.as < std::string > () == "=") {
         yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kASSIGN, "simple_statement", yystack_[1].value.as < std::string > (), drv);
@@ -717,28 +702,28 @@ namespace yy {
         yylhs.value.as < ASTNodePtr > ()->AddChildren(bin_op);
       }
     }
-#line 721 "Parser.cpp"
+#line 706 "Parser.cpp"
     break;
 
   case 9: // return_statement: RETURN expression
-#line 114 "Parser.y"
+#line 113 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kRETURN, "return_statement", "", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 730 "Parser.cpp"
+#line 715 "Parser.cpp"
     break;
 
   case 10: // declarator: INT VALUE_ID
-#line 122 "Parser.y"
+#line 121 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kDECLARE, "declarator", yystack_[0].value.as < std::string > (), drv);
     }
-#line 738 "Parser.cpp"
+#line 723 "Parser.cpp"
     break;
 
   case 11: // declarator: INT VALUE_ID EQUAL expression
-#line 126 "Parser.y"
+#line 125 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kDECLARE, "declarator", yystack_[2].value.as < std::string > (), drv);
       auto assign_node = MakeASTTreeNode(ASTNodeType::kASSIGN, "declarator", "=", drv);
@@ -749,176 +734,176 @@ namespace yy {
 
       yylhs.value.as < ASTNodePtr > ()->AddChildren(assign_node);
     }
-#line 753 "Parser.cpp"
+#line 738 "Parser.cpp"
     break;
 
   case 12: // left_value: VALUE_ID
-#line 140 "Parser.y"
+#line 139 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIDENT, "left_value", yystack_[0].value.as < std::string > (), drv);
     }
-#line 761 "Parser.cpp"
+#line 746 "Parser.cpp"
     break;
 
   case 13: // left_value: LEFT_BRACKET left_value RIGHT_BRACKET
-#line 144 "Parser.y"
+#line 143 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 769 "Parser.cpp"
+#line 754 "Parser.cpp"
     break;
 
   case 14: // expression: additive
-#line 149 "Parser.y"
+#line 148 "Parser.y"
             { yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > (); }
-#line 775 "Parser.cpp"
+#line 760 "Parser.cpp"
     break;
 
   case 15: // additive: additive PLUS multiplicative
-#line 153 "Parser.y"
+#line 152 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "additive", "+", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 785 "Parser.cpp"
+#line 770 "Parser.cpp"
     break;
 
   case 16: // additive: additive SUB multiplicative
-#line 159 "Parser.y"
+#line 158 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "additive", "-", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 795 "Parser.cpp"
+#line 780 "Parser.cpp"
     break;
 
   case 17: // additive: multiplicative
-#line 165 "Parser.y"
+#line 164 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > ();
     }
-#line 803 "Parser.cpp"
+#line 788 "Parser.cpp"
     break;
 
   case 18: // multiplicative: multiplicative MULT unary
-#line 172 "Parser.y"
+#line 171 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "multiplicative", "*", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 813 "Parser.cpp"
+#line 798 "Parser.cpp"
     break;
 
   case 19: // multiplicative: multiplicative SLASH unary
-#line 178 "Parser.y"
+#line 177 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "multiplicative", "/", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 823 "Parser.cpp"
+#line 808 "Parser.cpp"
     break;
 
   case 20: // multiplicative: multiplicative PERCENT unary
-#line 184 "Parser.y"
+#line 183 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "multiplicative", "%", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 833 "Parser.cpp"
+#line 818 "Parser.cpp"
     break;
 
   case 21: // multiplicative: unary
-#line 190 "Parser.y"
+#line 189 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > ();
     }
-#line 841 "Parser.cpp"
+#line 826 "Parser.cpp"
     break;
 
   case 22: // unary: SUB unary
-#line 197 "Parser.y"
+#line 196 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "unary", "-", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 850 "Parser.cpp"
+#line 835 "Parser.cpp"
     break;
 
   case 23: // unary: primary
-#line 202 "Parser.y"
+#line 201 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > ();
     }
-#line 858 "Parser.cpp"
+#line 843 "Parser.cpp"
     break;
 
   case 24: // primary: LEFT_BRACKET expression RIGHT_BRACKET
-#line 209 "Parser.y"
+#line 208 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 866 "Parser.cpp"
+#line 851 "Parser.cpp"
     break;
 
   case 25: // primary: VALUE_INTEGER
-#line 213 "Parser.y"
+#line 212 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "primary", std::to_string(yystack_[0].value.as < int > ()), drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "primary", yystack_[0].value.as < std::string > (), drv);
     }
-#line 874 "Parser.cpp"
+#line 859 "Parser.cpp"
     break;
 
   case 26: // primary: VALUE_ID
-#line 217 "Parser.y"
+#line 216 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIDENT, "primary", yystack_[0].value.as < std::string > (), drv);
     }
-#line 882 "Parser.cpp"
+#line 867 "Parser.cpp"
     break;
 
   case 27: // assign_operator: EQUAL
-#line 223 "Parser.y"
+#line 222 "Parser.y"
                       { yylhs.value.as < std::string > () = "="; }
-#line 888 "Parser.cpp"
+#line 873 "Parser.cpp"
     break;
 
   case 28: // assign_operator: PLUS_EQUAL
-#line 224 "Parser.y"
+#line 223 "Parser.y"
                       { yylhs.value.as < std::string > () = "+="; }
-#line 894 "Parser.cpp"
+#line 879 "Parser.cpp"
     break;
 
   case 29: // assign_operator: SUB_EQUAL
-#line 225 "Parser.y"
+#line 224 "Parser.y"
                       { yylhs.value.as < std::string > () = "-="; }
-#line 900 "Parser.cpp"
+#line 885 "Parser.cpp"
     break;
 
   case 30: // assign_operator: MULT_EQUAL
-#line 226 "Parser.y"
+#line 225 "Parser.y"
                       { yylhs.value.as < std::string > () = "*="; }
-#line 906 "Parser.cpp"
+#line 891 "Parser.cpp"
     break;
 
   case 31: // assign_operator: SLASH_EQUAL
-#line 227 "Parser.y"
+#line 226 "Parser.y"
                       { yylhs.value.as < std::string > () = "/="; }
-#line 912 "Parser.cpp"
+#line 897 "Parser.cpp"
     break;
 
   case 32: // assign_operator: PERCENT_EQUAL
-#line 228 "Parser.y"
+#line 227 "Parser.y"
                       { yylhs.value.as < std::string > () = "%="; }
-#line 918 "Parser.cpp"
+#line 903 "Parser.cpp"
     break;
 
 
-#line 922 "Parser.cpp"
+#line 907 "Parser.cpp"
 
             default:
               break;
@@ -1107,27 +1092,27 @@ namespace yy {
 
 
 
-  const signed char parser::yypact_ninf_ = -44;
+  const signed char parser::yypact_ninf_ = -42;
 
   const signed char parser::yytable_ninf_ = -1;
 
   const signed char
   parser::yypact_[] =
   {
-     -43,     8,    18,     3,   -44,     4,     5,    -4,   -44,    -2,
-       2,    19,     9,    -4,    22,    23,    24,    27,     7,   -44,
-     -44,     2,     2,   -44,    -1,    -6,   -44,   -44,    36,   -44,
-     -44,   -44,   -44,   -44,   -44,   -44,   -44,   -44,   -44,   -44,
-       2,   -44,   -44,    26,     2,     2,     2,     2,     2,     2,
-     -44,   -44,    -6,    -6,   -44,   -44,   -44,   -44
+     -41,    12,    17,    14,   -42,     7,    10,    -3,   -42,    -1,
+       1,    32,    16,    -3,    21,    22,    23,     2,    24,   -42,
+     -42,     1,     1,   -42,     8,     9,   -42,   -42,    35,   -42,
+     -42,   -42,   -42,   -42,   -42,   -42,   -42,   -42,   -42,   -42,
+       1,   -42,   -42,    25,     1,     1,     1,     1,     1,     1,
+     -42,   -42,     9,     9,   -42,   -42,   -42,   -42
   };
 
   const signed char
   parser::yydefact_[] =
   {
        0,     0,     0,     0,     1,     0,     0,     3,    12,     0,
-       0,     0,     0,     3,     0,     0,     0,     0,     0,    25,
-      26,     0,     0,     9,    14,    17,    21,    23,    10,     2,
+       0,     0,     0,     3,     0,     0,     0,     0,     0,    26,
+      25,     0,     0,     9,    14,    17,    21,    23,    10,     2,
        4,     6,     7,     5,    27,    28,    29,    30,    31,    32,
        0,    13,    22,     0,     0,     0,     0,     0,     0,     0,
        8,    24,    15,    16,    18,    19,    20,    11
@@ -1136,8 +1121,8 @@ namespace yy {
   const signed char
   parser::yypgoto_[] =
   {
-     -44,   -44,    29,   -44,   -44,   -44,   -44,    37,   -19,   -44,
-     -28,   -20,   -44,   -44
+     -42,   -42,    28,   -42,   -42,   -42,   -42,    36,   -19,   -42,
+     -11,   -20,   -42,   -42
   };
 
   const signed char
@@ -1150,29 +1135,29 @@ namespace yy {
   const signed char
   parser::yytable_[] =
   {
-       8,    42,     8,    43,     1,    19,    20,    46,    47,    48,
-      44,    45,     3,     9,    21,     9,    52,    53,     4,    22,
-       5,    50,     6,    28,     7,    41,    54,    55,    56,    29,
-      57,    10,    34,    35,    36,    37,    38,    39,    31,    32,
-      33,    49,    30,    11,    51,     0,    18
+       8,    42,     8,    43,    19,    20,     1,    34,    35,    36,
+      37,    38,    39,    21,     9,     3,     9,     4,    22,    44,
+      45,    50,    46,    47,    48,     6,    54,    55,    56,     7,
+      57,     5,    10,    52,    53,    28,    29,    31,    32,    33,
+      49,    30,    41,    51,    11,    18
   };
 
   const signed char
   parser::yycheck_[] =
   {
-       4,    21,     4,    22,    47,     3,     4,    13,    14,    15,
-      11,    12,     4,    17,    12,    17,    44,    45,     0,    17,
-      17,    40,    18,     4,    19,    18,    46,    47,    48,    20,
-      49,    35,     5,     6,     7,     8,     9,    10,    16,    16,
-      16,     5,    13,    47,    18,    -1,     9
+       3,    21,     3,    22,     3,     4,    47,     5,     6,     7,
+       8,     9,    10,    12,    17,     3,    17,     0,    17,    11,
+      12,    40,    13,    14,    15,    18,    46,    47,    48,    19,
+      49,    17,    35,    44,    45,     3,    20,    16,    16,    16,
+       5,    13,    18,    18,    47,     9
   };
 
   const signed char
   parser::yystos_[] =
   {
-       0,    47,    51,     4,     0,    17,    18,    19,     4,    17,
+       0,    47,    51,     3,     0,    17,    18,    19,     3,    17,
       35,    47,    52,    53,    54,    55,    56,    57,    57,     3,
-       4,    12,    17,    58,    59,    60,    61,    62,     4,    20,
+       4,    12,    17,    58,    59,    60,    61,    62,     3,    20,
       52,    16,    16,    16,     5,     6,     7,     8,     9,    10,
       63,    18,    61,    58,    11,    12,    13,    14,    15,     5,
       58,    18,    60,    60,    61,    61,    61,    58
@@ -1203,8 +1188,8 @@ namespace yy {
   const char*
   const parser::yytname_[] =
   {
-  "\"end of file\"", "error", "\"invalid token\"", "VALUE_INTEGER",
-  "VALUE_ID", "EQUAL", "PLUS_EQUAL", "SUB_EQUAL", "MULT_EQUAL",
+  "\"end of file\"", "error", "\"invalid token\"", "VALUE_ID",
+  "VALUE_INTEGER", "EQUAL", "PLUS_EQUAL", "SUB_EQUAL", "MULT_EQUAL",
   "SLASH_EQUAL", "PERCENT_EQUAL", "PLUS", "SUB", "MULT", "SLASH",
   "PERCENT", "SEMICOLON", "LEFT_BRACKET", "RIGHT_BRACKET", "OPENING_BRACE",
   "CLOSING_BRACE", "LEFT_SHIFT", "RIGHT_SHIFT", "AND", "INSERT",
@@ -1223,10 +1208,10 @@ namespace yy {
   const unsigned char
   parser::yyrline_[] =
   {
-       0,    50,    50,    62,    65,    73,    77,    81,    88,   113,
-     121,   125,   139,   143,   149,   152,   158,   164,   171,   177,
-     183,   189,   196,   201,   208,   212,   216,   223,   224,   225,
-     226,   227,   228
+       0,    49,    49,    61,    64,    72,    76,    80,    87,   112,
+     120,   124,   138,   142,   148,   151,   157,   163,   170,   176,
+     182,   188,   195,   200,   207,   211,   215,   222,   223,   224,
+     225,   226,   227
   };
 
   void
@@ -1258,6 +1243,6 @@ namespace yy {
 
 
 } // yy
-#line 1262 "Parser.cpp"
+#line 1247 "Parser.cpp"
 
-#line 231 "Parser.y"
+#line 230 "Parser.y"

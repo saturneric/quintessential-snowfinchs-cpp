@@ -394,15 +394,13 @@ namespace yy {
       // primary
       char dummy1[sizeof (ASTNodePtr)];
 
-      // VALUE_INTEGER
-      char dummy2[sizeof (int)];
-
       // VALUE_ID
+      // VALUE_INTEGER
       // assign_operator
-      char dummy3[sizeof (std::string)];
+      char dummy2[sizeof (std::string)];
 
       // statements
-      char dummy4[sizeof (std::vector<ASTNodePtr>)];
+      char dummy3[sizeof (std::vector<ASTNodePtr>)];
     };
 
     /// The size of the largest semantic type.
@@ -446,8 +444,8 @@ namespace yy {
     TOKEN_YYEOF = 0,               // "end of file"
     TOKEN_YYerror = 256,           // error
     TOKEN_YYUNDEF = 257,           // "invalid token"
-    TOKEN_VALUE_INTEGER = 258,     // VALUE_INTEGER
-    TOKEN_VALUE_ID = 259,          // VALUE_ID
+    TOKEN_VALUE_ID = 258,          // VALUE_ID
+    TOKEN_VALUE_INTEGER = 259,     // VALUE_INTEGER
     TOKEN_EQUAL = 260,             // EQUAL
     TOKEN_PLUS_EQUAL = 261,        // PLUS_EQUAL
     TOKEN_SUB_EQUAL = 262,         // SUB_EQUAL
@@ -514,8 +512,8 @@ namespace yy {
         S_YYEOF = 0,                             // "end of file"
         S_YYerror = 1,                           // error
         S_YYUNDEF = 2,                           // "invalid token"
-        S_VALUE_INTEGER = 3,                     // VALUE_INTEGER
-        S_VALUE_ID = 4,                          // VALUE_ID
+        S_VALUE_ID = 3,                          // VALUE_ID
+        S_VALUE_INTEGER = 4,                     // VALUE_INTEGER
         S_EQUAL = 5,                             // EQUAL
         S_PLUS_EQUAL = 6,                        // PLUS_EQUAL
         S_SUB_EQUAL = 7,                         // SUB_EQUAL
@@ -623,11 +621,8 @@ namespace yy {
         value.move< ASTNodePtr > (std::move (that.value));
         break;
 
-      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
-        value.move< int > (std::move (that.value));
-        break;
-
       case symbol_kind::S_VALUE_ID: // VALUE_ID
+      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
         value.move< std::string > (std::move (that.value));
         break;
@@ -664,18 +659,6 @@ namespace yy {
       {}
 #else
       basic_symbol (typename Base::kind_type t, const ASTNodePtr& v)
-        : Base (t)
-        , value (v)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, int&& v)
-        : Base (t)
-        , value (std::move (v))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const int& v)
         : Base (t)
         , value (v)
       {}
@@ -743,11 +726,8 @@ switch (yykind)
         value.template destroy< ASTNodePtr > ();
         break;
 
-      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
-        value.template destroy< int > ();
-        break;
-
       case symbol_kind::S_VALUE_ID: // VALUE_ID
+      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
         value.template destroy< std::string > ();
         break;
@@ -850,14 +830,6 @@ switch (yykind)
 #else
       symbol_type (int tok)
         : super_type (token_kind_type (tok))
-#endif
-      {}
-#if 201103L <= YY_CPLUSPLUS
-      symbol_type (int tok, int v)
-        : super_type (token_kind_type (tok), std::move (v))
-#else
-      symbol_type (int tok, const int& v)
-        : super_type (token_kind_type (tok), v)
 #endif
       {}
 #if 201103L <= YY_CPLUSPLUS
@@ -966,21 +938,6 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_VALUE_INTEGER (int v)
-      {
-        return symbol_type (token::TOKEN_VALUE_INTEGER, std::move (v));
-      }
-#else
-      static
-      symbol_type
-      make_VALUE_INTEGER (const int& v)
-      {
-        return symbol_type (token::TOKEN_VALUE_INTEGER, v);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
       make_VALUE_ID (std::string v)
       {
         return symbol_type (token::TOKEN_VALUE_ID, std::move (v));
@@ -991,6 +948,21 @@ switch (yykind)
       make_VALUE_ID (const std::string& v)
       {
         return symbol_type (token::TOKEN_VALUE_ID, v);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_VALUE_INTEGER (std::string v)
+      {
+        return symbol_type (token::TOKEN_VALUE_INTEGER, std::move (v));
+      }
+#else
+      static
+      symbol_type
+      make_VALUE_INTEGER (const std::string& v)
+      {
+        return symbol_type (token::TOKEN_VALUE_INTEGER, v);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -1972,7 +1944,7 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 46,     ///< Last index in yytable_.
+      yylast_ = 45,     ///< Last index in yytable_.
       yynnts_ = 14,  ///< Number of nonterminal symbols.
       yyfinal_ = 4 ///< Termination state number.
     };
@@ -2058,11 +2030,8 @@ switch (yykind)
         value.copy< ASTNodePtr > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
-        value.copy< int > (YY_MOVE (that.value));
-        break;
-
       case symbol_kind::S_VALUE_ID: // VALUE_ID
+      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
         value.copy< std::string > (YY_MOVE (that.value));
         break;
@@ -2116,11 +2085,8 @@ switch (yykind)
         value.move< ASTNodePtr > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
-        value.move< int > (YY_MOVE (s.value));
-        break;
-
       case symbol_kind::S_VALUE_ID: // VALUE_ID
+      case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
         value.move< std::string > (YY_MOVE (s.value));
         break;
@@ -2194,7 +2160,7 @@ switch (yykind)
 
 
 } // yy
-#line 2198 "Parser.hpp"
+#line 2164 "Parser.hpp"
 
 
 

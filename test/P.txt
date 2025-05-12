@@ -1,0 +1,7 @@
+int main() {
+int c = 1;
+int a = 2;
+int d = -2147483648;
+int b = d/(c-a);
+return b;
+}
