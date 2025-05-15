@@ -35,7 +35,7 @@
 
   <<EOF>> {
     fprintf(stderr, "Error: Unterminated comment at EOF\n");
-    exit(1);
+    exit(42);
   }
 }
 
