@@ -34,7 +34,7 @@
   .|\n ;
 
   <<EOF>> {
-    fprintf(stderr, "Error: Unterminated comment at EOF\n");
+    std::cerr << "Error: Unterminated comment at EOF: " << YYText() << std::endl;
     exit(42);
   }
 }
