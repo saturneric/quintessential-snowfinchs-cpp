@@ -554,12 +554,12 @@ static const flex_int16_t yy_chk[217] =
 
 static const flex_int16_t yy_rule_linenum[56] =
     {   0,
-       17,   23,   27,   34,   37,   38,   40,   41,   42,   43,
-       44,   45,   46,   47,   48,   49,   50,   51,   52,   53,
-       54,   55,   56,   57,   58,   59,   60,   61,   62,   64,
-       65,   66,   67,   68,   69,   70,   71,   72,   73,   74,
-       75,   76,   78,   79,   80,   81,   82,   83,   84,   85,
-       87,   91,   93,   97,  101
+       17,   23,   27,   34,   42,   43,   45,   46,   47,   48,
+       49,   50,   51,   52,   53,   54,   55,   56,   57,   58,
+       59,   60,   61,   62,   63,   64,   65,   66,   67,   69,
+       70,   71,   72,   73,   74,   75,   76,   77,   78,   79,
+       80,   81,   83,   84,   85,   86,   87,   88,   89,   90,
+       92,   96,   98,  102,  106
     } ;
 
 /* The intent behind this definition is that it'll catch
@@ -883,267 +883,274 @@ YY_RULE_SETUP
 #line 34 "Lexer.l"
 ;
 	YY_BREAK
+case YY_STATE_EOF(COMMENT):
+#line 36 "Lexer.l"
+{
+    fprintf(stderr, "Error: Unterminated comment at EOF\n");
+    exit(42);
+  }
+	YY_BREAK
 
 case 5:
 /* rule 5 can match eol */
 YY_RULE_SETUP
-#line 37 "Lexer.l"
+#line 42 "Lexer.l"
 ;
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 38 "Lexer.l"
+#line 43 "Lexer.l"
 ;
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 40 "Lexer.l"
+#line 45 "Lexer.l"
 { return yy::parser::make_OPENING_BRACE(); }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 41 "Lexer.l"
+#line 46 "Lexer.l"
 { return yy::parser::make_CLOSING_BRACE(); }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 42 "Lexer.l"
+#line 47 "Lexer.l"
 { return yy::parser::make_SEMICOLON(); }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 43 "Lexer.l"
+#line 48 "Lexer.l"
 { return yy::parser::make_LEFT_BRACKET(); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 44 "Lexer.l"
+#line 49 "Lexer.l"
 { return yy::parser::make_RIGHT_BRACKET(); }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 45 "Lexer.l"
+#line 50 "Lexer.l"
 { return yy::parser::make_LEFT_SHIFT(); }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 46 "Lexer.l"
+#line 51 "Lexer.l"
 { return yy::parser::make_RIGHT_SHIFT(); }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 47 "Lexer.l"
+#line 52 "Lexer.l"
 { return yy::parser::make_AND(); }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 48 "Lexer.l"
+#line 53 "Lexer.l"
 { return yy::parser::make_INSERT(); }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 49 "Lexer.l"
+#line 54 "Lexer.l"
 { return yy::parser::make_DELIMITER(); }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 50 "Lexer.l"
+#line 55 "Lexer.l"
 { return yy::parser::make_COMMA(); }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 51 "Lexer.l"
+#line 56 "Lexer.l"
 { return yy::parser::make_EQUAL(); }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 52 "Lexer.l"
+#line 57 "Lexer.l"
 { return yy::parser::make_PLUS_EQUAL(); }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 53 "Lexer.l"
+#line 58 "Lexer.l"
 { return yy::parser::make_SUB_EQUAL(); }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 54 "Lexer.l"
+#line 59 "Lexer.l"
 { return yy::parser::make_MULT_EQUAL(); }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 55 "Lexer.l"
+#line 60 "Lexer.l"
 { return yy::parser::make_SLASH_EQUAL(); }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 56 "Lexer.l"
+#line 61 "Lexer.l"
 { return yy::parser::make_PERCENT_EQUAL(); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 57 "Lexer.l"
+#line 62 "Lexer.l"
 { return yy::parser::make_MULT(); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 58 "Lexer.l"
+#line 63 "Lexer.l"
 { return yy::parser::make_PLUS(); }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 59 "Lexer.l"
+#line 64 "Lexer.l"
 { return yy::parser::make_SUB(); }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 60 "Lexer.l"
+#line 65 "Lexer.l"
 { return yy::parser::make_TILDE(); }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 61 "Lexer.l"
+#line 66 "Lexer.l"
 { return yy::parser::make_SLASH(); }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 62 "Lexer.l"
+#line 67 "Lexer.l"
 { return yy::parser::make_PERCENT(); }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 64 "Lexer.l"
+#line 69 "Lexer.l"
 { return yy::parser::make_STRUCT(); }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 65 "Lexer.l"
+#line 70 "Lexer.l"
 { return yy::parser::make_IF(); }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 66 "Lexer.l"
+#line 71 "Lexer.l"
 { return yy::parser::make_ELSE(); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 67 "Lexer.l"
+#line 72 "Lexer.l"
 { return yy::parser::make_WHILE(); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 68 "Lexer.l"
+#line 73 "Lexer.l"
 { return yy::parser::make_FOR(); }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 69 "Lexer.l"
+#line 74 "Lexer.l"
 { return yy::parser::make_CONTINUE(); }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 70 "Lexer.l"
+#line 75 "Lexer.l"
 { return yy::parser::make_BREAK(); }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 71 "Lexer.l"
+#line 76 "Lexer.l"
 { return yy::parser::make_RETURN(); }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 72 "Lexer.l"
+#line 77 "Lexer.l"
 { return yy::parser::make_ASSERT(); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 73 "Lexer.l"
+#line 78 "Lexer.l"
 { return yy::parser::make_PRINT(); }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 74 "Lexer.l"
+#line 79 "Lexer.l"
 { return yy::parser::make_READ(); }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 75 "Lexer.l"
+#line 80 "Lexer.l"
 { return yy::parser::make_ALLOC(); }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 76 "Lexer.l"
+#line 81 "Lexer.l"
 { return yy::parser::make_ALLOC_ARRAY(); }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 78 "Lexer.l"
+#line 83 "Lexer.l"
 { return yy::parser::make_TRUE(); }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 79 "Lexer.l"
+#line 84 "Lexer.l"
 { return yy::parser::make_FALSE(); }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 80 "Lexer.l"
+#line 85 "Lexer.l"
 { return yy::parser::make_KW_NULL(); }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 81 "Lexer.l"
+#line 86 "Lexer.l"
 { return yy::parser::make_STRING(); }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 82 "Lexer.l"
+#line 87 "Lexer.l"
 { return yy::parser::make_BOOLEAN(); }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 83 "Lexer.l"
+#line 88 "Lexer.l"
 { return yy::parser::make_VOID(); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 84 "Lexer.l"
+#line 89 "Lexer.l"
 { return yy::parser::make_CHAR(); }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 85 "Lexer.l"
+#line 90 "Lexer.l"
 { return yy::parser::make_INT(); }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 87 "Lexer.l"
+#line 92 "Lexer.l"
 {
                           return yy::parser::make_VALUE_INTEGER(YYText());
                         }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 91 "Lexer.l"
+#line 96 "Lexer.l"
 { return yy::parser::make_VALUE_INTEGER("0"); }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 93 "Lexer.l"
+#line 98 "Lexer.l"
 { 
                           return yy::parser::make_VALUE_INTEGER(YYText());
                         }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 97 "Lexer.l"
+#line 102 "Lexer.l"
 {
                           return yy::parser::make_VALUE_ID(YYText());
                         }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 101 "Lexer.l"
+#line 106 "Lexer.l"
 {   
                           std::cerr << "Illegal character: " << YYText() << std::endl;
                           return yy::parser::make_NONE();
@@ -1151,12 +1158,11 @@ YY_RULE_SETUP
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 106 "Lexer.l"
+#line 111 "Lexer.l"
 ECHO;
 	YY_BREAK
-#line 1158 "Lexer.yy.cpp"
+#line 1165 "Lexer.yy.cpp"
 case YY_STATE_EOF(INITIAL):
-case YY_STATE_EOF(COMMENT):
 	yyterminate();
 
 	case YY_END_OF_BUFFER:
@@ -2274,6 +2280,6 @@ void yyfree (void * ptr )
 
 /* %ok-for-header */
 
-#line 106 "Lexer.l"
+#line 111 "Lexer.l"
 
 
