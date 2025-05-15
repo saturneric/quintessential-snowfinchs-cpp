@@ -29,7 +29,6 @@
 %type <ASTNodePtr> simple_statement return_statement declarator left_value
 %type <ASTNodePtr> expression additive multiplicative unary primary
 
-%token <std::string> MAIN_FUNC_ID
 %token <std::string> VALUE_ID VALUE_INTEGER
 %token EQUAL PLUS_EQUAL SUB_EQUAL MULT_EQUAL SLASH_EQUAL PERCENT_EQUAL
 %token PLUS SUB MULT SLASH PERCENT
@@ -48,8 +47,12 @@
 
 %%
 program:
-    INT MAIN_FUNC_ID LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE statements CLOSING_BRACE
+    INT VALUE_ID LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE statements CLOSING_BRACE
     {
+      if ($2 != "main") {
+        YYERROR;
+      }
+
       $$ = MakeASTTreeNode(ASTNodeType::kPROGRAM, "program", $2, drv);
       drv.SetSyntaxTreeRoot($$);
       for (const auto& child : $6) {

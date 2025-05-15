@@ -84,8 +84,6 @@
 "char"              { return yy::parser::make_CHAR(); }
 "int"               { return yy::parser::make_INT(); }
 
-"main"             { return yy::parser::make_MAIN_FUNC_ID("main"); }
-
 0[xX][A-Fa-f0-9]+       {
                           return yy::parser::make_VALUE_INTEGER(YYText());
                         }
