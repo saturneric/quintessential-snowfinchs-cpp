@@ -54,13 +54,9 @@ auto SaftAtoi(const std::string& str) -> int {
 auto SafeParseInt(const std::string& text, int& result) -> bool {
   if (text.empty()) return false;
 
-  bool neg = false;
+  // assert: text is not negative
+
   size_t pos = 0;
-  if (text[0] == '+' || text[0] == '-') {
-    neg = (text[0] == '-');
-    pos = 1;
-    if (pos >= text.size()) return false;
-  }
 
   int base = 10;
   if (pos + 2 <= text.size() && text[pos] == '0' &&
@@ -86,19 +82,19 @@ auto SafeParseInt(const std::string& text, int& result) -> bool {
 
   if (base == 16) {
     if (u > 0xFFFFFFFFULL) return false;
-    uint32_t v32 = static_cast<uint32_t>(u);
+    auto v32 = static_cast<uint32_t>(u);
     int32_t sv = *reinterpret_cast<int32_t*>(&v32);
-    result = neg ? -sv : sv;
+    result = sv;
     return true;
   }
-  if (neg) {
-    unsigned long long limit =
-        static_cast<unsigned long long>(std::numeric_limits<int>::max()) + 1ULL;
-    if (u > limit) return false;
-    long long signed_v = -static_cast<long long>(u);
-    result = static_cast<int>(signed_v);
+
+  if (base == 10) {
+    if (u > 0x80000000ULL) return false;  // Allow up to 2^31 = 2147483648
+    result = static_cast<int>(u);  // 2^31 == -2^31 when interpreted as int
     return true;
   }
+
+  // Octal or others, fit into int range
   if (u > static_cast<unsigned long long>(std::numeric_limits<int>::max())) {
     return false;
   }

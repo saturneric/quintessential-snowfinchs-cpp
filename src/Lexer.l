@@ -77,11 +77,14 @@
 
 "true"              { return yy::parser::make_TRUE(); }
 "false"             { return yy::parser::make_FALSE(); }
+"NULL"              { return yy::parser::make_KW_NULL(); }
 "string"            { return yy::parser::make_STRING(); }
 "bool"              { return yy::parser::make_BOOLEAN(); }
 "void"              { return yy::parser::make_VOID(); }
 "char"              { return yy::parser::make_CHAR(); }
 "int"               { return yy::parser::make_INT(); }
+
+"main"              { return yy::parser::make_MAIN_FUNC_ID(); }
 
 0[xX][A-Fa-f0-9]+       {
                           return yy::parser::make_VALUE_INTEGER(YYText());
@@ -89,7 +92,7 @@
 
 0                       { return yy::parser::make_VALUE_INTEGER("0"); }
 
-[1-9][0-9]*         { 
+[1-9][0-9]*             { 
                           return yy::parser::make_VALUE_INTEGER(YYText());
                         }
 

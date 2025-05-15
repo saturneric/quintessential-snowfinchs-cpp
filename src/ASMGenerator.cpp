@@ -332,12 +332,12 @@ auto ASMGenerator::handle_spling_var(const std::set<std::string>& spilled_vars)
   std::string tmp_backup_0 = new_temp();
   std::string tmp_backup_1 = new_temp();
 
+  std::string reg_0 = r32_ ? "%edi" : "%r10";
+  std::string reg_1 = r32_ ? "%esi" : "%r11";
+
   for (const auto& i : ir_) {
     bool use_spilled = is_variable(i.arg2) && spilled_vars.count(i.arg2) != 0U;
     bool def_spilled = is_variable(i.arg1) && spilled_vars.count(i.arg1) != 0U;
-
-    const std::string reg_0 = r32_ ? "%edi" : "%r10";
-    const std::string reg_1 = r32_ ? "%esi" : "%r11";
 
     if (i.op == "mov" && use_spilled && def_spilled) {
       n_ir.push_back({"store", tmp_backup, reg_0});
@@ -361,6 +361,8 @@ auto ASMGenerator::handle_spling_var(const std::set<std::string>& spilled_vars)
     }
 
     else if (i.op != "mov" && use_spilled) {
+      if (reg_1 == bounded_reg(i.arg1)) std::swap(reg_0, reg_1);
+
       n_ir.push_back({"store", tmp_backup, reg_1});  // save %r11
       n_ir.push_back({"load", reg_1, bounded_reg(i.arg2)});
       n_ir.push_back({i.op, bounded_reg(i.arg1), reg_1});
@@ -368,6 +370,8 @@ auto ASMGenerator::handle_spling_var(const std::set<std::string>& spilled_vars)
     }
 
     else if (i.op != "mov" && def_spilled) {
+      if (reg_1 == bounded_reg(i.arg2)) std::swap(reg_0, reg_1);
+
       n_ir.push_back({"store", tmp_backup, reg_1});  // save %r11
       n_ir.push_back({"load", reg_1, bounded_reg(i.arg1)});
       n_ir.push_back({i.op, reg_1, bounded_reg(i.arg2)});

@@ -29,6 +29,7 @@
 %type <ASTNodePtr> simple_statement return_statement declarator left_value
 %type <ASTNodePtr> expression additive multiplicative unary primary
 
+%token <std::string> MAIN_FUNC_ID
 %token <std::string> VALUE_ID VALUE_INTEGER
 %token EQUAL PLUS_EQUAL SUB_EQUAL MULT_EQUAL SLASH_EQUAL PERCENT_EQUAL
 %token PLUS SUB MULT SLASH PERCENT
@@ -36,7 +37,8 @@
 %token LEFT_SHIFT RIGHT_SHIFT AND INSERT DELIMITER COMMA TILDE
 %token STRUCT IF ELSE WHILE FOR CONTINUE BREAK RETURN 
 %token ASSERT PRINT READ ALLOC ALLOC_ARRAY
-%token TRUE FALSE STRING BOOLEAN VOID CHAR INT
+%token TRUE FALSE KW_NULL
+%token STRING BOOLEAN VOID CHAR INT
 %token NONE 
 
 %left PLUS SUB
@@ -46,7 +48,7 @@
 
 %%
 program:
-    INT VALUE_ID LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE statements CLOSING_BRACE
+    INT MAIN_FUNC_ID LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE statements CLOSING_BRACE
     {
       $$ = MakeASTTreeNode(ASTNodeType::kPROGRAM, "program", $2, drv);
       drv.SetSyntaxTreeRoot($$);
