@@ -1,0 +1,15 @@
+int main() {
+  int x0 = 1;
+  int x1 = 2;
+  int x2 = 3;
+  int x10 = 11;
+  int x11 = 12;
+  int x12 = 13;
+
+  int y0 = x0 + x1;
+  int y1 = x1 + x2;
+  int y10 = x10 + x11;
+  int y11 = x11 + x12;
+
+  return y0 + y1 + y10 + y11;
+}
