@@ -394,6 +394,7 @@ namespace yy {
       // primary
       char dummy1[sizeof (ASTNodePtr)];
 
+      // MAIN_FUNC_ID
       // VALUE_ID
       // VALUE_INTEGER
       // assign_operator
@@ -444,53 +445,55 @@ namespace yy {
     TOKEN_YYEOF = 0,               // "end of file"
     TOKEN_YYerror = 256,           // error
     TOKEN_YYUNDEF = 257,           // "invalid token"
-    TOKEN_VALUE_ID = 258,          // VALUE_ID
-    TOKEN_VALUE_INTEGER = 259,     // VALUE_INTEGER
-    TOKEN_EQUAL = 260,             // EQUAL
-    TOKEN_PLUS_EQUAL = 261,        // PLUS_EQUAL
-    TOKEN_SUB_EQUAL = 262,         // SUB_EQUAL
-    TOKEN_MULT_EQUAL = 263,        // MULT_EQUAL
-    TOKEN_SLASH_EQUAL = 264,       // SLASH_EQUAL
-    TOKEN_PERCENT_EQUAL = 265,     // PERCENT_EQUAL
-    TOKEN_PLUS = 266,              // PLUS
-    TOKEN_SUB = 267,               // SUB
-    TOKEN_MULT = 268,              // MULT
-    TOKEN_SLASH = 269,             // SLASH
-    TOKEN_PERCENT = 270,           // PERCENT
-    TOKEN_SEMICOLON = 271,         // SEMICOLON
-    TOKEN_LEFT_BRACKET = 272,      // LEFT_BRACKET
-    TOKEN_RIGHT_BRACKET = 273,     // RIGHT_BRACKET
-    TOKEN_OPENING_BRACE = 274,     // OPENING_BRACE
-    TOKEN_CLOSING_BRACE = 275,     // CLOSING_BRACE
-    TOKEN_LEFT_SHIFT = 276,        // LEFT_SHIFT
-    TOKEN_RIGHT_SHIFT = 277,       // RIGHT_SHIFT
-    TOKEN_AND = 278,               // AND
-    TOKEN_INSERT = 279,            // INSERT
-    TOKEN_DELIMITER = 280,         // DELIMITER
-    TOKEN_COMMA = 281,             // COMMA
-    TOKEN_TILDE = 282,             // TILDE
-    TOKEN_STRUCT = 283,            // STRUCT
-    TOKEN_IF = 284,                // IF
-    TOKEN_ELSE = 285,              // ELSE
-    TOKEN_WHILE = 286,             // WHILE
-    TOKEN_FOR = 287,               // FOR
-    TOKEN_CONTINUE = 288,          // CONTINUE
-    TOKEN_BREAK = 289,             // BREAK
-    TOKEN_RETURN = 290,            // RETURN
-    TOKEN_ASSERT = 291,            // ASSERT
-    TOKEN_PRINT = 292,             // PRINT
-    TOKEN_READ = 293,              // READ
-    TOKEN_ALLOC = 294,             // ALLOC
-    TOKEN_ALLOC_ARRAY = 295,       // ALLOC_ARRAY
-    TOKEN_TRUE = 296,              // TRUE
-    TOKEN_FALSE = 297,             // FALSE
-    TOKEN_STRING = 298,            // STRING
-    TOKEN_BOOLEAN = 299,           // BOOLEAN
-    TOKEN_VOID = 300,              // VOID
-    TOKEN_CHAR = 301,              // CHAR
-    TOKEN_INT = 302,               // INT
-    TOKEN_NONE = 303,              // NONE
-    TOKEN_UMINUS = 304             // UMINUS
+    TOKEN_MAIN_FUNC_ID = 258,      // MAIN_FUNC_ID
+    TOKEN_VALUE_ID = 259,          // VALUE_ID
+    TOKEN_VALUE_INTEGER = 260,     // VALUE_INTEGER
+    TOKEN_EQUAL = 261,             // EQUAL
+    TOKEN_PLUS_EQUAL = 262,        // PLUS_EQUAL
+    TOKEN_SUB_EQUAL = 263,         // SUB_EQUAL
+    TOKEN_MULT_EQUAL = 264,        // MULT_EQUAL
+    TOKEN_SLASH_EQUAL = 265,       // SLASH_EQUAL
+    TOKEN_PERCENT_EQUAL = 266,     // PERCENT_EQUAL
+    TOKEN_PLUS = 267,              // PLUS
+    TOKEN_SUB = 268,               // SUB
+    TOKEN_MULT = 269,              // MULT
+    TOKEN_SLASH = 270,             // SLASH
+    TOKEN_PERCENT = 271,           // PERCENT
+    TOKEN_SEMICOLON = 272,         // SEMICOLON
+    TOKEN_LEFT_BRACKET = 273,      // LEFT_BRACKET
+    TOKEN_RIGHT_BRACKET = 274,     // RIGHT_BRACKET
+    TOKEN_OPENING_BRACE = 275,     // OPENING_BRACE
+    TOKEN_CLOSING_BRACE = 276,     // CLOSING_BRACE
+    TOKEN_LEFT_SHIFT = 277,        // LEFT_SHIFT
+    TOKEN_RIGHT_SHIFT = 278,       // RIGHT_SHIFT
+    TOKEN_AND = 279,               // AND
+    TOKEN_INSERT = 280,            // INSERT
+    TOKEN_DELIMITER = 281,         // DELIMITER
+    TOKEN_COMMA = 282,             // COMMA
+    TOKEN_TILDE = 283,             // TILDE
+    TOKEN_STRUCT = 284,            // STRUCT
+    TOKEN_IF = 285,                // IF
+    TOKEN_ELSE = 286,              // ELSE
+    TOKEN_WHILE = 287,             // WHILE
+    TOKEN_FOR = 288,               // FOR
+    TOKEN_CONTINUE = 289,          // CONTINUE
+    TOKEN_BREAK = 290,             // BREAK
+    TOKEN_RETURN = 291,            // RETURN
+    TOKEN_ASSERT = 292,            // ASSERT
+    TOKEN_PRINT = 293,             // PRINT
+    TOKEN_READ = 294,              // READ
+    TOKEN_ALLOC = 295,             // ALLOC
+    TOKEN_ALLOC_ARRAY = 296,       // ALLOC_ARRAY
+    TOKEN_TRUE = 297,              // TRUE
+    TOKEN_FALSE = 298,             // FALSE
+    TOKEN_KW_NULL = 299,           // KW_NULL
+    TOKEN_STRING = 300,            // STRING
+    TOKEN_BOOLEAN = 301,           // BOOLEAN
+    TOKEN_VOID = 302,              // VOID
+    TOKEN_CHAR = 303,              // CHAR
+    TOKEN_INT = 304,               // INT
+    TOKEN_NONE = 305,              // NONE
+    TOKEN_UMINUS = 306             // UMINUS
       };
       /// Backward compatibility alias (Bison 3.6).
       typedef token_kind_type yytokentype;
@@ -507,72 +510,74 @@ namespace yy {
     {
       enum symbol_kind_type
       {
-        YYNTOKENS = 50, ///< Number of tokens.
+        YYNTOKENS = 52, ///< Number of tokens.
         S_YYEMPTY = -2,
         S_YYEOF = 0,                             // "end of file"
         S_YYerror = 1,                           // error
         S_YYUNDEF = 2,                           // "invalid token"
-        S_VALUE_ID = 3,                          // VALUE_ID
-        S_VALUE_INTEGER = 4,                     // VALUE_INTEGER
-        S_EQUAL = 5,                             // EQUAL
-        S_PLUS_EQUAL = 6,                        // PLUS_EQUAL
-        S_SUB_EQUAL = 7,                         // SUB_EQUAL
-        S_MULT_EQUAL = 8,                        // MULT_EQUAL
-        S_SLASH_EQUAL = 9,                       // SLASH_EQUAL
-        S_PERCENT_EQUAL = 10,                    // PERCENT_EQUAL
-        S_PLUS = 11,                             // PLUS
-        S_SUB = 12,                              // SUB
-        S_MULT = 13,                             // MULT
-        S_SLASH = 14,                            // SLASH
-        S_PERCENT = 15,                          // PERCENT
-        S_SEMICOLON = 16,                        // SEMICOLON
-        S_LEFT_BRACKET = 17,                     // LEFT_BRACKET
-        S_RIGHT_BRACKET = 18,                    // RIGHT_BRACKET
-        S_OPENING_BRACE = 19,                    // OPENING_BRACE
-        S_CLOSING_BRACE = 20,                    // CLOSING_BRACE
-        S_LEFT_SHIFT = 21,                       // LEFT_SHIFT
-        S_RIGHT_SHIFT = 22,                      // RIGHT_SHIFT
-        S_AND = 23,                              // AND
-        S_INSERT = 24,                           // INSERT
-        S_DELIMITER = 25,                        // DELIMITER
-        S_COMMA = 26,                            // COMMA
-        S_TILDE = 27,                            // TILDE
-        S_STRUCT = 28,                           // STRUCT
-        S_IF = 29,                               // IF
-        S_ELSE = 30,                             // ELSE
-        S_WHILE = 31,                            // WHILE
-        S_FOR = 32,                              // FOR
-        S_CONTINUE = 33,                         // CONTINUE
-        S_BREAK = 34,                            // BREAK
-        S_RETURN = 35,                           // RETURN
-        S_ASSERT = 36,                           // ASSERT
-        S_PRINT = 37,                            // PRINT
-        S_READ = 38,                             // READ
-        S_ALLOC = 39,                            // ALLOC
-        S_ALLOC_ARRAY = 40,                      // ALLOC_ARRAY
-        S_TRUE = 41,                             // TRUE
-        S_FALSE = 42,                            // FALSE
-        S_STRING = 43,                           // STRING
-        S_BOOLEAN = 44,                          // BOOLEAN
-        S_VOID = 45,                             // VOID
-        S_CHAR = 46,                             // CHAR
-        S_INT = 47,                              // INT
-        S_NONE = 48,                             // NONE
-        S_UMINUS = 49,                           // UMINUS
-        S_YYACCEPT = 50,                         // $accept
-        S_program = 51,                          // program
-        S_statements = 52,                       // statements
-        S_statement = 53,                        // statement
-        S_simple_statement = 54,                 // simple_statement
-        S_return_statement = 55,                 // return_statement
-        S_declarator = 56,                       // declarator
-        S_left_value = 57,                       // left_value
-        S_expression = 58,                       // expression
-        S_additive = 59,                         // additive
-        S_multiplicative = 60,                   // multiplicative
-        S_unary = 61,                            // unary
-        S_primary = 62,                          // primary
-        S_assign_operator = 63                   // assign_operator
+        S_MAIN_FUNC_ID = 3,                      // MAIN_FUNC_ID
+        S_VALUE_ID = 4,                          // VALUE_ID
+        S_VALUE_INTEGER = 5,                     // VALUE_INTEGER
+        S_EQUAL = 6,                             // EQUAL
+        S_PLUS_EQUAL = 7,                        // PLUS_EQUAL
+        S_SUB_EQUAL = 8,                         // SUB_EQUAL
+        S_MULT_EQUAL = 9,                        // MULT_EQUAL
+        S_SLASH_EQUAL = 10,                      // SLASH_EQUAL
+        S_PERCENT_EQUAL = 11,                    // PERCENT_EQUAL
+        S_PLUS = 12,                             // PLUS
+        S_SUB = 13,                              // SUB
+        S_MULT = 14,                             // MULT
+        S_SLASH = 15,                            // SLASH
+        S_PERCENT = 16,                          // PERCENT
+        S_SEMICOLON = 17,                        // SEMICOLON
+        S_LEFT_BRACKET = 18,                     // LEFT_BRACKET
+        S_RIGHT_BRACKET = 19,                    // RIGHT_BRACKET
+        S_OPENING_BRACE = 20,                    // OPENING_BRACE
+        S_CLOSING_BRACE = 21,                    // CLOSING_BRACE
+        S_LEFT_SHIFT = 22,                       // LEFT_SHIFT
+        S_RIGHT_SHIFT = 23,                      // RIGHT_SHIFT
+        S_AND = 24,                              // AND
+        S_INSERT = 25,                           // INSERT
+        S_DELIMITER = 26,                        // DELIMITER
+        S_COMMA = 27,                            // COMMA
+        S_TILDE = 28,                            // TILDE
+        S_STRUCT = 29,                           // STRUCT
+        S_IF = 30,                               // IF
+        S_ELSE = 31,                             // ELSE
+        S_WHILE = 32,                            // WHILE
+        S_FOR = 33,                              // FOR
+        S_CONTINUE = 34,                         // CONTINUE
+        S_BREAK = 35,                            // BREAK
+        S_RETURN = 36,                           // RETURN
+        S_ASSERT = 37,                           // ASSERT
+        S_PRINT = 38,                            // PRINT
+        S_READ = 39,                             // READ
+        S_ALLOC = 40,                            // ALLOC
+        S_ALLOC_ARRAY = 41,                      // ALLOC_ARRAY
+        S_TRUE = 42,                             // TRUE
+        S_FALSE = 43,                            // FALSE
+        S_KW_NULL = 44,                          // KW_NULL
+        S_STRING = 45,                           // STRING
+        S_BOOLEAN = 46,                          // BOOLEAN
+        S_VOID = 47,                             // VOID
+        S_CHAR = 48,                             // CHAR
+        S_INT = 49,                              // INT
+        S_NONE = 50,                             // NONE
+        S_UMINUS = 51,                           // UMINUS
+        S_YYACCEPT = 52,                         // $accept
+        S_program = 53,                          // program
+        S_statements = 54,                       // statements
+        S_statement = 55,                        // statement
+        S_simple_statement = 56,                 // simple_statement
+        S_return_statement = 57,                 // return_statement
+        S_declarator = 58,                       // declarator
+        S_left_value = 59,                       // left_value
+        S_expression = 60,                       // expression
+        S_additive = 61,                         // additive
+        S_multiplicative = 62,                   // multiplicative
+        S_unary = 63,                            // unary
+        S_primary = 64,                          // primary
+        S_assign_operator = 65                   // assign_operator
       };
     };
 
@@ -621,6 +626,7 @@ namespace yy {
         value.move< ASTNodePtr > (std::move (that.value));
         break;
 
+      case symbol_kind::S_MAIN_FUNC_ID: // MAIN_FUNC_ID
       case symbol_kind::S_VALUE_ID: // VALUE_ID
       case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
@@ -726,6 +732,7 @@ switch (yykind)
         value.template destroy< ASTNodePtr > ();
         break;
 
+      case symbol_kind::S_MAIN_FUNC_ID: // MAIN_FUNC_ID
       case symbol_kind::S_VALUE_ID: // VALUE_ID
       case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
@@ -933,6 +940,21 @@ switch (yykind)
       make_YYUNDEF ()
       {
         return symbol_type (token::TOKEN_YYUNDEF);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_MAIN_FUNC_ID (std::string v)
+      {
+        return symbol_type (token::TOKEN_MAIN_FUNC_ID, std::move (v));
+      }
+#else
+      static
+      symbol_type
+      make_MAIN_FUNC_ID (const std::string& v)
+      {
+        return symbol_type (token::TOKEN_MAIN_FUNC_ID, v);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -1538,6 +1560,21 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_KW_NULL ()
+      {
+        return symbol_type (token::TOKEN_KW_NULL);
+      }
+#else
+      static
+      symbol_type
+      make_KW_NULL ()
+      {
+        return symbol_type (token::TOKEN_KW_NULL);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_STRING ()
       {
         return symbol_type (token::TOKEN_STRING);
@@ -1995,10 +2032,10 @@ switch (yykind)
       15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
       25,    26,    27,    28,    29,    30,    31,    32,    33,    34,
       35,    36,    37,    38,    39,    40,    41,    42,    43,    44,
-      45,    46,    47,    48,    49
+      45,    46,    47,    48,    49,    50,    51
     };
     // Last valid token kind.
-    const int code_max = 304;
+    const int code_max = 306;
 
     if (t <= 0)
       return symbol_kind::S_YYEOF;
@@ -2030,6 +2067,7 @@ switch (yykind)
         value.copy< ASTNodePtr > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_MAIN_FUNC_ID: // MAIN_FUNC_ID
       case symbol_kind::S_VALUE_ID: // VALUE_ID
       case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
@@ -2085,6 +2123,7 @@ switch (yykind)
         value.move< ASTNodePtr > (YY_MOVE (s.value));
         break;
 
+      case symbol_kind::S_MAIN_FUNC_ID: // MAIN_FUNC_ID
       case symbol_kind::S_VALUE_ID: // VALUE_ID
       case symbol_kind::S_VALUE_INTEGER: // VALUE_INTEGER
       case symbol_kind::S_assign_operator: // assign_operator
@@ -2160,7 +2199,7 @@ switch (yykind)
 
 
 } // yy
-#line 2164 "Parser.hpp"
+#line 2203 "Parser.hpp"
 
 
 
