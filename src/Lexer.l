@@ -32,6 +32,11 @@
   }
 
   .|\n ;
+
+  <<EOF>> {
+    fprintf(stderr, "Error: Unterminated comment at EOF\n");
+    exit(1);
+  }
 }
 
 [ \t\r\n]+          ;
