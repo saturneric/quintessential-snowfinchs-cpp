@@ -1,0 +1,11 @@
+lab1/A.txt 0 20
+lab1/A.txt -1 20
+lab1/A.txt 0 20
+lab1/A.txt 0 20
+lab1/A.txt 0 20
+lab1/A.txt 0 20
+lab1/A.txt 0 20
+lab1/A.txt 0 20
+lab1/A.txt 0 20
+lab1/A.txt 0 20
+lab1/A.txt 0 20

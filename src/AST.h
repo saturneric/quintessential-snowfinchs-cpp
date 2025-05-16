@@ -1,8 +1,5 @@
 #pragma once
 
-#include <stack>
-#include <vector>
-
 #include "SymbolTable.h"
 
 enum class ASTNodeType : char {

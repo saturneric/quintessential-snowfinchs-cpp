@@ -36,3 +36,6 @@
 .cache
 build*
 .runtime
+foo
+*.out
+cscope**
