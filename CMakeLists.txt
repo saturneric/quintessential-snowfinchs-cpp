@@ -1,19 +1,23 @@
 cmake_minimum_required(VERSION 3.17)
-project(L1Compiler)
+project(L1Compiler LANGUAGES CXX)
 
-option(BUILD_TEST_CASES "Build Unit Test Case" OFF)
+option(BUILD_TEST_CASES "Build Unit Test Cases" OFF)
+message(STATUS "BUILD_TEST_CASES is ${BUILD_TEST_CASES}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -funroll-loops")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# copy test resources
-file(COPY ${CMAKE_SOURCE_DIR}/resources DESTINATION ${CMAKE_BINARY_DIR})
+message(STATUS "CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
+message(STATUS "CMAKE_CXX_FLAGS_DEBUG is ${CMAKE_CXX_FLAGS_DEBUG}")
+message(STATUS "CMAKE_CXX_FLAGS_RELEASE is ${CMAKE_CXX_FLAGS_RELEASE}")
+message(STATUS "CMAKE_CXX_FLAGS_RELWITHDEBINFO is ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+message(STATUS "CMAKE_CXX_FLAGS_MINSIZEREL is ${CMAKE_CXX_FLAGS_MINSIZEREL}")
 
 include_directories(src)
 include_directories(compiler include)
@@ -21,7 +25,7 @@ include_directories(compiler include)
 add_subdirectory(src)
 
 add_executable(compiler L1Compiler.cpp)
-target_link_libraries(compiler core)
+target_link_libraries(compiler PRIVATE core)
 
 if(BUILD_TEST_CASES)
   add_subdirectory(test)
