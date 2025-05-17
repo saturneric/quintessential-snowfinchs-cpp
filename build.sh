@@ -14,6 +14,12 @@ if [ "$JOBS" -gt "$MAX_JOBS" ]; then
 fi
 
 echo "Using $JOBS parallel jobs for build"
+echo
+
+echo "Current virtual memory (ulimit -v): $(ulimit -v) KB"
+echo "All current ulimit settings:"
+ulimit -a
+echo
 
 mkdir -p "$BUILD_DIR"
 cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -S "$SOURCE_DIR" -B "$BUILD_DIR"
