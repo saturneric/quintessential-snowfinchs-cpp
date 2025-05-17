@@ -17,5 +17,5 @@ int main() {
     
     int t5 = t12 - t11;
     int t9 = t22 % t5;
-    return t0;
+    return t0 + t9;
 }
