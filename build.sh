@@ -11,7 +11,7 @@ fi
 
 if [[ ${#MISSING_PKGS[@]} -gt 0 ]]; then
   echo "Installing missing packages: ${MISSING_PKGS[*]}"
-  sudo pacman -Sy --noconfirm "${MISSING_PKGS[@]}"
+  pacman -Sy --noconfirm "${MISSING_PKGS[@]}"
 fi
 
 SOURCE_DIR=$(pwd)
