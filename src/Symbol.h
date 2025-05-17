@@ -1,9 +1,5 @@
 #pragma once
 
-#include <map>
-#include <memory>
-#include <string>
-
 enum class SymbolType {
   kTOKEN_SPEC,
   kTOKEN,

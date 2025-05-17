@@ -1,11 +1,5 @@
 #include "ASMGenerator.h"
 
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <regex>
-#include <set>
-
 ASMGenerator::ASMGenerator(bool r32, const std::vector<IRInstructionA2>& ir)
     : r32_(r32), ir_(ir) {}
 
