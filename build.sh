@@ -4,7 +4,13 @@ set -e
 SOURCE_DIR=$(pwd)
 BUILD_DIR="$SOURCE_DIR/build"
 
+MAX_JOBS=4
+JOBS=$(nproc)
+if [ "$JOBS" -gt "$MAX_JOBS" ]; then
+  JOBS=$MAX_JOBS
+fi
+
 mkdir -p "$BUILD_DIR"
 
 cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -S "$SOURCE_DIR" -B "$BUILD_DIR"
-cmake --build "$BUILD_DIR" -- -j$(nproc)
+cmake --build "$BUILD_DIR" -- -j$JOBS
