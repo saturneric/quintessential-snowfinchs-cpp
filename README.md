@@ -68,7 +68,7 @@ Run the full test suite:
 
 ## Resources
 
-All test cases and their relared configrations are located in the `resources/` folder.
+All test cases and their related configrations are located in the `resources/` folder.
 
 ## Contributing
 
