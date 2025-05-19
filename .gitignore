@@ -39,3 +39,4 @@ build*
 foo
 *.out
 cscope**
+.DS_Store
