@@ -14,14 +14,16 @@ class SemanticAnalyzer {
   SymbolTablePtr symbol_table_;
   int scopes_ = 0;
   bool succ_;
+  std::stack<int> s_in_var_idx_;
+  int inner_var_index_ = 0;
 
   void enter_scope();
 
   void leave_scope();
 
-  auto declare(const std::string& name, const std::string& type) -> bool;
+  auto declare_ident(const std::string& name, const std::string& type) -> bool;
 
-  auto lookup(const std::string& name) -> SymbolPtr;
+  auto lookup_ident(const std::string& name) -> SymbolPtr;
 
   auto visit(const ASTNodePtr& node) -> ASTNodePtr;
 

@@ -8,16 +8,17 @@ class SymbolTable {
   using SymbolNameTable = std::map<std::string, SymbolPtr>;
   std::map<SymbolType, SymbolNameTable> table_;
   std::map<int, SymbolPtr> cache_;
-  std::map<int, SymbolNameTable> semantic_table_;
 
  public:
   SymbolTable();
 
   auto AddSymbol(SymbolType type, int index, const std::string &name,
-                 const std::string &value = {}) -> SymbolPtr;
+                 const std::string &value = {}, bool unique = true)
+      -> SymbolPtr;
 
   auto AddSymbol(SymbolType type, const std::string &name,
-                 const std::string &value = {}) -> SymbolPtr;
+                 const std::string &value = {}, bool unique = true)
+      -> SymbolPtr;
 
   auto AddASTSymbol(const std::string &name, const std::string &value)
       -> SymbolPtr;

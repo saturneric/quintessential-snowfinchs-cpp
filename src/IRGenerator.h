@@ -27,11 +27,11 @@ class IRGenerator {
 
   class Context {
    public:
-    explicit Context(ExpHandler handler);
+    explicit Context(IRGenerator* ig, ExpHandler handler);
 
     auto ExpRoute(const ASTNodePtr& node) -> std::string;
 
-    auto NewTempVariable() -> std::string;
+    auto MappingInnerVariable(const std::string& v = {}) -> std::string;
 
     void AppendInstruction(const IRInstruction& i);
 
@@ -39,13 +39,21 @@ class IRGenerator {
 
     [[nodiscard]] auto Instructions() const -> std::vector<IRInstruction>;
 
+    void EnterScope();
+
+    void LeaveScope();
+
    private:
-    int temp_variable_counter_ = 0;
-    std::vector<IRInstruction> instructions_;
+    IRGenerator* ig_;
     ExpHandler handler_;
+
+    int scope_ = 0;
+    std::stack<int> s_t_var_idx_;
+    int temp_variable_idx_ = 0;
+    std::vector<IRInstruction> instructions_;
   };
 
-  IRGenerator();
+  explicit IRGenerator(SymbolTablePtr symbol_table);
 
   auto Generate(const AST& tree) -> std::vector<IRInstructionA2>;
 
@@ -55,11 +63,14 @@ class IRGenerator {
 
  private:
   static std::map<ASTNodeType, ExpHandler> exp_handler_resiter;
+  ContextPtr ctx_;
+  SymbolTablePtr symbol_table_;
+  int in_var_idx_ = 1;
+
   std::vector<IRInstructionA2> instructions_2_addr_;
   std::vector<IRInstruction> instructions_ssa_;
   std::map<std::string, int> variable_version_;
   std::map<std::string, std::string> variable_name_ssa_;
-  ContextPtr ctx_;
 
   static auto select_instruction(const std::string& operation) -> std::string;
 
@@ -70,4 +81,6 @@ class IRGenerator {
   void convert2_ssa();
 
   void convert_instructions();
+
+  auto mapping_inner_variable(int scope, const std::string& v) -> std::string;
 };

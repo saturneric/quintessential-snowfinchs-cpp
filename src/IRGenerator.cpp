@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <utility>
 
 namespace {
 
@@ -17,9 +18,9 @@ auto BinOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
 
   if (children.size() != 2) return {};
 
-  auto lhs = ctx->ExpRoute(children.front());
-  auto rhs = ctx->ExpRoute(children.back());
-  auto temp = ctx->NewTempVariable();
+  auto lhs = ctx->MappingInnerVariable(ctx->ExpRoute(children.front()));
+  auto rhs = ctx->MappingInnerVariable(ctx->ExpRoute(children.back()));
+  auto temp = ctx->MappingInnerVariable();
 
   auto opera = node->Operation()->Value();
 
@@ -37,13 +38,13 @@ auto UnOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
 
   if (children.empty()) return {};
 
-  auto operand = ctx->ExpRoute(children.front());
-  auto temp = ctx->NewTempVariable();
+  auto operand = ctx->MappingInnerVariable(ctx->ExpRoute(children.front()));
+  auto temp = ctx->MappingInnerVariable();
 
   ctx->AppendInstruction({"mov", operand, {}, temp});
 
   if (node->Operation()->Value() == "-") {
-    auto temp1 = ctx->NewTempVariable();
+    auto temp1 = ctx->MappingInnerVariable();
     ctx->AppendInstruction({"neg", temp, {}, temp1});
     temp = temp1;
   }
@@ -56,7 +57,16 @@ auto MeaninglessNodeHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   for (const auto& child : node->Children()) {
     ctx->ExpRoute(child);
   }
+  return {};
+}
 
+auto InnerScopeNodeHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
+    -> std::string {
+  ctx->EnterScope();
+  for (const auto& child : node->Children()) {
+    ctx->ExpRoute(child);
+  }
+  ctx->LeaveScope();
   return {};
 }
 
@@ -66,7 +76,7 @@ auto ReturnExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
 
   if (node->Children().empty()) return "";
 
-  auto val = ctx->ExpRoute(children.front());
+  auto val = ctx->MappingInnerVariable(ctx->ExpRoute(children.front()));
 
   ctx->AppendInstruction({"rtn", val});
   return "";
@@ -78,8 +88,8 @@ auto AssignExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
 
   if (node->Children().size() != 2) return "";
 
-  auto rhs = ctx->ExpRoute(node->Children().back());
-  auto lhs = ctx->ExpRoute(node->Children().front());
+  auto rhs = ctx->MappingInnerVariable(ctx->ExpRoute(node->Children().back()));
+  auto lhs = ctx->MappingInnerVariable(ctx->ExpRoute(node->Children().front()));
 
   ctx->AppendInstruction({"mov", rhs, "", lhs});
 
@@ -128,7 +138,7 @@ std::map<ASTNodeType, IRGenerator::ExpHandler>
         {ASTNodeType::kUN_OP, UnOpExpHandler},
         {ASTNodeType::kBIN_OP, BinOpExpHandler},
         {ASTNodeType::kVALUE, ValueExpHandler},
-        {ASTNodeType::kPROGRAM, MeaninglessNodeHandler},
+        {ASTNodeType::kPROGRAM, InnerScopeNodeHandler},
         {ASTNodeType::kIDENT, ValueExpHandler},
 };
 
@@ -153,8 +163,14 @@ auto IRGenerator::Generate(const AST& tree) -> std::vector<IRInstructionA2> {
   return instructions_2_addr_;
 }
 
-auto IRGenerator::Context::NewTempVariable() -> std::string {
-  return "t" + std::to_string(temp_variable_counter_++);
+auto IRGenerator::Context::MappingInnerVariable(const std::string& v)
+    -> std::string {
+  auto t_v = v;
+  if (t_v.empty()) {
+    t_v = "t_" + std::to_string(scope_) + "_" +
+          std::to_string(temp_variable_idx_++);
+  }
+  return ig_->mapping_inner_variable(scope_, t_v);
 }
 
 auto IRGenerator::Context::Instructions() const -> std::vector<IRInstruction> {
@@ -186,14 +202,17 @@ auto IRGenerator::Context::ExpRoute(const ASTNodePtr& node) -> std::string {
   return {};
 }
 
-IRGenerator::Context::Context(ExpHandler handler)
-    : handler_(std::move(handler)) {}
+IRGenerator::Context::Context(IRGenerator* ig, ExpHandler handler)
+    : ig_(ig), handler_(std::move(handler)) {}
 
-IRGenerator::IRGenerator()
-    : ctx_(std::make_shared<Context>([this](auto&& PH1, auto&& PH2) {
-        return do_ir_generate(std::forward<decltype(PH1)>(PH1),
-                              std::forward<decltype(PH2)>(PH2));
-      })) {}
+IRGenerator::IRGenerator(SymbolTablePtr symbol_table)
+    : ctx_(std::make_shared<Context>(this,
+                                     [this](auto&& PH1, auto&& PH2) {
+                                       return do_ir_generate(
+                                           std::forward<decltype(PH1)>(PH1),
+                                           std::forward<decltype(PH2)>(PH2));
+                                     })),
+      symbol_table_(std::move(symbol_table)) {}
 
 void IRGenerator::convert_instructions() {
   std::vector<IRInstructionA2> result;
@@ -251,4 +270,30 @@ auto IRGenerator::get_ssa_name(const std::string& var, bool is_def)
 
   if (variable_name_ssa_.count(var) != 0U) return variable_name_ssa_[var];
   return var;
+}
+
+auto IRGenerator::mapping_inner_variable(int scope, const std::string& v)
+    -> std::string {
+  if (v.empty()) {
+    SPDLOG_WARN("cannot get get inner variable by empty ident");
+    return {};
+  }
+
+  auto sym = symbol_table_->SearchSemanticSymbol(scope, v);
+  if (sym != nullptr) return sym->Value();
+
+  sym = symbol_table_->AddSemanticSymbol(scope, v, v);
+  return sym->Value();
+}
+
+void IRGenerator::Context::EnterScope() {
+  scope_++;
+  s_t_var_idx_.push(temp_variable_idx_);
+  temp_variable_idx_ = 0;
+}
+
+void IRGenerator::Context::LeaveScope() {
+  scope_--;
+  temp_variable_idx_ = s_t_var_idx_.top();
+  s_t_var_idx_.pop();
 }

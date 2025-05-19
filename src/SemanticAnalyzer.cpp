@@ -1,9 +1,11 @@
 #include "SemanticAnalyzer.h"
 
 #include <algorithm>
-#include <iostream>
 
 #include "Utils.h"
+
+SemanticAnalyzer::SemanticAnalyzer(SymbolTablePtr symbol_table)
+    : symbol_table_(std::move(symbol_table)) {};
 
 auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
   if (!node) {
@@ -14,8 +16,8 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
   switch (node->Type()) {
     case ASTNodeType::kDECLARE: {
       auto name = node->Operation()->Value();
-      if (!declare(name, "int")) {
-        error(node, "Redefine: " + name);
+      if (!declare_ident(name, "int")) {
+        error(node, "Redefine identity: " + name);
       }
 
       auto children = node->Children();
@@ -24,7 +26,7 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
       const auto& assign = children.front();
       auto expr_type = visit(assign);
 
-      lookup(name)->SetMetaData("initialization", "1");
+      lookup_ident(name)->SetMetaData("initialization", "1");
       break;
     }
 
@@ -37,7 +39,7 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
 
       auto var = target->Operation()->Value();
 
-      auto sym = lookup(var);
+      auto sym = lookup_ident(var);
       if (!sym) {
         error(node, "Undeclared variables: " + var);
         break;
@@ -57,6 +59,7 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
       auto expr_type = visit_expr(value);
       break;
     }
+
     case ASTNodeType::kPROGRAM: {
       bool has_return = false;
       for (auto& c : node->Children()) {
@@ -66,6 +69,7 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
       if (!has_return) error(node, "Return statement not found");
       break;
     }
+
     default: {
       for (auto& c : node->Children()) visit(c);
     }
@@ -73,10 +77,10 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
   return node;
 }
 
-auto SemanticAnalyzer::lookup(const std::string& name) -> SymbolPtr {
+auto SemanticAnalyzer::lookup_ident(const std::string& name) -> SymbolPtr {
   for (int i = scopes_ - 1; i >= 0; --i) {
-    auto symbol = symbol_table_->SearchSemanticSymbol(scopes_, name);
-    if (symbol != nullptr) return symbol;
+    auto sym = symbol_table_->SearchSemanticSymbol(scopes_, name);
+    if (sym != nullptr) return sym;
   }
   return nullptr;
 }
@@ -95,7 +99,7 @@ auto SemanticAnalyzer::visit_expr(const ASTNodePtr& expr) -> ExpType {
 
     case ASTNodeType::kIDENT: {
       auto var = expr->Operation()->Value();
-      auto sym = lookup(var);
+      auto sym = lookup_ident(var);
       if (!sym) {
         error(expr, "Undeclared variables: " + var);
         return ExpType::kINT;
@@ -136,15 +140,20 @@ auto SemanticAnalyzer::is_integer_literal(const std::string& s) -> bool {
 
 void SemanticAnalyzer::error(const ASTNodePtr& /*node*/,
                              const std::string& msg) {
-  std::fprintf(stderr, "Semantic Error: %s\n", msg.c_str());
+  SPDLOG_ERROR("Semantic Error: {}", msg);
   succ_ = false;
 }
 
-auto SemanticAnalyzer::declare(const std::string& name, const std::string& type)
-    -> bool {
-  auto symbol = symbol_table_->SearchSemanticSymbol(scopes_, name);
-  if (symbol != nullptr) return false;
-  symbol_table_->AddSemanticSymbol(scopes_, name, type);
+auto SemanticAnalyzer::declare_ident(const std::string& name,
+                                     const std::string& type) -> bool {
+  auto sym = symbol_table_->SearchSemanticSymbol(scopes_, name);
+  if (sym != nullptr) return false;
+
+  const auto in_var = "inv_" + std::to_string(scopes_) + "_" +
+                      std::to_string(inner_var_index_++);
+
+  sym = symbol_table_->AddSemanticSymbol(scopes_, name, in_var);
+  sym->SetMetaData("type", type);
   return true;
 }
 
@@ -158,7 +167,14 @@ auto SemanticAnalyzer::Analyze(const AST& ast) -> bool {
   return succ_;
 }
 
-SemanticAnalyzer::SemanticAnalyzer(SymbolTablePtr symbol_table)
-    : symbol_table_(std::move(symbol_table)) {};
-void SemanticAnalyzer::enter_scope() { scopes_++; }
-void SemanticAnalyzer::leave_scope() { scopes_--; }
+void SemanticAnalyzer::enter_scope() {
+  s_in_var_idx_.push(inner_var_index_);
+  inner_var_index_ = 0;
+  scopes_++;
+}
+
+void SemanticAnalyzer::leave_scope() {
+  inner_var_index_ = s_in_var_idx_.top();
+  s_in_var_idx_.pop();
+  scopes_--;
+}

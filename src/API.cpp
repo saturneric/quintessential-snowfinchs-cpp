@@ -29,7 +29,7 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
 
   if (!ret) return 7;
 
-  IRGenerator irg;
+  IRGenerator irg(symbol_table);
   std::vector<IRInstructionA2> ir;
 
   ret = RunOperation("IR Generator", [&]() {

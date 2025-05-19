@@ -1,11 +1,10 @@
 #pragma once
 
 enum class SymbolType {
-  kTOKEN_SPEC,
-  kTOKEN,
   kSYNTAX,
   kAST,
   kSEMANTIC,
+  kIR,
 };
 
 class Symbol {
