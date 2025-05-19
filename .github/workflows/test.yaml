@@ -1,0 +1,27 @@
+name: Build and Unit Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build
+
+      - name: Configure CMake
+        run: cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build build/
+
+      - name: Run unit tests
+        run: |
+          set -e
+          build/bin/compiler_test
