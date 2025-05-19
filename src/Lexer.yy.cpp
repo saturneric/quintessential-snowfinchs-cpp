@@ -886,8 +886,8 @@ YY_RULE_SETUP
 case YY_STATE_EOF(COMMENT):
 #line 36 "Lexer.l"
 {
-    fprintf(stderr, "Error: Unterminated comment at EOF\n");
-    exit(42);
+    drv.LexerError("Unterminated comment at EOF");
+    return 0;
   }
 	YY_BREAK
 
@@ -1152,7 +1152,7 @@ case 55:
 YY_RULE_SETUP
 #line 106 "Lexer.l"
 {   
-                          std::cerr << "Illegal character: " << YYText() << std::endl;
+                          SPDLOG_ERROR("Illegal character: {}", YYText());
                           return yy::parser::make_NONE();
                         }
 	YY_BREAK

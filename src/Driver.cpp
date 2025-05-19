@@ -12,8 +12,17 @@ auto Driver::Parse(const std::string& path) -> int {
   switch_streams(&input, nullptr);
 
   yy::parser parse(*this);
+
   // parse.set_debug_level(1);
-  return parse.parse();
+
+  auto ret = parse.parse();
+
+  if (lexer_error_) {
+    SPDLOG_ERROR("Lexer Error: {}", lexer_error_msg_);
+    return -1;
+  }
+
+  return ret;
 }
 void Driver::SetSyntaxTreeRoot(const ASTNodePtr& root) { ast_.SetRoot(root); }
 
@@ -36,4 +45,9 @@ auto yyFlexLexer::yylex() -> int { return 0; }
 
 auto Driver::AST() -> class AST {
   return ast_;
+}
+
+void Driver::LexerError(const char* msg) {
+  lexer_error_ = true;
+  lexer_error_msg_ = msg;
 }

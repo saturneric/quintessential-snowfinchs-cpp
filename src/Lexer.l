@@ -34,8 +34,8 @@
   .|\n ;
 
   <<EOF>> {
-    std::cerr << "Error: Unterminated comment at EOF: " << YYText() << std::endl;
-    exit(42);
+    drv.LexerError("Unterminated comment at EOF");
+    return 0;
   }
 }
 
@@ -104,7 +104,7 @@
                         }
 
 .                       {   
-                          std::cerr << "Illegal character: " << YYText() << std::endl;
+                          SPDLOG_ERROR("Illegal character: {}", YYText());
                           return yy::parser::make_NONE();
                         }
 

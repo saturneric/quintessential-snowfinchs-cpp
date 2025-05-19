@@ -35,8 +35,12 @@ class Driver : public yyFlexLexer {
 
   auto AST() -> AST;
 
+  void LexerError(const char* msg) override;
+
  private:
   SymbolTablePtr symbol_table_;
+  bool lexer_error_ = false;
+  std::string lexer_error_msg_;
   class AST ast_;
 };
 
