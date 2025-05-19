@@ -21,10 +21,10 @@ auto BinaryGenerator::Generate(const std::string& asm_path,
 
   std::string cmd =
       compiler + " -no-pie -o \"" + binary_path + "\" \"" + asm_path + "\"";
-  SPDLOG_INFO("build command: {}", cmd);
+  spdlog::info("build command: {}", cmd);
 
   if (std::system(cmd.c_str()) != 0) {
-    SPDLOG_INFO("compiler build failed, please chack source file.");
+    spdlog::info("compiler build failed, please chack source file.");
     return false;
   }
 

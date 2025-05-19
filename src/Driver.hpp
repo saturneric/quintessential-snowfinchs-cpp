@@ -10,7 +10,7 @@
 namespace yy {
 
 inline void parser::error(const std::string& msg) {
-  std::cerr << "Syntax error: " << msg << '\n';
+  SPDLOG_ERROR("Syntax error: {}", msg);
 }
 
 }  // namespace yy

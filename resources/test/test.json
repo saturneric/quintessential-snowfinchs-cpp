@@ -1,0 +1,12 @@
+[
+  {
+    "source_file_path": "A.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 20
+  },
+  {
+    "source_file_path": "B.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 12
+  }
+]

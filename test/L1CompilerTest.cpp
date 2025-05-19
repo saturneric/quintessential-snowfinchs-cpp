@@ -56,23 +56,45 @@ auto ReadTestcases(const std::string& filename)
     -> std::vector<ResourceTestCase> {
   std::vector<ResourceTestCase> testcases;
 
-  SPDLOG_INFO("read test cases from: {}", filename);
-
   std::ifstream infile(filename);
-  std::string line;
-  while (std::getline(infile, line)) {
-    std::istringstream iss(line);
-    ResourceTestCase tc;
-    if (!(iss >> tc.source_file_path >> tc.compiler_exit_code >>
-          tc.exec_exit_code)) {
-      // parse error, skip or handle as needed
-      continue;
-    }
-
-    tc.source_file_path = GetResourcesPath() / tc.source_file_path;
-    testcases.push_back(tc);
+  if (!infile.is_open()) {
+    SPDLOG_ERROR("Failed to open file: {}", filename);
+    return testcases;
   }
+
+  nlohmann::json j;
+  infile >> j;
+
+  try {
+    testcases = j.get<std::vector<ResourceTestCase>>();
+    for (auto& tc : testcases) {
+      tc.source_file_path = (GetResourcesPath() / tc.source_file_path).string();
+    }
+  } catch (const nlohmann::json::exception& e) {
+    SPDLOG_ERROR("JSON parse error: {}", e.what());
+  }
+
   return testcases;
 }
 
 auto GetResourcesPath() -> fs::path { return fs::current_path() / "resources"; }
+
+void from_json(const nlohmann::json& j, ResourceTestCase& tc) {
+  j.at("source_file_path").get_to(tc.source_file_path);
+  j.at("compiler_exit_code").get_to(tc.compiler_exit_code);
+  if (j.contains("exec_exit_code")) {
+    j.at("exec_exit_code").get_to(tc.exec_exit_code);
+  } else {
+    tc.exec_exit_code = 0;
+  }
+  if (j.contains("expect_divide_by_zero")) {
+    j.at("expect_divide_by_zero").get_to(tc.expect_divide_by_zero);
+  } else {
+    tc.expect_divide_by_zero = false;
+  }
+  if (j.contains("expect_overflow")) {
+    j.at("expect_overflow").get_to(tc.expect_overflow);
+  } else {
+    tc.expect_overflow = false;
+  }
+}

@@ -61,9 +61,9 @@ auto MakeRuntimeDirectory() -> std::tuple<bool, fs::path> {
   if (!fs::exists(runtime_dir)) {
     try {
       fs::create_directory(runtime_dir);
-      SPDLOG_INFO("runtime directory created: {}", runtime_dir.string());
+      spdlog::info("runtime directory created: {}", runtime_dir.string());
     } catch (const fs::filesystem_error& e) {
-      SPDLOG_INFO("create runtime directory failed: {}", e.what());
+      spdlog::info("create runtime directory failed: {}", e.what());
       return {false, {}};
     }
   }

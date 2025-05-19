@@ -2,6 +2,6 @@
 
 TEST(UtilsTest, ReadTestcasesTest) {
   auto tcs =
-      ReadTestcases(fs::current_path() / "resources" / "test" / "lab1.txt");
+      ReadTestcases(fs::current_path() / "resources" / "test" / "test.json");
   ASSERT_FALSE(tcs.empty());
 }

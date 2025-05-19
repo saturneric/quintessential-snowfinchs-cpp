@@ -1,0 +1,21 @@
+[
+  {
+    "source_file_path": "lab1/A.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 20
+  },
+  {
+    "source_file_path": "lab1/A1.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 12
+  },
+  {
+    "source_file_path": "lab1/A2.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 5
+  },
+  {
+    "source_file_path": "lab1/C.txt",
+    "compiler_exit_code": 42
+  }
+]
