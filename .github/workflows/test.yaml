@@ -16,7 +16,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build
 
       - name: Configure CMake
-        run: cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Debug
+        run: cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TEST_CASES=On
 
       - name: Build
         run: cmake --build build/
