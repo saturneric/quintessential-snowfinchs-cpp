@@ -20,17 +20,32 @@ auto TestCompileSourceCode(const fs::path& path) -> std::tuple<int, fs::path> {
   return {exit_code, output};
 }
 
-auto TestRunBinary(const fs::path& path) -> int {
+auto TestRunBinary(const fs::path& path) -> std::tuple<bool, int> {
   pid_t pid = fork();
   if (pid == 0) {
+    const auto fpe_trap =
+        fs::current_path() / "build" / "lib" / "libfpe_trap.so";
+
+    if (fs::exists(fpe_trap)) {
+      spdlog::debug("found libfpe_trap.so: {}", fpe_trap.string());
+      setenv("LD_PRELOAD", fpe_trap.c_str(), 1);
+    }
+
     execl(path.c_str(), path.c_str(), nullptr);
     _exit(127);
   }
 
   int status;
   waitpid(pid, &status, 0);
-  if (WIFEXITED(status)) return WEXITSTATUS(status);
-  return -1;
+
+  if (WIFSIGNALED(status)) {
+    const auto sig = WTERMSIG(status);
+    spdlog::debug("detect signal from child process: {}", sig);
+    return {false, -sig};
+  }
+
+  if (WIFEXITED(status)) return {true, WEXITSTATUS(status)};
+  return {false, -(1 << 16)};
 }
 
 auto ListTestSourcefiles(const fs::path& dir, const std::set<std::string>& exts)
@@ -87,14 +102,15 @@ void from_json(const nlohmann::json& j, ResourceTestCase& tc) {
   } else {
     tc.exec_exit_code = 0;
   }
-  if (j.contains("expect_divide_by_zero")) {
-    j.at("expect_divide_by_zero").get_to(tc.expect_divide_by_zero);
+  if (j.contains("expect_float_point_exception")) {
+    j.at("expect_float_point_exception")
+        .get_to(tc.expect_float_point_exception);
   } else {
-    tc.expect_divide_by_zero = false;
+    tc.expect_float_point_exception = false;
   }
-  if (j.contains("expect_overflow")) {
-    j.at("expect_overflow").get_to(tc.expect_overflow);
+  if (j.contains("expect_segment_fault")) {
+    j.at("expect_segment_fault").get_to(tc.expect_segment_fault);
   } else {
-    tc.expect_overflow = false;
+    tc.expect_segment_fault = false;
   }
 }

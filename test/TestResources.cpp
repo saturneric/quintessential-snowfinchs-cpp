@@ -4,16 +4,27 @@ TEST_P(ResourceTest, FileExistsAndNotEmpty) {
   auto tc = GetParam();
   ASSERT_TRUE(fs::exists(tc.source_file_path));
 
-  spdlog::info("Test: {}", fs::path(tc.source_file_path).filename().string());
-  auto [ret, path] = TestCompileSourceCode(tc.source_file_path);
-  ASSERT_EQ(ret, tc.compiler_exit_code);
+  spdlog::info("Unit Test: {}",
+               fs::path(tc.source_file_path).filename().string());
+  auto [ret_c, path] = TestCompileSourceCode(tc.source_file_path);
+  ASSERT_EQ(ret_c, tc.compiler_exit_code);
 
   if (tc.compiler_exit_code != 0) return;
 
   ASSERT_TRUE(fs::exists(path));
 
-  ret = TestRunBinary(path);
-  ASSERT_EQ(ret, tc.exec_exit_code);
+  auto [succ, ret_b] = TestRunBinary(path);
+
+  if (tc.expect_float_point_exception) {
+    ASSERT_FALSE(succ);
+    ASSERT_EQ(ret_b, -SIGFPE);
+  } else if (tc.expect_segment_fault) {
+    ASSERT_FALSE(succ);
+    ASSERT_EQ(ret_b, -SIGSEGV);
+  } else {
+    ASSERT_TRUE(succ);
+    ASSERT_EQ(ret_b, tc.exec_exit_code);
+  }
 }
 
 void PrintTo(const ResourceTestCase& tc, std::ostream* os) {

@@ -15,7 +15,134 @@
     "exec_exit_code": 5
   },
   {
+    "source_file_path": "lab1/A3.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 11
+  },
+  {
+    "source_file_path": "lab1/A4.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 3
+  },
+  {
+    "source_file_path": "lab1/A5.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 32
+  },
+  {
+    "source_file_path": "lab1/A6.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 1
+  },
+  {
     "source_file_path": "lab1/C.txt",
+    "compiler_exit_code": 42
+  },
+  {
+    "source_file_path": "lab1/D.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 10
+  },
+  {
+    "source_file_path": "lab1/D1.txt",
+    "compiler_exit_code": 0
+  },
+  {
+    "source_file_path": "lab1/F.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab1/F1.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab1/F2.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab1/F3.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab1/K.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab1/K1.txt",
+    "compiler_exit_code": 0,
+    "expect_float_point_exception": true
+  },
+  {
+    "source_file_path": "lab1/K2.txt",
+    "compiler_exit_code": 0
+  },
+  {
+    "source_file_path": "lab1/K3.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 1
+  },
+  {
+    "source_file_path": "lab1/K4.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
+  },
+  {
+    "source_file_path": "lab1/K5.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 255
+  },
+  {
+    "source_file_path": "lab1/K6.txt",
+    "compiler_exit_code": 0,
+    "expect_float_point_exception": true
+  },
+  {
+    "source_file_path": "lab1/K7.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
+  },
+  {
+    "source_file_path": "lab1/M.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 255
+  },
+  {
+    "source_file_path": "lab1/N.txt",
+    "compiler_exit_code": 42
+  },
+  {
+    "source_file_path": "lab1/N1.txt",
+    "compiler_exit_code": 42
+  },
+  {
+    "source_file_path": "lab1/U.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 160
+  },
+  {
+    "source_file_path": "lab1/U1.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 56
+  },
+  {
+    "source_file_path": "lab1/U2.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 89
+  },
+  {
+    "source_file_path": "lab1/Z.txt",
+    "compiler_exit_code": 42
+  },
+  {
+    "source_file_path": "lab1/Z1.txt",
+    "compiler_exit_code": 42
+  },
+  {
+    "source_file_path": "lab1/Z2.txt",
+    "compiler_exit_code": 0
+  },  
+  {
+    "source_file_path": "lab1/Z3.txt",
     "compiler_exit_code": 42
   }
 ]

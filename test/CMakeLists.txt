@@ -17,6 +17,8 @@ enable_testing()
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} TEST_FILES)
 
+add_library(fpe_trap SHARED FPETrap.cpp)
+
 add_executable(compiler_test ${TEST_FILES})
 target_precompile_headers(compiler_test PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/pch.h>")
 target_link_libraries(compiler_test PRIVATE core GTest::gtest)

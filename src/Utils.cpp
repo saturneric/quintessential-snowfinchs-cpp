@@ -55,6 +55,6 @@ auto RunOperation(const std::string& name, const Opera& f) -> bool {
   spdlog::stopwatch sw;
   auto ret = f();
 
-  spdlog::info("{} exec duration = {:.6f}s ret = {} ", name, sw, ret);
+  spdlog::debug("{} exec duration = {:.6f}s ret = {} ", name, sw, ret);
   return ret;
 }

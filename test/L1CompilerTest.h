@@ -6,8 +6,8 @@ struct ResourceTestCase {
   std::string source_file_path;
   int compiler_exit_code;
   int exec_exit_code;
-  bool expect_divide_by_zero = false;
-  bool expect_overflow = false;
+  bool expect_float_point_exception = false;
+  bool expect_segment_fault = false;
 };
 
 // for json to ResourceTestCase using by json library
@@ -21,7 +21,7 @@ void PrintTo(const ResourceTestCase& tc, std::ostream* os);
 
 auto TestCompileSourceCode(const fs::path& path) -> std::tuple<int, fs::path>;
 
-auto TestRunBinary(const fs::path& path) -> int;
+auto TestRunBinary(const fs::path& path) -> std::tuple<bool, int>;
 
 auto ListTestSourcefiles(const fs::path& dir, const std::set<std::string>& exts)
     -> std::vector<std::string>;
