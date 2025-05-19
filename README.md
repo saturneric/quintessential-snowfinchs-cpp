@@ -6,16 +6,19 @@ A simple L1 Compiler written in C++.
 
 * Perform lexical analysis with Flex
 * Generate LALR(1) parsers using Bison
+* Perform register allocation using graph coloring algorithms
+* Perform simple optimizations during code generation
+* Generate AT&T-style assembly code with support for both 32-bit and 64-bit
+  output
 * Provide a command-line interface for compiling source files
-* Support JSON configuration and resource loading
 * Include unit tests powered by GoogleTest
+* Support JSON-based configuration and resource loading for individual unit test
+  cases
 
 ## Prerequisites
 
 * A C++17-compatible compiler (e.g., g++, clang++)
 * CMake 3.17 or higher
-* Flex (lexical analyzer generator)
-* Bison (parser generator)
 * Bash (for the provided build and run scripts)
 
 ## Installation
@@ -27,7 +30,7 @@ A simple L1 Compiler written in C++.
    ```bash
    mkdir build
    cd build
-   cmake .. -DBUILD_TEST_CASES=ON
+   cmake -DBUILD_TEST_CASES=ON .. 
    make
    ```
 
@@ -68,7 +71,8 @@ Run the full test suite:
 
 ## Resources
 
-All test cases and their associated configurations are located in the `resources/` folder.
+All test cases and their associated configurations are located in the
+`resources/` folder.
 
 ## Contributing
 
