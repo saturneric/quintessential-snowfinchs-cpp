@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
-      - uses: awalsh128/cache-apt-pkgs-action@latest
+        uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: cmake g++ ninja-build
           version: 1.0
