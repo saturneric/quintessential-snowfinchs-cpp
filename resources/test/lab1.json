@@ -35,6 +35,11 @@
     "exec_exit_code": 1
   },
   {
+    "source_file_path": "lab1/A7.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 32
+  },
+  {
     "source_file_path": "lab1/C.txt",
     "compiler_exit_code": 42
   },

@@ -1,0 +1,12 @@
+int main() {
+    int t0 = 7;
+    int t1 = 4;
+    int t2 = 6;
+    int t3 = 15;
+    int t4 = t0 + t1 * t2;   // 7 + 4*6 = 31
+    int t5 = t4 / t1;        // 31 / 4 = 7
+    int t6 = t5 - t2;        // 7 - 6 = 1
+    int t7 = t6 + t3;        // 1 + 15 = 16
+
+    return t7 * 2;
+}
