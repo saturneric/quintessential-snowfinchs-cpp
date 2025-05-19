@@ -34,9 +34,9 @@ A simple L1 Compiler written in C++.
 3. Or use the helper scripts:
 
    ```bash
-   ./build.sh       # Configure and build
-   ./run.sh <file>  # Compile a source file
-   ./test.sh        # Run unit tests
+   ./build.sh                # Configure and build
+   ./run.sh <source> <dest>  # Compile a source file
+   ./test.sh                 # Run unit tests
    ```
 
 ## Usage
@@ -68,7 +68,7 @@ Run the full test suite:
 
 ## Resources
 
-All grammar definitions and test inputs are located in the `resources/` folder.
+All test cases and their relared configrations are located in the `resources/` folder.
 
 ## Contributing
 
