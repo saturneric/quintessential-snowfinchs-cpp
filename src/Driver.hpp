@@ -1,10 +1,14 @@
 #pragma once
 
+// Flex
 #undef yyFlexLexer
 #include "FlexLexer.h"
 
 //
 #include "AST.h"
+#include "ScopedSymbolTable.h"
+
+// Bison
 #include "Parser.hpp"
 
 namespace yy {
@@ -32,6 +36,8 @@ class Driver : public yyFlexLexer {
 
   auto SymbolTable() -> SymbolTablePtr;
 
+  auto ScopedSymbolTable() -> ScopedSymbolTablePtr;
+
   void Print(const std::string& path);
 
   auto AST() -> AST;
@@ -47,10 +53,14 @@ class Driver : public yyFlexLexer {
   yy::location loc_;
   bool lexer_error_ = false;
   std::string lexer_error_msg_;
-  SymbolTablePtr symbol_table_;
+  ScopedSymbolTablePtr symbol_table_;
 };
 
 #define YY_DECL auto Driver::yylex(Driver& drv) -> yy::parser::symbol_type
 
-auto MakeASTTreeNode(ASTNodeType type, const std::string& name,
-                     const std::string& value, Driver& driver) -> ASTNodePtr;
+void EnterScope(Driver& driver);
+
+void LeaveScope(Driver& driver);
+
+auto MakeASTTreeNode(ASTNodeType type, const std::string& node,
+                     const std::string& symbol, Driver& driver) -> ASTNodePtr;

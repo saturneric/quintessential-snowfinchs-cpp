@@ -27,7 +27,7 @@
 
 
 %type <std::string> assign_operator
-%type <std::vector<ASTNodePtr>> statements
+%type <std::vector<ASTNodePtr>> function_body statements
 %type <ASTNodePtr> program statement
 %type <ASTNodePtr> simple_statement return_statement declarator left_value
 %type <ASTNodePtr> expression additive multiplicative unary primary
@@ -50,17 +50,25 @@
 
 %%
 program:
-    INT VALUE_ID LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE statements CLOSING_BRACE
+    INT VALUE_ID LEFT_BRACKET RIGHT_BRACKET function_body
     {
       if ($2 != "main") {
         YYERROR;
       }
-
       $$ = MakeASTTreeNode(ASTNodeType::kPROGRAM, "program", $2, drv);
       drv.SetSyntaxTreeRoot($$);
-      for (const auto& child : $6) {
+      for (const auto& child : $5) {
         $$->AddChildren(child);
       }
+    }
+;
+
+function_body:
+    OPENING_BRACE statements CLOSING_BRACE
+    {
+      EnterScope(drv);
+      $$ = $2;
+      LeaveScope(drv);
     }
 ;
 

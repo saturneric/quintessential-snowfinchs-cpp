@@ -1,15 +1,19 @@
 #pragma once
 
+#include "Scope.h"
+
 enum class SymbolType {
-  kSYNTAX,
+  kNONE,
   kAST,
-  kSEMANTIC,
-  kIR,
+  kDEFINE,
 };
+
+const std::string kSymMDHasInit = "initialization";
 
 class Symbol {
  public:
-  Symbol(SymbolType type, int index, std::string name, std::string value);
+  Symbol(SymbolType type, int index, ScopePtr scope, std::string name,
+         std::string value);
 
   [[nodiscard]] auto Type() const -> SymbolType;
 
@@ -19,9 +23,15 @@ class Symbol {
 
   [[nodiscard]] auto Value() const -> std::string;
 
+  [[nodiscard]] auto Scope() const -> ScopePtr;
+
+  [[nodiscard]] auto ScopeId() const -> int;
+
   [[nodiscard]] auto MetaData(const std::string& key) const -> std::string;
 
   void SetName(std::string name);
+
+  void SetScope(ScopePtr scope);
 
   void SetMetaData(std::string key, std::string value);
 
@@ -37,6 +47,7 @@ class Symbol {
 
  private:
   int index_;
+  ScopePtr scope_;
   SymbolType type_;
   std::string name_;
   std::string value_;

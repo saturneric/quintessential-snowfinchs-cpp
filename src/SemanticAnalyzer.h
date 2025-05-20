@@ -1,6 +1,7 @@
 
 
 #include "AST.h"
+#include "ScopedSymbolTable.h"
 
 enum class ExpType { kINT, kBOOL, kVOID };
 
@@ -12,18 +13,15 @@ class SemanticAnalyzer {
 
  private:
   SymbolTablePtr symbol_table_;
-  int scopes_ = 0;
+  ScopedSymbolLookUpHelper helper_;
+  ScopedSymbolLookUpHelper def_sym_helper_;
+
   bool succ_;
-  std::stack<int> s_in_var_idx_;
   int inner_var_index_ = 0;
 
-  void enter_scope();
+  auto record_symbol(const SymbolPtr& symbol) -> bool;
 
-  void leave_scope();
-
-  auto declare_ident(const std::string& name, const std::string& type) -> bool;
-
-  auto lookup_ident(const std::string& name) -> SymbolPtr;
+  auto lookup_symbol(const SymbolPtr& symbol) -> SymbolPtr;
 
   auto visit(const ASTNodePtr& node) -> ASTNodePtr;
 

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "AST.h"
+#include "ScopedSymbolTable.h"
 
 struct IRInstructionA2 {
   std::string op;
@@ -23,15 +24,15 @@ class IRGenerator {
  public:
   class Context;
   using ContextPtr = std::shared_ptr<Context>;
-  using ExpHandler = std::function<std::string(Context*, const ASTNodePtr&)>;
+  using ExpHandler = std::function<SymbolPtr(Context*, const ASTNodePtr&)>;
 
   class Context {
    public:
     explicit Context(IRGenerator* ig, ExpHandler handler);
 
-    auto ExpRoute(const ASTNodePtr& node) -> std::string;
+    auto ExpRoute(const ASTNodePtr& node) -> SymbolPtr;
 
-    auto MappingInnerVariable(const std::string& v = {}) -> std::string;
+    auto NewTempVariable(const ScopePtr& scope) -> SymbolPtr;
 
     void AppendInstruction(const IRInstruction& i);
 
@@ -43,13 +44,12 @@ class IRGenerator {
 
     void LeaveScope();
 
+    auto InnSymName(const SymbolPtr& symbol) -> std::string;
+
    private:
     IRGenerator* ig_;
     ExpHandler handler_;
 
-    int scope_ = 0;
-    std::stack<int> s_t_var_idx_;
-    int temp_variable_idx_ = 0;
     std::vector<IRInstruction> instructions_;
   };
 
@@ -65,7 +65,8 @@ class IRGenerator {
   static std::map<ASTNodeType, ExpHandler> exp_handler_resiter;
   ContextPtr ctx_;
   SymbolTablePtr symbol_table_;
-  int in_var_idx_ = 1;
+  ScopedSymbolLookUpHelper def_symbol_helper_;
+  int tmp_var_idx_ = 1;
 
   std::vector<IRInstructionA2> instructions_2_addr_;
   std::vector<IRInstruction> instructions_ssa_;
@@ -74,7 +75,7 @@ class IRGenerator {
 
   static auto select_instruction(const std::string& operation) -> std::string;
 
-  auto do_ir_generate(Context*, const ASTNodePtr& node) -> std::string;
+  auto do_ir_generate(Context*, const ASTNodePtr& node) -> SymbolPtr;
 
   auto get_ssa_name(const std::string& var, bool is_def) -> std::string;
 
@@ -82,5 +83,7 @@ class IRGenerator {
 
   void convert_instructions();
 
-  auto mapping_inner_variable(int scope, const std::string& v) -> std::string;
+  auto lookup_variable(const SymbolPtr& ast_sym) -> SymbolPtr;
+
+  auto new_temp_variable(const ScopePtr& scope) -> SymbolPtr;
 };

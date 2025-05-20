@@ -15,7 +15,13 @@ auto Driver::Parse(const std::string& path) -> int {
 
   // parse.set_debug_level(1);
 
+  // enter global naming scope
+  ScopedSymbolTable()->EnterScope();
+
   auto ret = parse.parse();
+
+  // leave global naming scope
+  ScopedSymbolTable()->LeaveScope();
 
   if (lexer_error_) {
     SPDLOG_ERROR("Lexer Error: {}", lexer_error_msg_);
@@ -26,15 +32,19 @@ auto Driver::Parse(const std::string& path) -> int {
 }
 void Driver::SetSyntaxTreeRoot(const ASTNodePtr& root) { ast_.SetRoot(root); }
 
-auto Driver::SymbolTable() -> SymbolTablePtr { return symbol_table_; }
+auto Driver::SymbolTable() -> SymbolTablePtr {
+  return symbol_table_->SymbolTable();
+}
 
 Driver::Driver(const SymbolTablePtr& symbol_table)
-    : symbol_table_(symbol_table), ast_(symbol_table) {}
+    : symbol_table_(std::make_shared<class ScopedSymbolTable>(SymbolType::kAST,
+                                                              symbol_table)),
+      ast_(symbol_table) {}
 
-auto MakeASTTreeNode(ASTNodeType type, const std::string& name,
-                     const std::string& value, Driver& driver) -> ASTNodePtr {
+auto MakeASTTreeNode(ASTNodeType type, const std::string& node,
+                     const std::string& symbol, Driver& driver) -> ASTNodePtr {
   return std::make_shared<ASTNode>(
-      type, driver.SymbolTable()->AddASTSymbol(name, value));
+      type, driver.ScopedSymbolTable()->AddSymbol(symbol, node, false));
 }
 
 void Driver::Print(const std::string& path) { ast_.Print(path); }
@@ -53,3 +63,11 @@ void Driver::LexerError(const char* msg) {
 }
 
 auto Driver::Location() -> yy::location& { return loc_; }
+
+auto Driver::ScopedSymbolTable() -> ScopedSymbolTablePtr {
+  return symbol_table_;
+}
+
+void EnterScope(Driver& driver) { driver.ScopedSymbolTable()->EnterScope(); }
+
+void LeaveScope(Driver& driver) { driver.ScopedSymbolTable()->LeaveScope(); }

@@ -1,8 +1,6 @@
 #include "AST.h"
 
 #include <fstream>
-#include <iostream>
-#include <sstream>
 
 const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
     {ASTNodeType::kPROGRAM, "Program"},
@@ -35,8 +33,8 @@ void AST::do_ast_node_print(const ASTNodePtr& node, std::ofstream& stream) {
     stream << "Unknown";
   }
 
-  stream << "<" << node->Operation()->Name() << ","
-         << node->Operation()->Value() << ">";
+  stream << "<" << node->Symbol()->Name() << "," << node->Symbol()->Value()
+         << ">";
 
   stream << '\n';
 
@@ -59,12 +57,12 @@ void AST::Print(const std::string& path) {
   f.close();
 }
 
-ASTNode::ASTNode(ASTNodeType type, SymbolPtr opera)
-    : type_(type), opera_(std::move(opera)) {}
+ASTNode::ASTNode(ASTNodeType type, SymbolPtr symbol)
+    : type_(type), symbol_(std::move(symbol)) {}
 
-ASTNode::ASTNode(ASTNodeType type, SymbolPtr opera,
+ASTNode::ASTNode(ASTNodeType type, SymbolPtr symbol,
                  std::initializer_list<ASTNodePtr> children)
-    : type_(type), opera_(std::move(opera)), children_(children) {}
+    : type_(type), symbol_(std::move(symbol)), children_(children) {}
 
 auto ASTNode::Children() -> std::vector<ASTNodePtr> { return children_; }
 
@@ -74,7 +72,7 @@ void ASTNode::AddChildren(const ASTNodePtr& child) {
 
 auto ASTNode::Type() -> ASTNodeType { return type_; }
 
-auto ASTNode::Operation() -> SymbolPtr { return opera_; }
+auto ASTNode::Symbol() -> SymbolPtr { return symbol_; }
 
 auto AST::Root() const -> ASTNodePtr { return root_; }
 

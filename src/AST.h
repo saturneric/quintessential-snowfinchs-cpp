@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "SymbolTable.h"
 
 enum class ASTNodeType : char {
@@ -21,9 +23,9 @@ class ASTNode {
  public:
   ASTNode() = default;
 
-  ASTNode(ASTNodeType type, SymbolPtr opera);
+  ASTNode(ASTNodeType type, SymbolPtr symbol);
 
-  ASTNode(ASTNodeType type, SymbolPtr opera,
+  ASTNode(ASTNodeType type, SymbolPtr symbol,
           std::initializer_list<ASTNodePtr> children);
 
   auto Children() -> std::vector<ASTNodePtr>;
@@ -32,11 +34,11 @@ class ASTNode {
 
   auto Type() -> ASTNodeType;
 
-  auto Operation() -> SymbolPtr;
+  auto Symbol() -> SymbolPtr;
 
  private:
   ASTNodeType type_;
-  SymbolPtr opera_;
+  SymbolPtr symbol_;
   std::vector<ASTNodePtr> children_;
 };
 

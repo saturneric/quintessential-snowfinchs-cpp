@@ -399,6 +399,7 @@ namespace yy {
       // assign_operator
       char dummy2[sizeof (std::string)];
 
+      // function_body
       // statements
       char dummy3[sizeof (std::vector<ASTNodePtr>)];
     };
@@ -569,18 +570,19 @@ namespace yy {
         S_UMINUS = 50,                           // UMINUS
         S_YYACCEPT = 51,                         // $accept
         S_program = 52,                          // program
-        S_statements = 53,                       // statements
-        S_statement = 54,                        // statement
-        S_simple_statement = 55,                 // simple_statement
-        S_return_statement = 56,                 // return_statement
-        S_declarator = 57,                       // declarator
-        S_left_value = 58,                       // left_value
-        S_expression = 59,                       // expression
-        S_additive = 60,                         // additive
-        S_multiplicative = 61,                   // multiplicative
-        S_unary = 62,                            // unary
-        S_primary = 63,                          // primary
-        S_assign_operator = 64                   // assign_operator
+        S_function_body = 53,                    // function_body
+        S_statements = 54,                       // statements
+        S_statement = 55,                        // statement
+        S_simple_statement = 56,                 // simple_statement
+        S_return_statement = 57,                 // return_statement
+        S_declarator = 58,                       // declarator
+        S_left_value = 59,                       // left_value
+        S_expression = 60,                       // expression
+        S_additive = 61,                         // additive
+        S_multiplicative = 62,                   // multiplicative
+        S_unary = 63,                            // unary
+        S_primary = 64,                          // primary
+        S_assign_operator = 65                   // assign_operator
       };
     };
 
@@ -637,6 +639,7 @@ namespace yy {
         value.move< std::string > (std::move (that.value));
         break;
 
+      case symbol_kind::S_function_body: // function_body
       case symbol_kind::S_statements: // statements
         value.move< std::vector<ASTNodePtr> > (std::move (that.value));
         break;
@@ -750,6 +753,7 @@ switch (yykind)
         value.template destroy< std::string > ();
         break;
 
+      case symbol_kind::S_function_body: // function_body
       case symbol_kind::S_statements: // statements
         value.template destroy< std::vector<ASTNodePtr> > ();
         break;
@@ -2001,8 +2005,8 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 46,     ///< Last index in yytable_.
-      yynnts_ = 14,  ///< Number of nonterminal symbols.
+      yylast_ = 45,     ///< Last index in yytable_.
+      yynnts_ = 15,  ///< Number of nonterminal symbols.
       yyfinal_ = 4 ///< Termination state number.
     };
 
@@ -2094,6 +2098,7 @@ switch (yykind)
         value.copy< std::string > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_function_body: // function_body
       case symbol_kind::S_statements: // statements
         value.copy< std::vector<ASTNodePtr> > (YY_MOVE (that.value));
         break;
@@ -2149,6 +2154,7 @@ switch (yykind)
         value.move< std::string > (YY_MOVE (s.value));
         break;
 
+      case symbol_kind::S_function_body: // function_body
       case symbol_kind::S_statements: // statements
         value.move< std::vector<ASTNodePtr> > (YY_MOVE (s.value));
         break;
@@ -2219,7 +2225,7 @@ switch (yykind)
 
 
 } // yy
-#line 2223 "Parser.hpp"
+#line 2229 "Parser.hpp"
 
 
 

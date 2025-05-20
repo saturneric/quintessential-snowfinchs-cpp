@@ -1,11 +1,15 @@
 #include "Symbol.h"
 
+#include <utility>
+
 const std::string kSymbolMetaDataSyntaxTerminator = "syntax-terminator";
 const std::string kSymbolMetaDataSyntaxStartSymbol = "syntax-start-symbol";
 
-Symbol::Symbol(SymbolType type, int index, std::string name, std::string value)
+Symbol::Symbol(SymbolType type, int index, ScopePtr scope, std::string name,
+               std::string value)
     : type_(type),
       index_(index),
+      scope_(std::move(scope)),
       name_(std::move(name)),
       value_(std::move(value)) {}
 
@@ -53,3 +57,11 @@ auto Symbol::Index() const -> int { return index_; }
 auto Symbol::Name() const -> std::string { return name_; }
 
 auto Symbol::Value() const -> std::string { return value_; }
+
+auto Symbol::Scope() const -> ScopePtr { return scope_; }
+
+void Symbol::SetScope(ScopePtr scope) { scope_ = std::move(scope); }
+
+auto Symbol::ScopeId() const -> int {
+  return scope_ != nullptr ? scope_->Id() : kNonScopeId;
+}

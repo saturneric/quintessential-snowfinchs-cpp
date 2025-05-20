@@ -5,7 +5,9 @@
 #include "Utils.h"
 
 SemanticAnalyzer::SemanticAnalyzer(SymbolTablePtr symbol_table)
-    : symbol_table_(std::move(symbol_table)) {};
+    : symbol_table_(std::move(symbol_table)),
+      helper_(SymbolType::kAST, symbol_table_),
+      def_sym_helper_(SymbolType::kDEFINE, symbol_table_) {};
 
 auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
   if (!node) {
@@ -15,9 +17,11 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
 
   switch (node->Type()) {
     case ASTNodeType::kDECLARE: {
-      auto name = node->Operation()->Value();
-      if (!declare_ident(name, "int")) {
-        error(node, "Redefine identity: " + name);
+      auto symbol = node->Symbol();
+
+      // record symbol and alloc inner variable name
+      if (!record_symbol(symbol)) {
+        error(node, "Redefine identity: " + symbol->Name());
       }
 
       auto children = node->Children();
@@ -26,7 +30,7 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
       const auto& assign = children.front();
       auto expr_type = visit(assign);
 
-      lookup_ident(name)->SetMetaData("initialization", "1");
+      symbol->SetMetaData(kSymMDHasInit, "1");
       break;
     }
 
@@ -37,17 +41,17 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
       auto& target = children.front();
       auto& value = children.back();
 
-      auto var = target->Operation()->Value();
+      auto var = target->Symbol();
 
-      auto sym = lookup_ident(var);
+      auto sym = lookup_symbol(var);
       if (!sym) {
-        error(node, "Undeclared variables: " + var);
+        error(node, "Undeclared variables: " + var->Name());
         break;
       }
 
       auto expr_type = visit_expr(value);
 
-      sym->SetMetaData("initialization", "1");
+      sym->SetMetaData(kSymMDHasInit, "1");
       break;
     }
 
@@ -77,12 +81,8 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
   return node;
 }
 
-auto SemanticAnalyzer::lookup_ident(const std::string& name) -> SymbolPtr {
-  for (int i = scopes_ - 1; i >= 0; --i) {
-    auto sym = symbol_table_->SearchSemanticSymbol(scopes_, name);
-    if (sym != nullptr) return sym;
-  }
-  return nullptr;
+auto SemanticAnalyzer::lookup_symbol(const SymbolPtr& symbol) -> SymbolPtr {
+  return def_sym_helper_.LookupSymbol(symbol->Scope(), symbol->Name());
 }
 
 auto SemanticAnalyzer::visit_expr(const ASTNodePtr& expr) -> ExpType {
@@ -91,22 +91,22 @@ auto SemanticAnalyzer::visit_expr(const ASTNodePtr& expr) -> ExpType {
   switch (expr->Type()) {
     case ASTNodeType::kVALUE: {
       int val;
-      if (!SafeParseInt(expr->Operation()->Value(), val)) {
+      if (!SafeParseInt(expr->Symbol()->Name(), val)) {
         error(expr, "Integer Overflow");
       }
       return ExpType::kINT;
     }
 
     case ASTNodeType::kIDENT: {
-      auto var = expr->Operation()->Value();
-      auto sym = lookup_ident(var);
+      auto var = expr->Symbol();
+      auto sym = lookup_symbol(var);
       if (!sym) {
-        error(expr, "Undeclared variables: " + var);
+        error(expr, "Undeclared variables: " + var->Name());
         return ExpType::kINT;
       }
 
-      if (sym->MetaData("initialization").empty()) {
-        error(expr, "Variable not initialized: " + var);
+      if (sym->MetaData(kSymMDHasInit).empty()) {
+        error(expr, "Variable not initialized: " + var->Name());
         return ExpType::kINT;
       }
 
@@ -144,37 +144,25 @@ void SemanticAnalyzer::error(const ASTNodePtr& /*node*/,
   succ_ = false;
 }
 
-auto SemanticAnalyzer::declare_ident(const std::string& name,
-                                     const std::string& type) -> bool {
-  auto sym = symbol_table_->SearchSemanticSymbol(scopes_, name);
+auto SemanticAnalyzer::record_symbol(const SymbolPtr& symbol) -> bool {
+  auto sym =
+      def_sym_helper_.LookupSymbolInScope(symbol->Scope(), symbol->Name());
+
+  // should not check twice
   if (sym != nullptr) return false;
 
-  const auto in_var = "inv_" + std::to_string(scopes_) + "_" +
+  const auto in_var = "ins_" + std::to_string(symbol->ScopeId()) + "_" +
                       std::to_string(inner_var_index_++);
 
-  sym = symbol_table_->AddSemanticSymbol(scopes_, name, in_var);
-  sym->SetMetaData("type", type);
+  sym = symbol_table_->AddSymbol(SymbolType::kDEFINE, symbol->Name(), in_var,
+                                 true, symbol->ScopeId());
   return true;
 }
 
 auto SemanticAnalyzer::Analyze(const AST& ast) -> bool {
   succ_ = true;
 
-  enter_scope();
   visit(ast.Root());
-  leave_scope();
 
   return succ_;
-}
-
-void SemanticAnalyzer::enter_scope() {
-  s_in_var_idx_.push(inner_var_index_);
-  inner_var_index_ = 0;
-  scopes_++;
-}
-
-void SemanticAnalyzer::leave_scope() {
-  inner_var_index_ = s_in_var_idx_.top();
-  s_in_var_idx_.pop();
-  scopes_--;
 }
