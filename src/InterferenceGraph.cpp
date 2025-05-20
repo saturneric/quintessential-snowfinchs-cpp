@@ -2,41 +2,62 @@
 
 #include <iostream>
 
-void InterferenceGraph::AddVariable(const std::string& var) { adj_list_[var]; }
+void InterferenceGraph::AddVariable(const std::string& var) {
+  if (name_to_vertex_.count(var) == 0) {
+    Vertex v = boost::add_vertex(graph_);
+    boost::put(boost::vertex_name, graph_, v, var);
+    name_to_vertex_[var] = v;
+  }
+}
 
 void InterferenceGraph::AddEdge(const std::string& var1,
                                 const std::string& var2) {
-  if (var1 == var2) return;
-  adj_list_[var1].insert(var2);
-  adj_list_[var2].insert(var1);
+  AddVariable(var1);
+  AddVariable(var2);
+  boost::add_edge(name_to_vertex_.at(var1), name_to_vertex_.at(var2), graph_);
 }
 
 void InterferenceGraph::RemoveEdge(const std::string& var1,
                                    const std::string& var2) {
-  if (var1 == var2) return;
-  adj_list_[var1].erase(var2);
-  adj_list_[var2].erase(var1);
+  if ((name_to_vertex_.count(var1) != 0U) &&
+      (name_to_vertex_.count(var2) != 0U)) {
+    boost::remove_edge(name_to_vertex_.at(var1), name_to_vertex_.at(var2),
+                       graph_);
+  }
 }
 
 auto InterferenceGraph::Neighbors(const std::string& var) const
     -> std::unordered_set<std::string> {
-  auto it = adj_list_.find(var);
-  return it != adj_list_.end() ? it->second : std::unordered_set<std::string>{};
+  std::unordered_set<std::string> neighbors;
+  auto it = name_to_vertex_.find(var);
+  if (it != name_to_vertex_.end()) {
+    Vertex v = it->second;
+    auto [begin, end] = boost::adjacent_vertices(v, graph_);
+    auto name_map = boost::get(boost::vertex_name, graph_);
+    for (auto i = begin; i != end; ++i) {
+      neighbors.insert(name_map[*i]);
+    }
+  }
+  return neighbors;
 }
 
 auto InterferenceGraph::Variables() const -> std::vector<std::string> {
   std::vector<std::string> vars;
-  vars.reserve(adj_list_.size());
-  for (const auto& [key, _] : adj_list_) {
-    vars.push_back(key);
+  vars.reserve(name_to_vertex_.size());
+  for (const auto& [name, _] : name_to_vertex_) {
+    vars.push_back(name);
   }
   return vars;
 }
 
 void InterferenceGraph::Print() const {
-  for (const auto& [var, neighbors] : adj_list_) {
-    std::cout << var << " inf: ";
-    for (const auto& n : neighbors) std::cout << n << " ";
-    std::cout << "\n";
+  auto name_map = boost::get(boost::vertex_name, graph_);
+  for (const auto& [name, v] : name_to_vertex_) {
+    std::cout << name << ": { ";
+    auto [begin, end] = boost::adjacent_vertices(v, graph_);
+    for (auto it = begin; it != end; ++it) {
+      std::cout << name_map[*it] << " ";
+    }
+    std::cout << "}\n";
   }
 }
