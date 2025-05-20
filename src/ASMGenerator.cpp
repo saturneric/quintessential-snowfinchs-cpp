@@ -1,5 +1,12 @@
 #include "ASMGenerator.h"
 
+#include <spdlog/fmt/ranges.h>
+
+#include <boost/graph/sequential_vertex_coloring.hpp>
+#include <boost/property_map/property_map.hpp>
+
+const std::string kSpillPrefix = "sp_";
+
 ASMGenerator::ASMGenerator(bool r32, const std::vector<IRInstructionA2>& ir)
     : r32_(r32), ir_(ir) {}
 
@@ -142,25 +149,46 @@ void ASMGenerator::alloc_reg() {
   reg_alloc_.clear();
 
   auto registers = r32_ ? kRegisters32 : kRegisters64;
+  const auto num_registers = registers.size();
+
+  using Graph = InterferenceGraph::Graph;
+  const Graph& graph = inf_graph_.GetGraph();
+
+  std::map<InterferenceGraph::Vertex, decltype(registers.size())>
+      color_map_storage;
+  auto colored_map = boost::make_assoc_property_map(color_map_storage);
+
+  std::vector<InterferenceGraph::Vertex> vertex_order;
+  for (const auto& var : mcs_order_) {
+    auto v_opt = inf_graph_.GetVertexByName(var);
+    if (v_opt) vertex_order.push_back(*v_opt);
+  }
+
+  // greedy coloring using MCS order
+  boost::sequential_vertex_coloring(
+      graph,
+      boost::make_iterator_property_map(vertex_order.begin(),
+                                        boost::identity_property_map(),
+                                        vertex_order.size()),
+      colored_map);
+
   std::set<std::string> spilled_vars;
+  auto name_map = boost::get(boost::vertex_name, graph);
+
+  for (const auto& [v, color] : color_map_storage) {
+    const auto& var = name_map[v];
+    if (color < num_registers) {
+      reg_alloc_[var] = registers[color];
+    } else {
+      reg_alloc_[var] = kSpillPrefix + var;
+      constants_.insert(reg_alloc_[var]);
+      spilled_vars.insert(var);
+    }
+  }
 
   for (const auto& var : mcs_order_) {
-    std::set<std::string> used_regs;
-    for (const auto& neighbor : inf_graph_.Neighbors(var)) {
-      if (reg_alloc_.count(neighbor) != 0) {
-        used_regs.insert(reg_alloc_[neighbor]);
-      }
-    }
-
-    for (const auto& reg : registers) {
-      if (used_regs.count(reg) == 0) {
-        reg_alloc_[var] = reg;
-        break;
-      }
-    }
-
     if (reg_alloc_.count(var) == 0) {
-      reg_alloc_[var] = "spill_" + var;
+      reg_alloc_[var] = kSpillPrefix + var;
       constants_.insert(reg_alloc_[var]);
       spilled_vars.insert(var);
     }
@@ -171,6 +199,12 @@ void ASMGenerator::alloc_reg() {
 
 void ASMGenerator::build_inf_graph() {
   std::set<std::string> live;
+  std::set<std::string> all_vars;
+
+  for (const auto& instr : ir_) {
+    if (is_variable(instr.arg1)) all_vars.insert(instr.arg1);
+    if (is_variable(instr.arg2)) all_vars.insert(instr.arg2);
+  }
 
   for (int i = static_cast<int>(ir_.size()) - 1; i >= 0; --i) {
     const auto& instr = ir_[i];
@@ -196,6 +230,10 @@ void ASMGenerator::build_inf_graph() {
     for (const auto& u : use) {
       live.insert(u);
     }
+  }
+
+  for (const auto& var : all_vars) {
+    inf_graph_.AddVariable(var);
   }
 }
 
@@ -226,45 +264,55 @@ void ASMGenerator::generate_gcc_asm(const std::string& path) {
 }
 
 void ASMGenerator::mcs() {
-  const auto& graph = inf_graph_;
-  auto nodes = graph.Variables();
-  std::unordered_map<std::string, int> weights;
-  std::unordered_set<std::string> visited;
+  using Graph = InterferenceGraph::Graph;
+  const Graph& graph = inf_graph_.GetGraph();
+  auto name_map = boost::get(boost::vertex_name, graph);
+
+  std::vector<InterferenceGraph::Vertex> nodes;
+  for (auto [v, v_end] = boost::vertices(graph); v != v_end; ++v) {
+    nodes.push_back(*v);
+  }
+
+  std::unordered_map<InterferenceGraph::Vertex, int> weights;
+  std::unordered_set<InterferenceGraph::Vertex> visited;
   std::vector<std::string> order;
 
-  for (const auto& node : nodes) {
-    weights[node] = 0;
+  for (auto v : nodes) {
+    weights[v] = 0;
   }
 
   while (visited.size() < nodes.size()) {
-    std::string max_node;
+    std::optional<InterferenceGraph::Vertex> max_node;
     int max_weight = -1;
 
-    for (const auto& node : nodes) {
-      if (visited.count(node) == 0 && weights[node] > max_weight) {
-        max_weight = weights[node];
-        max_node = node;
+    for (auto v : nodes) {
+      if (visited.count(v) == 0 && weights[v] > max_weight) {
+        max_weight = weights[v];
+        max_node = v;
       }
     }
 
-    if (max_node.empty()) break;
+    if (!max_node) break;
 
-    visited.insert(max_node);
-    order.push_back(max_node);
+    visited.insert(*max_node);
+    order.push_back(name_map[*max_node]);
 
-    for (const auto& neighbor : graph.Neighbors(max_node)) {
-      if (visited.count(neighbor) == 0) {
-        weights[neighbor]++;
+    for (auto [adj, adj_end] = boost::adjacent_vertices(*max_node, graph);
+         adj != adj_end; ++adj) {
+      if (visited.count(*adj) == 0) {
+        weights[*adj]++;
       }
     }
   }
 
   for (const auto& var : vars_) {
-    if (visited.count(var) == 0) {
+    auto v_opt = inf_graph_.GetVertexByName(var);
+    if (v_opt && visited.count(*v_opt) == 0) {
       order.push_back(var);
     }
   }
 
+  spdlog::debug("MCS Order: {}", fmt::join(order, " "));
   mcs_order_ = order;
 }
 

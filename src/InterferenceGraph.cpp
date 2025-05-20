@@ -61,3 +61,11 @@ void InterferenceGraph::Print() const {
     std::cout << "}\n";
   }
 }
+auto InterferenceGraph::GetGraph() const -> const Graph& { return graph_; }
+
+auto InterferenceGraph::GetVertexByName(const std::string& name) const
+    -> std::optional<Vertex> {
+  auto it = name_to_vertex_.find(name);
+  if (it != name_to_vertex_.end()) return it->second;
+  return std::nullopt;
+}

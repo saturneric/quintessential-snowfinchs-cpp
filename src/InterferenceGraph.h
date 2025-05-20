@@ -26,6 +26,10 @@ class InterferenceGraph {
 
   [[nodiscard]] auto Variables() const -> std::vector<std::string>;
 
+  auto GetGraph() const -> const Graph&;
+
+  auto GetVertexByName(const std::string& name) const -> std::optional<Vertex>;
+
   void Print() const;
 
  private:
