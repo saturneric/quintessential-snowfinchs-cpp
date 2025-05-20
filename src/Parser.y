@@ -5,6 +5,9 @@
 %define api.value.type variant
 %define api.token.constructor
 %param { Driver& drv }
+%locations
+%define api.location.file "Location.hpp"
+%define parse.error verbose
 %debug
 
 %code requires {

@@ -51,3 +51,5 @@ void Driver::LexerError(const char* msg) {
   lexer_error_ = true;
   lexer_error_msg_ = msg;
 }
+
+auto Driver::Location() -> yy::location& { return loc_; }

@@ -37,7 +37,7 @@
 
 
 // First part of user prologue.
-#line 19 "Parser.y"
+#line 22 "Parser.y"
 
 #include <memory>
 
@@ -50,7 +50,7 @@
 
 
 // Unqualified %code blocks.
-#line 15 "Parser.y"
+#line 18 "Parser.y"
 
     #define yylex drv.yylex
 
@@ -79,6 +79,25 @@
 # endif
 #endif
 
+#define YYRHSLOC(Rhs, K) ((Rhs)[K].location)
+/* YYLLOC_DEFAULT -- Set CURRENT to span from RHS[1] to RHS[N].
+   If N is 0, then set CURRENT to the empty location which ends
+   the previous symbol: RHS[0] (always defined).  */
+
+# ifndef YYLLOC_DEFAULT
+#  define YYLLOC_DEFAULT(Current, Rhs, N)                               \
+    do                                                                  \
+      if (N)                                                            \
+        {                                                               \
+          (Current).begin  = YYRHSLOC (Rhs, 1).begin;                   \
+          (Current).end    = YYRHSLOC (Rhs, N).end;                     \
+        }                                                               \
+      else                                                              \
+        {                                                               \
+          (Current).begin = (Current).end = YYRHSLOC (Rhs, 0).end;      \
+        }                                                               \
+    while (false)
+# endif
 
 
 // Enable debugging if requested.
@@ -127,7 +146,7 @@
 #define YYRECOVERING()  (!!yyerrstatus_)
 
 namespace yy {
-#line 131 "Parser.cpp"
+#line 150 "Parser.cpp"
 
   /// Build a parser object.
   parser::parser (Driver& drv_yyarg)
@@ -191,7 +210,7 @@ namespace yy {
   {}
 
   parser::stack_symbol_type::stack_symbol_type (YY_RVREF (stack_symbol_type) that)
-    : super_type (YY_MOVE (that.state))
+    : super_type (YY_MOVE (that.state), YY_MOVE (that.location))
   {
     switch (that.kind ())
     {
@@ -230,7 +249,7 @@ namespace yy {
   }
 
   parser::stack_symbol_type::stack_symbol_type (state_type s, YY_MOVE_REF (symbol_type) that)
-    : super_type (s)
+    : super_type (s, YY_MOVE (that.location))
   {
     switch (that.kind ())
     {
@@ -301,6 +320,7 @@ namespace yy {
         break;
     }
 
+    location = that.location;
     return *this;
   }
 
@@ -338,6 +358,7 @@ namespace yy {
         break;
     }
 
+    location = that.location;
     // that is emptied.
     that.state = empty_state;
     return *this;
@@ -365,7 +386,8 @@ namespace yy {
       {
         symbol_kind_type yykind = yysym.kind ();
         yyo << (yykind < YYNTOKENS ? "token" : "nterm")
-            << ' ' << yysym.name () << " (";
+            << ' ' << yysym.name () << " ("
+            << yysym.location << ": ";
         YY_USE (yykind);
         yyo << ')';
       }
@@ -465,6 +487,9 @@ namespace yy {
 
     /// The lookahead symbol.
     symbol_type yyla;
+
+    /// The locations where the error started and ended.
+    stack_symbol_type yyerror_range[3];
 
     /// The return value of parse ().
     int yyresult;
@@ -617,6 +642,12 @@ namespace yy {
     }
 
 
+      // Default location.
+      {
+        stack_type::slice range (yystack_, yylen);
+        YYLLOC_DEFAULT (yylhs.location, range, yylen);
+        yyerror_range[1].location = yylhs.location;
+      }
 
       // Perform the reduction.
       YY_REDUCE_PRINT (yyn);
@@ -627,7 +658,7 @@ namespace yy {
           switch (yyn)
             {
   case 2: // program: INT VALUE_ID LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE statements CLOSING_BRACE
-#line 51 "Parser.y"
+#line 54 "Parser.y"
     {
       if (yystack_[5].value.as < std::string > () != "main") {
         YYERROR;
@@ -639,52 +670,52 @@ namespace yy {
         yylhs.value.as < ASTNodePtr > ()->AddChildren(child);
       }
     }
-#line 643 "Parser.cpp"
+#line 674 "Parser.cpp"
     break;
 
   case 3: // statements: %empty
-#line 66 "Parser.y"
+#line 69 "Parser.y"
     {
       yylhs.value.as < std::vector<ASTNodePtr> > () = {};
     }
-#line 651 "Parser.cpp"
+#line 682 "Parser.cpp"
     break;
 
   case 4: // statements: statement statements
-#line 70 "Parser.y"
+#line 73 "Parser.y"
     {
       yystack_[0].value.as < std::vector<ASTNodePtr> > ().insert(yystack_[0].value.as < std::vector<ASTNodePtr> > ().begin(), yystack_[1].value.as < ASTNodePtr > ());
       yylhs.value.as < std::vector<ASTNodePtr> > () = yystack_[0].value.as < std::vector<ASTNodePtr> > ();
     }
-#line 660 "Parser.cpp"
+#line 691 "Parser.cpp"
     break;
 
   case 5: // statement: declarator SEMICOLON
-#line 78 "Parser.y"
+#line 81 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 668 "Parser.cpp"
+#line 699 "Parser.cpp"
     break;
 
   case 6: // statement: simple_statement SEMICOLON
-#line 82 "Parser.y"
+#line 85 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 676 "Parser.cpp"
+#line 707 "Parser.cpp"
     break;
 
   case 7: // statement: return_statement SEMICOLON
-#line 86 "Parser.y"
+#line 89 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 684 "Parser.cpp"
+#line 715 "Parser.cpp"
     break;
 
   case 8: // simple_statement: left_value assign_operator expression
-#line 93 "Parser.y"
+#line 96 "Parser.y"
     {
       if (yystack_[1].value.as < std::string > () == "=") {
         yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kASSIGN, "simple_statement", yystack_[1].value.as < std::string > (), drv);
@@ -706,28 +737,28 @@ namespace yy {
         yylhs.value.as < ASTNodePtr > ()->AddChildren(bin_op);
       }
     }
-#line 710 "Parser.cpp"
+#line 741 "Parser.cpp"
     break;
 
   case 9: // return_statement: RETURN expression
-#line 118 "Parser.y"
+#line 121 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kRETURN, "return_statement", "", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 719 "Parser.cpp"
+#line 750 "Parser.cpp"
     break;
 
   case 10: // declarator: INT VALUE_ID
-#line 126 "Parser.y"
+#line 129 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kDECLARE, "declarator", yystack_[0].value.as < std::string > (), drv);
     }
-#line 727 "Parser.cpp"
+#line 758 "Parser.cpp"
     break;
 
   case 11: // declarator: INT VALUE_ID EQUAL expression
-#line 130 "Parser.y"
+#line 133 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kDECLARE, "declarator", yystack_[2].value.as < std::string > (), drv);
       auto assign_node = MakeASTTreeNode(ASTNodeType::kASSIGN, "declarator", "=", drv);
@@ -738,176 +769,176 @@ namespace yy {
 
       yylhs.value.as < ASTNodePtr > ()->AddChildren(assign_node);
     }
-#line 742 "Parser.cpp"
+#line 773 "Parser.cpp"
     break;
 
   case 12: // left_value: VALUE_ID
-#line 144 "Parser.y"
+#line 147 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIDENT, "left_value", yystack_[0].value.as < std::string > (), drv);
     }
-#line 750 "Parser.cpp"
+#line 781 "Parser.cpp"
     break;
 
   case 13: // left_value: LEFT_BRACKET left_value RIGHT_BRACKET
-#line 148 "Parser.y"
+#line 151 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 758 "Parser.cpp"
+#line 789 "Parser.cpp"
     break;
 
   case 14: // expression: additive
-#line 153 "Parser.y"
+#line 156 "Parser.y"
             { yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > (); }
-#line 764 "Parser.cpp"
+#line 795 "Parser.cpp"
     break;
 
   case 15: // additive: additive PLUS multiplicative
-#line 157 "Parser.y"
+#line 160 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "additive", "+", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 774 "Parser.cpp"
+#line 805 "Parser.cpp"
     break;
 
   case 16: // additive: additive SUB multiplicative
-#line 163 "Parser.y"
+#line 166 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "additive", "-", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 784 "Parser.cpp"
+#line 815 "Parser.cpp"
     break;
 
   case 17: // additive: multiplicative
-#line 169 "Parser.y"
+#line 172 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > ();
     }
-#line 792 "Parser.cpp"
+#line 823 "Parser.cpp"
     break;
 
   case 18: // multiplicative: multiplicative MULT unary
-#line 176 "Parser.y"
+#line 179 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "multiplicative", "*", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 802 "Parser.cpp"
+#line 833 "Parser.cpp"
     break;
 
   case 19: // multiplicative: multiplicative SLASH unary
-#line 182 "Parser.y"
+#line 185 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "multiplicative", "/", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 812 "Parser.cpp"
+#line 843 "Parser.cpp"
     break;
 
   case 20: // multiplicative: multiplicative PERCENT unary
-#line 188 "Parser.y"
+#line 191 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "multiplicative", "%", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 822 "Parser.cpp"
+#line 853 "Parser.cpp"
     break;
 
   case 21: // multiplicative: unary
-#line 194 "Parser.y"
+#line 197 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > ();
     }
-#line 830 "Parser.cpp"
+#line 861 "Parser.cpp"
     break;
 
   case 22: // unary: SUB unary
-#line 201 "Parser.y"
+#line 204 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "unary", "-", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChildren(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 839 "Parser.cpp"
+#line 870 "Parser.cpp"
     break;
 
   case 23: // unary: primary
-#line 206 "Parser.y"
+#line 209 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > ();
     }
-#line 847 "Parser.cpp"
+#line 878 "Parser.cpp"
     break;
 
   case 24: // primary: LEFT_BRACKET expression RIGHT_BRACKET
-#line 213 "Parser.y"
+#line 216 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 855 "Parser.cpp"
+#line 886 "Parser.cpp"
     break;
 
   case 25: // primary: VALUE_INTEGER
-#line 217 "Parser.y"
+#line 220 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "primary", yystack_[0].value.as < std::string > (), drv);
     }
-#line 863 "Parser.cpp"
+#line 894 "Parser.cpp"
     break;
 
   case 26: // primary: VALUE_ID
-#line 221 "Parser.y"
+#line 224 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIDENT, "primary", yystack_[0].value.as < std::string > (), drv);
     }
-#line 871 "Parser.cpp"
+#line 902 "Parser.cpp"
     break;
 
   case 27: // assign_operator: EQUAL
-#line 227 "Parser.y"
+#line 230 "Parser.y"
                       { yylhs.value.as < std::string > () = "="; }
-#line 877 "Parser.cpp"
+#line 908 "Parser.cpp"
     break;
 
   case 28: // assign_operator: PLUS_EQUAL
-#line 228 "Parser.y"
+#line 231 "Parser.y"
                       { yylhs.value.as < std::string > () = "+="; }
-#line 883 "Parser.cpp"
+#line 914 "Parser.cpp"
     break;
 
   case 29: // assign_operator: SUB_EQUAL
-#line 229 "Parser.y"
+#line 232 "Parser.y"
                       { yylhs.value.as < std::string > () = "-="; }
-#line 889 "Parser.cpp"
+#line 920 "Parser.cpp"
     break;
 
   case 30: // assign_operator: MULT_EQUAL
-#line 230 "Parser.y"
+#line 233 "Parser.y"
                       { yylhs.value.as < std::string > () = "*="; }
-#line 895 "Parser.cpp"
+#line 926 "Parser.cpp"
     break;
 
   case 31: // assign_operator: SLASH_EQUAL
-#line 231 "Parser.y"
+#line 234 "Parser.y"
                       { yylhs.value.as < std::string > () = "/="; }
-#line 901 "Parser.cpp"
+#line 932 "Parser.cpp"
     break;
 
   case 32: // assign_operator: PERCENT_EQUAL
-#line 232 "Parser.y"
+#line 235 "Parser.y"
                       { yylhs.value.as < std::string > () = "%="; }
-#line 907 "Parser.cpp"
+#line 938 "Parser.cpp"
     break;
 
 
-#line 911 "Parser.cpp"
+#line 942 "Parser.cpp"
 
             default:
               break;
@@ -939,11 +970,13 @@ namespace yy {
     if (!yyerrstatus_)
       {
         ++yynerrs_;
-        std::string msg = YY_("syntax error");
-        error (YY_MOVE (msg));
+        context yyctx (*this, yyla);
+        std::string msg = yysyntax_error_ (yyctx);
+        error (yyla.location, YY_MOVE (msg));
       }
 
 
+    yyerror_range[1].location = yyla.location;
     if (yyerrstatus_ == 3)
       {
         /* If just tried and failed to reuse lookahead token after an
@@ -1005,6 +1038,7 @@ namespace yy {
         if (yystack_.size () == 1)
           YYABORT;
 
+        yyerror_range[1].location = yystack_[0].location;
         yy_destroy_ ("Error: popping", yystack_[0]);
         yypop_ ();
         YY_STACK_PRINT ();
@@ -1012,6 +1046,8 @@ namespace yy {
     {
       stack_symbol_type error_token;
 
+      yyerror_range[2].location = yyla.location;
+      YYLLOC_DEFAULT (error_token.location, yyerror_range, 2);
 
       // Shift the error token.
       error_token.state = state_type (yyn);
@@ -1077,23 +1113,181 @@ namespace yy {
   void
   parser::error (const syntax_error& yyexc)
   {
-    error (yyexc.what ());
+    error (yyexc.location, yyexc.what ());
   }
 
-#if YYDEBUG || 0
-  const char *
+  /* Return YYSTR after stripping away unnecessary quotes and
+     backslashes, so that it's suitable for yyerror.  The heuristic is
+     that double-quoting is unnecessary unless the string contains an
+     apostrophe, a comma, or backslash (other than backslash-backslash).
+     YYSTR is taken from yytname.  */
+  std::string
+  parser::yytnamerr_ (const char *yystr)
+  {
+    if (*yystr == '"')
+      {
+        std::string yyr;
+        char const *yyp = yystr;
+
+        for (;;)
+          switch (*++yyp)
+            {
+            case '\'':
+            case ',':
+              goto do_not_strip_quotes;
+
+            case '\\':
+              if (*++yyp != '\\')
+                goto do_not_strip_quotes;
+              else
+                goto append;
+
+            append:
+            default:
+              yyr += *yyp;
+              break;
+
+            case '"':
+              return yyr;
+            }
+      do_not_strip_quotes: ;
+      }
+
+    return yystr;
+  }
+
+  std::string
   parser::symbol_name (symbol_kind_type yysymbol)
   {
-    return yytname_[yysymbol];
+    return yytnamerr_ (yytname_[yysymbol]);
   }
-#endif // #if YYDEBUG || 0
+
+
+
+  // parser::context.
+  parser::context::context (const parser& yyparser, const symbol_type& yyla)
+    : yyparser_ (yyparser)
+    , yyla_ (yyla)
+  {}
+
+  int
+  parser::context::expected_tokens (symbol_kind_type yyarg[], int yyargn) const
+  {
+    // Actual number of expected tokens
+    int yycount = 0;
+
+    const int yyn = yypact_[+yyparser_.yystack_[0].state];
+    if (!yy_pact_value_is_default_ (yyn))
+      {
+        /* Start YYX at -YYN if negative to avoid negative indexes in
+           YYCHECK.  In other words, skip the first -YYN actions for
+           this state because they are default actions.  */
+        const int yyxbegin = yyn < 0 ? -yyn : 0;
+        // Stay within bounds of both yycheck and yytname.
+        const int yychecklim = yylast_ - yyn + 1;
+        const int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
+        for (int yyx = yyxbegin; yyx < yyxend; ++yyx)
+          if (yycheck_[yyx + yyn] == yyx && yyx != symbol_kind::S_YYerror
+              && !yy_table_value_is_error_ (yytable_[yyx + yyn]))
+            {
+              if (!yyarg)
+                ++yycount;
+              else if (yycount == yyargn)
+                return 0;
+              else
+                yyarg[yycount++] = YY_CAST (symbol_kind_type, yyx);
+            }
+      }
+
+    if (yyarg && yycount == 0 && 0 < yyargn)
+      yyarg[0] = symbol_kind::S_YYEMPTY;
+    return yycount;
+  }
 
 
 
 
 
 
+  int
+  parser::yy_syntax_error_arguments_ (const context& yyctx,
+                                                 symbol_kind_type yyarg[], int yyargn) const
+  {
+    /* There are many possibilities here to consider:
+       - If this state is a consistent state with a default action, then
+         the only way this function was invoked is if the default action
+         is an error action.  In that case, don't check for expected
+         tokens because there are none.
+       - The only way there can be no lookahead present (in yyla) is
+         if this state is a consistent state with a default action.
+         Thus, detecting the absence of a lookahead is sufficient to
+         determine that there is no unexpected or expected token to
+         report.  In that case, just report a simple "syntax error".
+       - Don't assume there isn't a lookahead just because this state is
+         a consistent state with a default action.  There might have
+         been a previous inconsistent state, consistent state with a
+         non-default action, or user semantic action that manipulated
+         yyla.  (However, yyla is currently not documented for users.)
+       - Of course, the expected token list depends on states to have
+         correct lookahead information, and it depends on the parser not
+         to perform extra reductions after fetching a lookahead from the
+         scanner and before detecting a syntax error.  Thus, state merging
+         (from LALR or IELR) and default reductions corrupt the expected
+         token list.  However, the list is correct for canonical LR with
+         one exception: it will still contain any token that will not be
+         accepted due to an error action in a later state.
+    */
 
+    if (!yyctx.lookahead ().empty ())
+      {
+        if (yyarg)
+          yyarg[0] = yyctx.token ();
+        int yyn = yyctx.expected_tokens (yyarg ? yyarg + 1 : yyarg, yyargn - 1);
+        return yyn + 1;
+      }
+    return 0;
+  }
+
+  // Generate an error message.
+  std::string
+  parser::yysyntax_error_ (const context& yyctx) const
+  {
+    // Its maximum.
+    enum { YYARGS_MAX = 5 };
+    // Arguments of yyformat.
+    symbol_kind_type yyarg[YYARGS_MAX];
+    int yycount = yy_syntax_error_arguments_ (yyctx, yyarg, YYARGS_MAX);
+
+    char const* yyformat = YY_NULLPTR;
+    switch (yycount)
+      {
+#define YYCASE_(N, S)                         \
+        case N:                               \
+          yyformat = S;                       \
+        break
+      default: // Avoid compiler warnings.
+        YYCASE_ (0, YY_("syntax error"));
+        YYCASE_ (1, YY_("syntax error, unexpected %s"));
+        YYCASE_ (2, YY_("syntax error, unexpected %s, expecting %s"));
+        YYCASE_ (3, YY_("syntax error, unexpected %s, expecting %s or %s"));
+        YYCASE_ (4, YY_("syntax error, unexpected %s, expecting %s or %s or %s"));
+        YYCASE_ (5, YY_("syntax error, unexpected %s, expecting %s or %s or %s or %s"));
+#undef YYCASE_
+      }
+
+    std::string yyres;
+    // Argument number.
+    std::ptrdiff_t yyi = 0;
+    for (char const* yyp = yyformat; *yyp; ++yyp)
+      if (yyp[0] == '%' && yyp[1] == 's' && yyi < yycount)
+        {
+          yyres += symbol_name (yyarg[yyi++]);
+          ++yyp;
+        }
+      else
+        yyres += *yyp;
+    return yyres;
+  }
 
 
   const signed char parser::yypact_ninf_ = -43;
@@ -1186,7 +1380,7 @@ namespace yy {
   };
 
 
-#if YYDEBUG
+#if YYDEBUG || 1
   // YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
   // First, the terminals, then, starting at \a YYNTOKENS, nonterminals.
   const char*
@@ -1212,10 +1406,10 @@ namespace yy {
   const unsigned char
   parser::yyrline_[] =
   {
-       0,    50,    50,    66,    69,    77,    81,    85,    92,   117,
-     125,   129,   143,   147,   153,   156,   162,   168,   175,   181,
-     187,   193,   200,   205,   212,   216,   220,   227,   228,   229,
-     230,   231,   232
+       0,    53,    53,    69,    72,    80,    84,    88,    95,   120,
+     128,   132,   146,   150,   156,   159,   165,   171,   178,   184,
+     190,   196,   203,   208,   215,   219,   223,   230,   231,   232,
+     233,   234,   235
   };
 
   void
@@ -1247,7 +1441,7 @@ namespace yy {
 
 
 } // yy
-#line 1251 "Parser.cpp"
+#line 1445 "Parser.cpp"
 
-#line 235 "Parser.y"
+#line 238 "Parser.y"
 

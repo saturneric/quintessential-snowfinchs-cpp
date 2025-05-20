@@ -9,8 +9,9 @@
 
 namespace yy {
 
-inline void parser::error(const std::string& msg) {
-  SPDLOG_ERROR("Syntax error: {}", msg);
+inline void parser::error(const location_type& l, const std::string& m) {
+  SPDLOG_ERROR("Parser error at {}:{}-{}:{}; Message: {}", l.begin.line,
+               l.begin.column, l.end.line, l.end.column, m);
 }
 
 }  // namespace yy
@@ -37,11 +38,16 @@ class Driver : public yyFlexLexer {
 
   void LexerError(const char* msg) override;
 
+  auto Location() -> yy::location&;
+
+  auto LastToken() -> yy::location&;
+
  private:
-  SymbolTablePtr symbol_table_;
+  class AST ast_;
+  yy::location loc_;
   bool lexer_error_ = false;
   std::string lexer_error_msg_;
-  class AST ast_;
+  SymbolTablePtr symbol_table_;
 };
 
 #define YY_DECL auto Driver::yylex(Driver& drv) -> yy::parser::symbol_type
