@@ -1,0 +1,29 @@
+name: Build and Unit Test (Optimization)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: cmake g++ ninja-build
+          version: 1.0
+
+      - name: Configure CMake
+        run: cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TEST_CASES=On
+
+      - name: Build
+        run: cmake --build build/
+
+      - name: Run unit tests
+        run: |
+          ./test.sh
