@@ -68,6 +68,7 @@ auto SymbolTable::SearchSymbols(SymbolType type, int scope,
 
 auto SymbolTable::AddScope(ScopePtr parent) -> ScopePtr {
   auto scope = std::make_shared<Scope>(parent, next_scope_index_++);
+  if (parent != nullptr) parent->AddChild(scope);
   scopes_.insert(scope);
   return scope;
 }
