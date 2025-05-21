@@ -46,6 +46,8 @@ class IRGenerator {
 
     auto NewTempVariable() -> SymbolPtr;
 
+    auto NewLabel() -> SymbolPtr;
+
     void AddIns(const std::string& op, SymbolPtr dst = nullptr,
                 SymbolPtr src_1 = nullptr, SymbolPtr src_2 = nullptr);
 
@@ -65,6 +67,8 @@ class IRGenerator {
 
     auto MapSymbol(const std::string& name, const std::string& type)
         -> SymbolPtr;
+
+    void AddError(const std::string& err);
 
    private:
     IRGenerator* ig_;
@@ -113,4 +117,6 @@ class IRGenerator {
   auto lookup_variable(const SymbolPtr& ast_sym) -> SymbolPtr;
 
   auto new_temp_variable() -> SymbolPtr;
+
+  auto new_label() -> SymbolPtr;
 };
