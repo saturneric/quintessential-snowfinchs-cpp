@@ -4,7 +4,7 @@ set -e
 SOURCE_DIR=$(pwd)
 BUILD_DIR="$SOURCE_DIR/build"
 
-MAX_JOBS=8
+MAX_JOBS=6
 JOBS=$(nproc)
 
 echo "Detected CPU cores: $JOBS"
