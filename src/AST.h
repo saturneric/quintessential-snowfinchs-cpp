@@ -14,6 +14,10 @@ enum class ASTNodeType : char {
   kTYPE,
   kVALUE,
   kIDENT,
+  kIF,
+  kWHILE,
+  kBREAK,
+  kCONTINUE,
 };
 
 class ASTNode;

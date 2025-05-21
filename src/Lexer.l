@@ -57,24 +57,45 @@
 ";"                 { return yy::parser::make_SEMICOLON(loc); }
 "("                 { return yy::parser::make_LEFT_BRACKET(loc); }
 ")"                 { return yy::parser::make_RIGHT_BRACKET(loc); }
+
+"!"                 { return yy::parser::make_LOGIC_NOT(loc); }
+"~"                 { return yy::parser::make_BIT_NOT(loc); }
 "<<"                { return yy::parser::make_LEFT_SHIFT(loc); }
 ">>"                { return yy::parser::make_RIGHT_SHIFT(loc); }
-"&"                 { return yy::parser::make_AND(loc); }
-"^"                 { return yy::parser::make_INSERT(loc); }
-"|"                 { return yy::parser::make_DELIMITER(loc); }
-","                 { return yy::parser::make_COMMA(loc); }
-"="                 { return yy::parser::make_EQUAL(loc); }
-"+="                { return yy::parser::make_PLUS_EQUAL(loc); }
-"-="                { return yy::parser::make_SUB_EQUAL(loc); }
-"*="                { return yy::parser::make_MULT_EQUAL(loc); }
-"/="                { return yy::parser::make_SLASH_EQUAL(loc); }
-"%="                { return yy::parser::make_PERCENT_EQUAL(loc); }
+"&"                 { return yy::parser::make_BIT_AND(loc); }
+"^"                 { return yy::parser::make_BIT_EX_OR(loc); }
+"|"                 { return yy::parser::make_BIT_OR(loc); }
+
+"="                 { return yy::parser::make_ASSIGN(loc); }
+"+="                { return yy::parser::make_PLUS_ASSIGN(loc); }
+"-="                { return yy::parser::make_SUB_ASSIGN(loc); }
+"*="                { return yy::parser::make_MULT_ASSIGN(loc); }
+"/="                { return yy::parser::make_SLASH_ASSIGN(loc); }
+"%="                { return yy::parser::make_PERCENT_ASSIGN(loc); }
+"&="                { return yy::parser::make_BIT_AND_ASSIGN(loc); }
+"^="                { return yy::parser::make_BIT_EX_OR_ASSIGN(loc); }
+"|="                { return yy::parser::make_BIT_OR_ASSIGN(loc); }
+"<<="               { return yy::parser::make_LEFT_SHIFT_ASSIGN(loc); }
+">>="               { return yy::parser::make_RIGHT_SHIFT_ASSIGN(loc); }
+
 "*"                 { return yy::parser::make_MULT(loc); }
 "+"                 { return yy::parser::make_PLUS(loc); }
 "-"                 { return yy::parser::make_SUB(loc); }
-"~"                 { return yy::parser::make_TILDE(loc); }
 "/"                 { return yy::parser::make_SLASH(loc); }
 "%"                 { return yy::parser::make_PERCENT(loc); }
+
+"&&"                { return yy::parser::make_LOGIC_AND(loc); }
+"||"                { return yy::parser::make_LOGIC_OR(loc); }
+
+"<"                 { return yy::parser::make_LT(loc); }
+"<="                { return yy::parser::make_LT_EQ(loc); }
+">"                 { return yy::parser::make_GT(loc); }
+">="                { return yy::parser::make_GT_EQ(loc); }
+"=="                { return yy::parser::make_EQ(loc); }
+"!="                { return yy::parser::make_NOT_EQ(loc); }
+
+"?"                 { return yy::parser::make_QUESTION(loc); }
+":"                 { return yy::parser::make_COLON(loc); }
 
 "struct"            { return yy::parser::make_STRUCT(loc); }
 "if"                { return yy::parser::make_IF(loc); }
