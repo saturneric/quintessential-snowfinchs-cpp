@@ -2,28 +2,24 @@
 
 #include <utility>
 
-Symbol::Symbol(SymbolType type, int index, ScopePtr scope, std::string name,
-               std::string value)
-    : type_(type),
-      index_(index),
-      scope_(std::move(scope)),
-      name_(std::move(name)),
-      value_(std::move(value)) {}
+Symbol::Symbol(SymbolType type, int index, std::string name)
+    : type_(type), index_(index), name_(std::move(name)) {}
 
-void Symbol::SetMetaData(const std::string& key, std::any value) {
-  meta_data_[key] = std::move(value);
+void Symbol::SetMeta(const SymbolMetaKey& key, std::any value) {
+  meta_data_[static_cast<SymbolMetaKeySizeType>(key)] = std::move(value);
 }
 
-auto Symbol::MetaData(const std::string& key) const -> std::any {
-  if (meta_data_.count(key) == 0) return {};
-  return meta_data_.at(key);
+auto Symbol::MetaData(const SymbolMetaKey& key) const -> std::any {
+  return meta_data_.at(static_cast<SymbolMetaKeySizeType>(key));
 }
 
-auto Symbol::RefMetaData(const std::string& key) -> std::any& {
-  return meta_data_[key];
+auto Symbol::MetaRef(const SymbolMetaKey& key) -> std::any& {
+  return meta_data_[static_cast<SymbolMetaKeySizeType>(key)];
 }
 
-void Symbol::RemoveMetaData(const std::string& key) { meta_data_.erase(key); }
+void Symbol::RemoveMeta(const SymbolMetaKey& key) {
+  meta_data_[static_cast<SymbolMetaKeySizeType>(key)] = {};
+}
 
 void Symbol::SetName(std::string name) { name_ = std::move(name); }
 
@@ -35,10 +31,18 @@ auto Symbol::Name() const -> std::string { return name_; }
 
 auto Symbol::Value() const -> std::string { return value_; }
 
-auto Symbol::Scope() const -> ScopePtr { return scope_; }
+auto Symbol::Scope() const -> ScopePtr {
+  auto scope = MetaData(SymbolMetaKey::kSCOPE);
+  return scope.has_value() ? std::any_cast<ScopePtr>(scope) : nullptr;
+}
 
-void Symbol::SetScope(ScopePtr scope) { scope_ = std::move(scope); }
+void Symbol::SetScope(ScopePtr scope) {
+  MetaRef(SymbolMetaKey::kSCOPE) = std::move(scope);
+}
 
 auto Symbol::ScopeId() const -> int {
-  return scope_ != nullptr ? scope_->Id() : kNonScopeId;
+  auto scope = Scope();
+  return scope != nullptr ? scope->Id() : kNonScopeId;
 }
+
+void Symbol::SetValue(std::string value) { value_ = std::move(value); }

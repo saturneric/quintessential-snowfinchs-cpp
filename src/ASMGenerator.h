@@ -33,8 +33,6 @@ class ASMGenerator {
   std::set<SymbolPtr> constants_;
   std::set<SymbolPtr> vars_;
   std::vector<SymbolPtr> mcs_order_;
-  std::unordered_map<std::string, std::string> reg_alloc_;
-  std::unordered_map<std::string, int> const_stack_slots_;
 
   void translate(const IRInstructionA2& instr);
 

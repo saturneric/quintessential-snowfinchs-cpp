@@ -1,11 +1,15 @@
 #pragma once
 
+// boost
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/mem_fun.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/tag.hpp>
 #include <boost/multi_index_container.hpp>
+#include <boost/pool/object_pool.hpp>
+
+// std
 #include <functional>
 
 #include "Scope.h"
@@ -46,11 +50,6 @@ using ScopeMultiIndexTable = multi_index::multi_index_container<
         multi_index::const_mem_fun<Scope, int, &Scope::Id>, std::less<>>>>;
 
 class SymbolTable {
-  int next_index_ = 1 << 8;
-  int next_scope_index_ = 1 << 4;
-  SymbolMultiIndexTable symbols_;
-  ScopeMultiIndexTable scopes_;
-
  public:
   SymbolTable();
 
@@ -70,6 +69,14 @@ class SymbolTable {
   [[nodiscard]] auto SearchSymbols(SymbolType type, int scope,
                                    const std::string &name) const
       -> std::vector<SymbolPtr>;
+
+ private:
+  int next_index_ = 1 << 8;
+  int next_scope_index_ = 1 << 4;
+
+  SymbolMultiIndexTable symbols_;
+  ScopeMultiIndexTable scopes_;
+  boost::object_pool<class Symbol> symbol_pool_{1 << 8};
 };
 
 using SymbolTablePtr = std::shared_ptr<SymbolTable>;

@@ -22,10 +22,15 @@ auto SymbolTable::AddSymbol(SymbolType type, const std::string &name,
     return nullptr;
   }
 
-  auto symbol =
-      std::make_shared<class Symbol>(type, next_index_++, scope, name, value);
-  symbols_.insert(symbol);
-  return symbol;
+  auto *s = symbol_pool_.construct(type, next_index_++, name);
+  auto sym =
+      std::shared_ptr<class Symbol>(s, [](class Symbol *) { /* do nothing */ });
+
+  sym->SetValue(value);
+  if (scope != nullptr) sym->SetScope(scope);
+
+  symbols_.insert(sym);
+  return sym;
 }
 
 auto SymbolTable::Symbol(int index) const -> SymbolPtr {

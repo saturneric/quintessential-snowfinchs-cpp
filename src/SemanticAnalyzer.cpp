@@ -30,7 +30,7 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
       const auto& assign = children.front();
       auto expr_type = visit(assign);
 
-      symbol->SetMetaData(kSymMDHasInit, "1");
+      symbol->SetMeta(SymbolMetaKey::kHAS_INIT, true);
       break;
     }
 
@@ -51,7 +51,7 @@ auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
 
       auto expr_type = visit_expr(value);
 
-      sym->SetMetaData(kSymMDHasInit, "1");
+      sym->SetMeta(SymbolMetaKey::kHAS_INIT, true);
       break;
     }
 
@@ -105,7 +105,7 @@ auto SemanticAnalyzer::visit_expr(const ASTNodePtr& expr) -> ExpType {
         return ExpType::kINT;
       }
 
-      if (!sym->MetaData(kSymMDHasInit).has_value()) {
+      if (!sym->MetaData(SymbolMetaKey::kHAS_INIT).has_value()) {
         error(expr, "Variable not initialized: " + var->Name());
         return ExpType::kINT;
       }

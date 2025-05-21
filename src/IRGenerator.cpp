@@ -294,21 +294,16 @@ auto IRGenerator::map_ssa(const SymbolPtr& sym, bool is_def) -> SymbolPtr {
   if (sym == nullptr) return nullptr;
 
   if (is_def) {
-    auto& ver = sym->RefMetaData("ssa_version");
-    if (!ver.has_value()) ver = 0;
-
-    auto v = std::any_cast<int>(ver) + 1;
-    ver = v;  // update ssa index
+    int ver = MetaGet<int>(sym, SymbolMetaKey::kSSA_VERSION, 0) + 1;
+    MetaSet(sym, SymbolMetaKey::kSSA_VERSION, ver);
 
     auto sym_ssa =
-        map_sym(sym->Name() + "_v" + std::to_string(v), sym->Value());
-    sym_ssa->RefMetaData("origin_ir_symbol") = sym;
-
-    // ref to ssa
-    sym->RefMetaData("latest_ssa_symbol") = sym_ssa;
+        map_sym(sym->Name() + "_v" + std::to_string(ver), sym->Value());
+    MetaSet(sym_ssa, SymbolMetaKey::kSSA_ORIGIN_SYM, sym);
+    MetaSet(sym, SymbolMetaKey::kSSA_LATEST_SYM, sym_ssa);
   }
 
-  auto sym_ssa = sym->MetaData("latest_ssa_symbol");
+  auto sym_ssa = sym->MetaData(SymbolMetaKey::kSSA_LATEST_SYM);
   if (sym_ssa.has_value()) return std::any_cast<SymbolPtr>(sym_ssa);
   return sym;
 }
@@ -348,7 +343,7 @@ auto IRGenerator::Context::MapSymbol(const SymbolPtr& symbol) -> SymbolPtr {
 
   // should then convert to ir symbol
   if (sym->Type() == SymbolType::kDEFINE) {
-    const auto type = sym->MetaData("type");
+    const auto type = sym->MetaData(SymbolMetaKey::kTYPE);
     sym =
         MapSymbol(sym->Value(),
                   type.has_value() ? std::any_cast<std::string>(type) : "void");

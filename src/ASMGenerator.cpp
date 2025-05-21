@@ -41,12 +41,12 @@ auto IsImmediate(const SymbolPtr& s) -> bool {
 inline auto IsStackAccess(const SymbolPtr& s) -> bool {
   if (s == nullptr) return false;  // empty symbol
   // "-4(%esp)" or "-8(%rsp)"
-  return s->MetaData("in_stack").has_value();
+  return s->MetaData(SymbolMetaKey::kIN_STACK).has_value();
 }
 
 inline auto IsReg(const SymbolPtr& s) -> bool {
   if (s == nullptr) return false;  // empty symbol
-  return s->MetaData("in_register").has_value();
+  return s->MetaData(SymbolMetaKey::kIN_REGISTER).has_value();
 }
 
 inline auto IsGlobalVar(const SymbolPtr& s) -> bool {
@@ -60,7 +60,7 @@ inline auto IsInMemory(const SymbolPtr& s) -> bool {
 
 auto SymLoc(const SymbolPtr& op) -> std::string {
   if (op == nullptr) return {};
-  auto loc = op->MetaData("location");
+  auto loc = op->MetaData(SymbolMetaKey::kLOCATION);
   if (!loc.has_value()) return "";
   return std::any_cast<std::string>(loc);
 }
@@ -181,8 +181,6 @@ const std::vector<std::string> kRegisters32 = {
 };
 
 void ASMGenerator::alloc_reg() {
-  reg_alloc_.clear();
-
   auto registers = r32_ ? kRegisters32 : kRegisters64;
   const auto num_registers = registers.size();
 
@@ -217,17 +215,17 @@ void ASMGenerator::alloc_reg() {
     assert(var != nullptr);
 
     if (color < num_registers) {
-      var->RefMetaData("in_register") = true;
-      var->RefMetaData("location") = registers[color];
+      var->MetaRef(SymbolMetaKey::kIN_REGISTER) = true;
+      var->MetaRef(SymbolMetaKey::kLOCATION) = registers[color];
     } else {
-      var->RefMetaData("is_spilled_variable") = true;
+      var->MetaRef(SymbolMetaKey::kIS_SPILLED) = true;
       spilled_vars.insert(var);
     }
   }
 
   for (const auto& var : mcs_order_) {
-    if (!var->RefMetaData("location").has_value()) {
-      var->RefMetaData("is_spilled_variable") = true;
+    if (!var->MetaRef(SymbolMetaKey::kLOCATION).has_value()) {
+      var->MetaRef(SymbolMetaKey::kIS_SPILLED) = true;
       spilled_vars.insert(var);
     }
   }
@@ -398,8 +396,8 @@ auto ASMGenerator::handle_spling_var(const std::set<SymbolPtr>& spilled_vars)
   }
 
   for (const auto& var : spilled_vars) {
-    var->RefMetaData("in_stack") = true;
-    var->RefMetaData("location") =
+    var->MetaRef(SymbolMetaKey::kIN_STACK) = true;
+    var->MetaRef(SymbolMetaKey::kLOCATION) =
         std::to_string(stack_offset[var]) + "(" + bp_ + ")";
   }
 
@@ -410,7 +408,7 @@ auto ASMGenerator::handle_spling_var(const std::set<SymbolPtr>& spilled_vars)
         SymbolType::kIR,
         "tmp_tack_stack_offset_" + std::to_string(std::abs(stack_offset_)), {},
         true);
-    sym->RefMetaData("location") =
+    sym->MetaRef(SymbolMetaKey::kLOCATION) =
         std::to_string(stack_offset_) + +"(" + bp_ + ")";
     return sym;
   };
@@ -425,9 +423,9 @@ auto ASMGenerator::handle_spling_var(const std::set<SymbolPtr>& spilled_vars)
 
   for (const auto& i : ir_) {
     bool sp_src =
-        i.src && i.src->RefMetaData("is_spilled_variable").has_value();
+        i.src && i.src->MetaRef(SymbolMetaKey::kIS_SPILLED).has_value();
     bool sp_dst =
-        i.dst && i.dst->RefMetaData("is_spilled_variable").has_value();
+        i.dst && i.dst->MetaRef(SymbolMetaKey::kIS_SPILLED).has_value();
 
     const auto op = i.op->Name();
     const auto src = i.src;
@@ -493,7 +491,7 @@ void ASMGenerator::alloc_stack_for_immediate(const SymbolPtr& val) {
   // TODO(eric): make sure an immediate should only have one symbol
   if (SymLoc(val).empty()) {
     stack_offset_ -= stack_offset_dt_;
-    val->RefMetaData("location") =
+    val->MetaRef(SymbolMetaKey::kLOCATION) =
         std::to_string(stack_offset_) + +"(" + sp_ + ")";
   }
 }
