@@ -53,7 +53,8 @@ auto ScopedSymbolLookUpHelper::LookupSymbolsInScope(const ScopePtr& scope,
 auto ScopedSymbolLookUpHelper::LookupSymbol(ScopePtr scope,
                                             const std::string& name)
     -> SymbolPtr {
-  if (scope == nullptr) return nullptr;
+  // symbol has no scope
+  if (scope == nullptr) return LookupSymbolWithoutScope(name);
 
   while (scope != nullptr) {
     auto sym = LookupSymbolInScope(scope, name);
@@ -61,4 +62,9 @@ auto ScopedSymbolLookUpHelper::LookupSymbol(ScopePtr scope,
     scope = scope->Parent();
   }
   return nullptr;
+}
+
+auto ScopedSymbolLookUpHelper::LookupSymbolWithoutScope(const std::string& name)
+    -> SymbolPtr {
+  return symbol_table_->SearchSymbol(symbol_type_, kNonScopeId, name);
 }

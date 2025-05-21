@@ -10,7 +10,8 @@
 
 class ASMGenerator {
  public:
-  explicit ASMGenerator(bool r32, const std::vector<IRInstructionA2>& ir);
+  explicit ASMGenerator(SymbolTablePtr symbol_table, bool r32,
+                        const std::vector<IRInstructionA2>& ir);
 
   void Generate(const std::string& path);
 
@@ -23,13 +24,15 @@ class ASMGenerator {
   const std::string sp_ = "%rsp";  // compiling on 64 bit platform!
   const std::string bp_ = "%rbp";  // compiling on 64 bit platform!
 
+  SymbolTablePtr symbol_table_;
+  ScopedSymbolLookUpHelper helper_;
   InterferenceGraph inf_graph_;
   std::vector<IRInstructionA2> ir_;
   std::vector<IRInstructionA2> ir_opt_;
   std::vector<std::string> asm_;
-  std::set<std::string> constants_;
-  std::set<std::string> vars_;
-  std::vector<std::string> mcs_order_;
+  std::set<SymbolPtr> constants_;
+  std::set<SymbolPtr> vars_;
+  std::vector<SymbolPtr> mcs_order_;
   std::unordered_map<std::string, std::string> reg_alloc_;
   std::unordered_map<std::string, int> const_stack_slots_;
 
@@ -39,7 +42,7 @@ class ASMGenerator {
 
   void optimums();
 
-  auto format_operand(const std::string& operand) -> std::string;
+  auto format_operand(const SymbolPtr& operand) -> std::string;
 
   void alloc_reg();
 
@@ -47,17 +50,18 @@ class ASMGenerator {
 
   void mcs();
 
+  auto map_sym(const std::string& name, const std::string& type) -> SymbolPtr;
+
+  auto map_reg(const std::string& name) -> SymbolPtr;
+
   void generate_gcc_asm(const std::string& path);
 
-  auto bounded_reg(const std::string& operand) -> std::string;
-
-  auto handle_spling_var(const std::set<std::string>& spilled_vars)
+  auto handle_spling_var(const std::set<SymbolPtr>& spilled_vars)
       -> std::vector<IRInstructionA2>;
 
-  auto alloc_stack_for_immediate(const std::string& val) -> std::string;
+  void alloc_stack_for_immediate(const SymbolPtr& val);
 
-  static auto gen_data_var_immediate_label(const std::string& val)
-      -> std::string;
+  static auto gen_data_var_immediate_label(const SymbolPtr& val) -> std::string;
 
   [[nodiscard]] auto generate_data_segment() const -> std::vector<std::string>;
 

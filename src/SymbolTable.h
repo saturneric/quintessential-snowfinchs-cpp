@@ -58,10 +58,6 @@ class SymbolTable {
 
   auto SearchScope(int scope_id) -> ScopePtr;
 
-  auto AddSymbol(SymbolType type, int index, const std::string &name,
-                 const std::string &value = {}, bool unique = true,
-                 int scope_id = kNonScopeId) -> SymbolPtr;
-
   auto AddSymbol(SymbolType type, const std::string &name,
                  const std::string &value = {}, bool unique = true,
                  int scope_id = kNonScopeId) -> SymbolPtr;

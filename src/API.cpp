@@ -39,7 +39,7 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
     return true;
   });
 
-  ASMGenerator asm_gen(!r64, ir);
+  ASMGenerator asm_gen(symbol_table, !r64, ir);
 
   ret = RunOperation("ASM Generator", [&]() {
     asm_gen.Generate(runtime_dir / "ASM.S");

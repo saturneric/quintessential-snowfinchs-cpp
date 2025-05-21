@@ -105,7 +105,7 @@ auto SemanticAnalyzer::visit_expr(const ASTNodePtr& expr) -> ExpType {
         return ExpType::kINT;
       }
 
-      if (sym->MetaData(kSymMDHasInit).empty()) {
+      if (!sym->MetaData(kSymMDHasInit).has_value()) {
         error(expr, "Variable not initialized: " + var->Name());
         return ExpType::kINT;
       }

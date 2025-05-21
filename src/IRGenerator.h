@@ -2,22 +2,34 @@
 
 #include <functional>
 #include <map>
+#include <utility>
 #include <vector>
 
 #include "AST.h"
 #include "ScopedSymbolTable.h"
 
 struct IRInstructionA2 {
-  std::string op;
-  std::string arg1;
-  std::string arg2;
+  SymbolPtr op;
+  SymbolPtr dst;
+  SymbolPtr src;
+
+  explicit IRInstructionA2(SymbolPtr op, SymbolPtr dst = nullptr,
+                           SymbolPtr src = nullptr)
+      : op(std::move(op)), dst(std::move(dst)), src(std::move(src)) {}
 };
 
 struct IRInstruction {
-  std::string op;
-  std::string arg1;
-  std::string arg2;
-  std::string result;
+  SymbolPtr op;
+  SymbolPtr dst;
+  SymbolPtr src_1;
+  SymbolPtr src_2;
+
+  explicit IRInstruction(SymbolPtr op, SymbolPtr dst = nullptr,
+                         SymbolPtr src_1 = nullptr, SymbolPtr src_2 = nullptr)
+      : op(std::move(op)),
+        dst(std::move(dst)),
+        src_1(std::move(src_1)),
+        src_2(std::move(src_2)) {}
 };
 
 class IRGenerator {
@@ -32,9 +44,10 @@ class IRGenerator {
 
     auto ExpRoute(const ASTNodePtr& node) -> SymbolPtr;
 
-    auto NewTempVariable(const ScopePtr& scope) -> SymbolPtr;
+    auto NewTempVariable() -> SymbolPtr;
 
-    void AppendInstruction(const IRInstruction& i);
+    void AddIns(const std::string& op, SymbolPtr dst = nullptr,
+                SymbolPtr src_1 = nullptr, SymbolPtr src_2 = nullptr);
 
     static auto SelectInstruction(const std::string& operation) -> std::string;
 
@@ -44,13 +57,20 @@ class IRGenerator {
 
     void LeaveScope();
 
-    auto InnSymName(const SymbolPtr& symbol) -> std::string;
+    auto MapDefSym(const SymbolPtr& symbol) -> SymbolPtr;
+
+    auto MapOp(const std::string& name) -> SymbolPtr;
+
+    auto MapSymbol(const SymbolPtr& symbol) -> SymbolPtr;
+
+    auto MapSymbol(const std::string& name, const std::string& type)
+        -> SymbolPtr;
 
    private:
     IRGenerator* ig_;
     ExpHandler handler_;
 
-    std::vector<IRInstruction> instructions_;
+    std::vector<IRInstruction> ins_;
   };
 
   explicit IRGenerator(SymbolTablePtr symbol_table);
@@ -66,24 +86,31 @@ class IRGenerator {
   ContextPtr ctx_;
   SymbolTablePtr symbol_table_;
   ScopedSymbolLookUpHelper def_symbol_helper_;
+  ScopedSymbolLookUpHelper ir_symbol_helper_;
   int tmp_var_idx_ = 1;
 
   std::vector<IRInstructionA2> instructions_2_addr_;
-  std::vector<IRInstruction> instructions_ssa_;
-  std::map<std::string, int> variable_version_;
-  std::map<std::string, std::string> variable_name_ssa_;
+  std::vector<IRInstruction> ins_ssa_;
+  std::unordered_map<std::string, SymbolPtr> op_ins_;
 
   static auto select_instruction(const std::string& operation) -> std::string;
 
   auto do_ir_generate(Context*, const ASTNodePtr& node) -> SymbolPtr;
 
-  auto get_ssa_name(const std::string& var, bool is_def) -> std::string;
+  auto map_ssa(const SymbolPtr& sym, bool is_def) -> SymbolPtr;
 
   void convert2_ssa();
 
-  void convert_instructions();
+  void convert_ira3_2_ira2();
+
+  auto reg_op(const std::string& name, const std::string& type = {})
+      -> SymbolPtr;
+
+  auto map_op(const std::string& name) -> SymbolPtr;
+
+  auto map_sym(const std::string& name, const std::string& type) -> SymbolPtr;
 
   auto lookup_variable(const SymbolPtr& ast_sym) -> SymbolPtr;
 
-  auto new_temp_variable(const ScopePtr& scope) -> SymbolPtr;
+  auto new_temp_variable() -> SymbolPtr;
 };

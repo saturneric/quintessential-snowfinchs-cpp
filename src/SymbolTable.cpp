@@ -4,14 +4,9 @@
 
 SymbolTable::SymbolTable() = default;
 
-auto SymbolTable::AddSymbol(SymbolType type, int index, const std::string &name,
+auto SymbolTable::AddSymbol(SymbolType type, const std::string &name,
                             const std::string &value, bool unique, int scope_id)
     -> SymbolPtr {
-  auto &by_index = symbols_.get<ByIndex>();
-  if (by_index.find(index) != by_index.end()) {
-    return *by_index.find(index);
-  }
-
   auto &by_typename = symbols_.get<ByTypeScopeName>();
   if (unique && by_typename.find(boost::make_tuple(type, scope_id, name)) !=
                     by_typename.end()) {
@@ -27,19 +22,10 @@ auto SymbolTable::AddSymbol(SymbolType type, int index, const std::string &name,
     return nullptr;
   }
 
-  auto symbol = std::make_shared<class Symbol>(type, index, scope, name, value);
+  auto symbol =
+      std::make_shared<class Symbol>(type, next_index_++, scope, name, value);
   symbols_.insert(symbol);
   return symbol;
-}
-
-auto SymbolTable::AddSymbol(SymbolType type, const std::string &name,
-                            const std::string &value, bool unique, int scope_id)
-    -> SymbolPtr {
-  while (symbols_.get<ByIndex>().find(next_index_) !=
-         symbols_.get<ByIndex>().end()) {
-    ++next_index_;
-  }
-  return AddSymbol(type, next_index_++, name, value, unique, scope_id);
 }
 
 auto SymbolTable::Symbol(int index) const -> SymbolPtr {

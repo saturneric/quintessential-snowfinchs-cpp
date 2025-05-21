@@ -1,14 +1,20 @@
 #pragma once
 
+#include <any>
+
 #include "Scope.h"
 
-enum class SymbolType {
+enum class SymbolType : uint8_t {
   kNONE,
   kAST,
   kDEFINE,
+  kIR,
 };
 
 const std::string kSymMDHasInit = "initialization";
+
+class Symbol;
+using SymbolPtr = std::shared_ptr<Symbol>;
 
 class Symbol {
  public:
@@ -27,23 +33,17 @@ class Symbol {
 
   [[nodiscard]] auto ScopeId() const -> int;
 
-  [[nodiscard]] auto MetaData(const std::string& key) const -> std::string;
+  [[nodiscard]] auto MetaData(const std::string& key) const -> std::any;
 
   void SetName(std::string name);
 
   void SetScope(ScopePtr scope);
 
-  void SetMetaData(std::string key, std::string value);
+  auto RefMetaData(const std::string& key) -> std::any&;
+
+  void SetMetaData(const std::string& key, std::any value);
 
   void RemoveMetaData(const std::string& key);
-
-  void SetTerminator(bool terminator);
-
-  void SetStartSymbol(bool start_symbol);
-
-  [[nodiscard]] auto IsTerminator() const -> bool;
-
-  [[nodiscard]] auto IsSyntaxStartSymbol() const -> bool;
 
  private:
   int index_;
@@ -51,7 +51,5 @@ class Symbol {
   SymbolType type_;
   std::string name_;
   std::string value_;
-  std::map<std::string, std::string> meta_data_;
+  std::map<std::string, std::any> meta_data_;
 };
-
-using SymbolPtr = std::shared_ptr<Symbol>;

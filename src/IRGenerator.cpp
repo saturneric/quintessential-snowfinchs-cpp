@@ -7,10 +7,15 @@
 
 namespace {
 
-auto ValueExpHandler(IRGenerator::Context*, const ASTNodePtr& node)
+const std::string kBinOpType = "binop";
+const std::string kUnOpType = "unop";
+
+auto ValueExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   assert(node != nullptr);
-  return node->Symbol();
+
+  auto sym = ctx->MapSymbol(node->Symbol());
+  return sym;
 }
 
 auto BinOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
@@ -23,19 +28,19 @@ auto BinOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   auto sym_rhs = ctx->ExpRoute(children.back());
 
   assert(sym_lhs->ScopeId() == sym_rhs->ScopeId());
-  auto sym_tmp = ctx->NewTempVariable(sym_lhs->Scope());
+  auto sym_tmp = ctx->NewTempVariable();
 
-  auto lhs = ctx->InnSymName(sym_lhs);
-  auto rhs = ctx->InnSymName(sym_rhs);
-  auto temp = ctx->InnSymName(sym_tmp);
+  auto lhs = ctx->MapSymbol(sym_lhs);
+  auto rhs = ctx->MapSymbol(sym_rhs);
+  auto tmp = ctx->MapSymbol(sym_tmp);
 
   auto opera = node->Symbol()->Name();
 
-  if (opera == "+") ctx->AppendInstruction({"add", lhs, rhs, temp});
-  if (opera == "*") ctx->AppendInstruction({"mul", lhs, rhs, temp});
-  if (opera == "/") ctx->AppendInstruction({"div", lhs, rhs, temp});
-  if (opera == "-") ctx->AppendInstruction({"sub", lhs, rhs, temp});
-  if (opera == "%") ctx->AppendInstruction({"mod", lhs, rhs, temp});
+  if (opera == "+") ctx->AddIns("add", tmp, lhs, rhs);
+  if (opera == "*") ctx->AddIns("mul", tmp, lhs, rhs);
+  if (opera == "/") ctx->AddIns("div", tmp, lhs, rhs);
+  if (opera == "-") ctx->AddIns("sub", tmp, lhs, rhs);
+  if (opera == "%") ctx->AddIns("mod", tmp, lhs, rhs);
 
   return sym_tmp;
 }
@@ -47,16 +52,16 @@ auto UnOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   if (children.empty()) return {};
 
   auto sym_operand = ctx->ExpRoute(children.front());
-  auto sym_tmp = ctx->NewTempVariable(sym_operand->Scope());
+  auto sym_tmp = ctx->NewTempVariable();
 
-  auto operand = ctx->InnSymName(sym_operand);
-  auto temp = ctx->InnSymName(sym_tmp);
+  auto operand = ctx->MapSymbol(sym_operand);
+  auto temp = ctx->MapSymbol(sym_tmp);
 
-  ctx->AppendInstruction({"mov", operand, {}, temp});
+  ctx->AddIns("mov", temp, operand);
 
   if (node->Symbol()->Name() == "-") {
-    auto sym_tmp1 = ctx->NewTempVariable(sym_tmp->Scope());
-    ctx->AppendInstruction({"neg", temp, {}, ctx->InnSymName(sym_tmp1)});
+    auto sym_tmp1 = ctx->NewTempVariable();
+    ctx->AddIns("neg", sym_tmp1, temp);
     sym_tmp = sym_tmp1;
   }
 
@@ -79,7 +84,7 @@ auto ReturnExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
 
   auto sym_val = ctx->ExpRoute(children.front());
 
-  ctx->AppendInstruction({"rtn", ctx->InnSymName(sym_val)});
+  ctx->AddIns("rtn", {}, sym_val);
   return {};
 }
 
@@ -92,26 +97,25 @@ auto AssignExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   auto sym_rhs = ctx->ExpRoute(node->Children().back());
   auto sym_lhs = ctx->ExpRoute(node->Children().front());
 
-  auto rhs = ctx->InnSymName(sym_rhs);
-  auto lhs = ctx->InnSymName(sym_lhs);
+  auto rhs = ctx->MapSymbol(sym_rhs);
+  auto lhs = ctx->MapSymbol(sym_lhs);
 
-  ctx->AppendInstruction({"mov", rhs, "", lhs});
-
+  ctx->AddIns("mov", lhs, rhs);
   return {};
 }
 
 void PrintInstructions(std::ostream& f,
                        const std::vector<IRInstruction>& instructions) {
   for (const auto& i : instructions) {
-    f << std::left << std::setw(6) << i.op;
+    f << std::left << std::setw(6) << i.op->Name();
 
-    if (!i.result.empty()) {
-      f << i.result;
-      if (!i.arg1.empty()) f << ", " << i.arg1;
-      if (!i.arg2.empty()) f << ", " << i.arg2;
-    } else if (!i.arg1.empty()) {
-      f << i.arg1;
-      if (!i.arg2.empty()) f << ", " << i.arg2;
+    if (i.dst) {
+      f << i.dst->Name();
+      if (i.src_1) f << ", " << i.src_1->Name();
+      if (i.src_2) f << ", " << i.src_2->Name();
+    } else if (i.src_1) {
+      f << i.src_1->Name();
+      if (i.src_2) f << ", " << i.src_2->Name();
     }
 
     f << "\n";
@@ -121,11 +125,13 @@ void PrintInstructions(std::ostream& f,
 void PrintInstructionA2s(std::ostream& f,
                          const std::vector<IRInstructionA2>& instructions) {
   for (const auto& i : instructions) {
-    f << std::left << std::setw(6) << i.op;
+    f << std::left << std::setw(6) << i.op->Name();
 
-    if (!i.arg1.empty()) {
-      f << i.arg1;
-      if (!i.arg2.empty()) f << ", " << i.arg2;
+    if (i.dst) {
+      f << i.dst->Name();
+      if (i.src) f << ", " << i.src->Name();
+    } else if (i.src) {
+      f << i.src->Name();
     }
 
     f << "\n";
@@ -162,25 +168,24 @@ auto IRGenerator::Generate(const AST& tree) -> std::vector<IRInstructionA2> {
 
   convert2_ssa();
 
-  convert_instructions();
+  convert_ira3_2_ira2();
 
   return instructions_2_addr_;
 }
 
-auto IRGenerator::Context::NewTempVariable(const ScopePtr& scope) -> SymbolPtr {
-  assert(scope != nullptr);
-  return ig_->new_temp_variable(scope);
+auto IRGenerator::Context::NewTempVariable() -> SymbolPtr {
+  return ig_->new_temp_variable();
 }
 
 auto IRGenerator::Context::Instructions() const -> std::vector<IRInstruction> {
-  return instructions_;
+  return ins_;
 }
 
 void IRGenerator::Print3Addr(const std::string& path) {
   if (ctx_->Instructions().empty()) return;
 
   std::ofstream f(path);
-  PrintInstructions(f, instructions_ssa_);
+  PrintInstructions(f, ins_ssa_);
   f.close();
 }
 
@@ -192,28 +197,23 @@ void IRGenerator::Print2Addr(const std::string& path) {
   f.close();
 }
 
-void IRGenerator::Context::AppendInstruction(const IRInstruction& i) {
-  instructions_.push_back(i);
-}
-
 auto IRGenerator::Context::ExpRoute(const ASTNodePtr& node) -> SymbolPtr {
   if (handler_) return handler_(this, node);
   return {};
 }
 
-auto IRGenerator::Context::InnSymName(const SymbolPtr& symbol) -> std::string {
-  assert(symbol != nullptr);
-
+auto IRGenerator::Context::MapDefSym(const SymbolPtr& symbol) -> SymbolPtr {
   auto sym = ig_->lookup_variable(symbol);
 
   // is an intermediate
-  if (sym == nullptr) return symbol->Name();
+  if (sym == nullptr) return nullptr;
 
   // checking
+  assert(sym->Type() == SymbolType::kDEFINE);
   assert(sym->Name() == symbol->Name());
   assert(!sym->Value().empty());
 
-  return sym->Value();
+  return sym;
 }
 
 IRGenerator::Context::Context(IRGenerator* ig, ExpHandler handler)
@@ -227,81 +227,170 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table)
                                            std::forward<decltype(PH2)>(PH2));
                                      })),
       symbol_table_(std::move(symbol_table)),
-      def_symbol_helper_(SymbolType::kDEFINE, symbol_table_) {}
+      def_symbol_helper_(SymbolType::kDEFINE, symbol_table_),
+      ir_symbol_helper_(SymbolType::kIR, symbol_table_) {
+  // register op
+  // TODO(eric): use dymatic handler approach
+  reg_op("mov");  // spec op
+  reg_op("rtn");  // spec op
+  reg_op("neg", kUnOpType);
+  reg_op("add", kBinOpType);
+  reg_op("sub", kBinOpType);
+  reg_op("mul", kBinOpType);
+  reg_op("div", kBinOpType);
+  reg_op("mod", kBinOpType);
+}
 
-void IRGenerator::convert_instructions() {
-  std::vector<IRInstructionA2> result;
+void IRGenerator::convert_ira3_2_ira2() {
+  std::vector<IRInstructionA2> res;
 
-  for (const auto& i : instructions_ssa_) {
-    if (i.op == "add" || i.op == "sub" || i.op == "mul" || i.op == "div" ||
-        i.op == "mod") {
-      if (i.result != i.arg1) {
-        result.push_back({"mov", i.result, i.arg1});
-      }
-      result.push_back({i.op, i.result, i.arg2});
-    } else if (i.op == "neg") {
-      result.push_back({"mov", i.result, i.arg1});
-      result.push_back({i.op, i.result});
-    } else if (i.op == "mov") {
-      result.push_back({i.op, i.result, i.arg1});
-    } else if (i.op == "rtn") {
-      result.push_back({i.op, i.arg1});
-    } else {
-      std::cout << "Unsupported op: " << i.op << '\n';
+  for (const auto& i : ins_ssa_) {
+    const auto& op = i.op->Name();
+    const auto& op_type = i.op->Value();
+
+    if (op_type == kBinOpType) {
+      if (i.dst != i.src_1) res.emplace_back(map_op("mov"), i.dst, i.src_1);
+      res.emplace_back(i.op, i.dst, i.src_2);
+      continue;
     }
+
+    if (op_type == kUnOpType) {
+      if (i.dst != i.src_1) res.emplace_back(map_op("mov"), i.dst, i.src_1);
+      res.emplace_back(i.op, i.dst);
+      continue;
+    }
+
+    if (op == "mov") {
+      if (i.dst != i.src_1) res.emplace_back(i.op, i.dst, i.src_1);
+      continue;
+    }
+
+    if (op == "rtn") {
+      res.emplace_back(i.op, nullptr, i.src_1);
+      continue;
+    }
+
+    SPDLOG_ERROR("Unsupported op: {}", op);
   }
 
-  instructions_2_addr_ = result;
+  instructions_2_addr_ = res;
 }
 
 void IRGenerator::convert2_ssa() {
-  instructions_ssa_.clear();
+  ins_ssa_.clear();
 
   for (auto& inst : ctx_->Instructions()) {
-    IRInstruction n_inst = inst;
+    auto n_inst = inst;
 
-    n_inst.arg1 = get_ssa_name(inst.arg1, false);
-    n_inst.arg2 = get_ssa_name(inst.arg2, false);
+    n_inst.src_1 = map_ssa(inst.src_1, false);
+    n_inst.src_2 = map_ssa(inst.src_2, false);
+    if (inst.dst != nullptr) n_inst.dst = map_ssa(inst.dst, true);
 
-    if (inst.op != "rtn") {
-      n_inst.result = get_ssa_name(inst.result, true);
-    }
-
-    instructions_ssa_.push_back(n_inst);
+    ins_ssa_.push_back(n_inst);
   }
 }
 
-auto IRGenerator::get_ssa_name(const std::string& var, bool is_def)
-    -> std::string {
-  if (var.empty()) return "";
+auto IRGenerator::map_ssa(const SymbolPtr& sym, bool is_def) -> SymbolPtr {
+  if (sym == nullptr) return nullptr;
 
   if (is_def) {
-    int& v = variable_version_[var];
-    ++v;
-    std::string ssa = var + std::to_string(v);
-    variable_name_ssa_[var] = ssa;
-    return ssa;
+    auto& ver = sym->RefMetaData("ssa_version");
+    if (!ver.has_value()) ver = 0;
+
+    auto v = std::any_cast<int>(ver) + 1;
+    ver = v;  // update ssa index
+
+    auto sym_ssa =
+        map_sym(sym->Name() + "_v" + std::to_string(v), sym->Value());
+    sym_ssa->RefMetaData("origin_ir_symbol") = sym;
+
+    // ref to ssa
+    sym->RefMetaData("latest_ssa_symbol") = sym_ssa;
   }
 
-  if (variable_name_ssa_.count(var) != 0U) return variable_name_ssa_[var];
-  return var;
+  auto sym_ssa = sym->MetaData("latest_ssa_symbol");
+  if (sym_ssa.has_value()) return std::any_cast<SymbolPtr>(sym_ssa);
+  return sym;
 }
 
-auto IRGenerator::new_temp_variable(const ScopePtr& scope) -> SymbolPtr {
-  assert(scope != nullptr);
-
-  if (scope == nullptr) return nullptr;
-
-  auto tmp_var_name =
-      "t_" + std::to_string(scope->Id()) + "_" + std::to_string(tmp_var_idx_++);
-
-  auto sym = symbol_table_->AddSymbol(SymbolType::kDEFINE, tmp_var_name,
-                                      tmp_var_name, true, scope->Id());
-
-  assert(sym != nullptr);
-  return sym;
+auto IRGenerator::new_temp_variable() -> SymbolPtr {
+  auto tmp_var_name = "tmp_ir_" + std::to_string(tmp_var_idx_++);
+  // TODO(eric): should set specific type
+  return map_sym(tmp_var_name, "int");
 }
 
 auto IRGenerator::lookup_variable(const SymbolPtr& ast_sym) -> SymbolPtr {
   return def_symbol_helper_.LookupSymbol(ast_sym->Scope(), ast_sym->Name());
+}
+
+auto IRGenerator::map_sym(const std::string& name, const std::string& type)
+    -> SymbolPtr {
+  return symbol_table_->AddSymbol(SymbolType::kIR, name, type, true);
+}
+
+auto IRGenerator::Context::MapSymbol(const std::string& name,
+                                     const std::string& type) -> SymbolPtr {
+  return ig_->map_sym(name, type);
+}
+
+auto IRGenerator::Context::MapSymbol(const SymbolPtr& symbol) -> SymbolPtr {
+  auto sym = symbol;
+
+  // should convert to def symbol
+  if (sym->Type() == SymbolType::kAST) {
+    sym = MapDefSym(sym);
+
+    // not in symbol table, it's an immediate
+    if (sym == nullptr) sym = MapSymbol(symbol->Name(), "immediate");
+  }
+
+  assert(sym != nullptr);
+
+  // should then convert to ir symbol
+  if (sym->Type() == SymbolType::kDEFINE) {
+    const auto type = sym->MetaData("type");
+    sym =
+        MapSymbol(sym->Value(),
+                  type.has_value() ? std::any_cast<std::string>(type) : "void");
+  }
+
+  assert(sym != nullptr);
+
+  // should return now
+  if (sym->Type() == SymbolType::kIR) return sym;
+
+  assert(sym != nullptr);
+
+  SPDLOG_ERROR("unknown symbol type of symbol: {}", symbol->Name());
+  return nullptr;
+}
+
+auto IRGenerator::Context::MapOp(const std::string& name) -> SymbolPtr {
+  auto op = ig_->map_op(name);
+  assert(op != nullptr);
+
+  if (op == nullptr) {
+    SPDLOG_ERROR("Unsupported op provided by handler: {}", op->Name());
+  }
+  return op;
+}
+
+void IRGenerator::Context::AddIns(const std::string& op, SymbolPtr dst,
+                                  SymbolPtr src_1, SymbolPtr src_2) {
+  auto sym_op = MapOp(op);
+  if (sym_op == nullptr) {
+    SPDLOG_ERROR("Unsupported Instruction Op: {}", op);
+    return;
+  }
+
+  ins_.emplace_back(sym_op, dst, src_1, src_2);
+}
+
+auto IRGenerator::reg_op(const std::string& name, const std::string& type)
+    -> SymbolPtr {
+  return map_sym(name, type.empty() ? "spec" : type);
+}
+
+auto IRGenerator::map_op(const std::string& name) -> SymbolPtr {
+  return ir_symbol_helper_.LookupSymbol(nullptr, name);
 }

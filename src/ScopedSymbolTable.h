@@ -37,6 +37,8 @@ class ScopedSymbolLookUpHelper {
   auto LookupSymbolsInScope(const ScopePtr& scope, const std::string& name)
       -> std::vector<SymbolPtr>;
 
+  auto LookupSymbolWithoutScope(const std::string& name) -> SymbolPtr;
+
   auto LookupSymbol(ScopePtr scope, const std::string& name) -> SymbolPtr;
 
  private:

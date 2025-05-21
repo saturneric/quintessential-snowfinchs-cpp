@@ -8,31 +8,34 @@
 #include <unordered_set>
 #include <vector>
 
+#include "Symbol.h"
+
 class InterferenceGraph {
  public:
   using Graph =
       boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
-                            boost::property<boost::vertex_name_t, std::string>>;
+                            boost::property<boost::vertex_name_t, SymbolPtr>>;
   using Vertex = boost::graph_traits<Graph>::vertex_descriptor;
 
-  void AddVariable(const std::string& var);
+  void AddVariable(const SymbolPtr& symbol);
 
-  void AddEdge(const std::string& var1, const std::string& var2);
+  void AddEdge(const SymbolPtr& var1, const SymbolPtr& var2);
 
-  void RemoveEdge(const std::string& var1, const std::string& var2);
+  void RemoveEdge(const SymbolPtr& var1, const SymbolPtr& var2);
 
-  [[nodiscard]] auto Neighbors(const std::string& var) const
-      -> std::unordered_set<std::string>;
+  [[nodiscard]] auto Neighbors(const SymbolPtr& var) const
+      -> std::unordered_set<SymbolPtr>;
 
-  [[nodiscard]] auto Variables() const -> std::vector<std::string>;
+  [[nodiscard]] auto Variables() const -> std::vector<SymbolPtr>;
 
   auto GetGraph() const -> const Graph&;
 
-  auto GetVertexByName(const std::string& name) const -> std::optional<Vertex>;
+  auto GetVertexBySymbol(const SymbolPtr& symbol) const
+      -> std::optional<Vertex>;
 
   void Print() const;
 
  private:
   Graph graph_;
-  std::unordered_map<std::string, Vertex> name_to_vertex_;
+  std::unordered_map<SymbolPtr, Vertex> sym_2_vtx_;
 };
