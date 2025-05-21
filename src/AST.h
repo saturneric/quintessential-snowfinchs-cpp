@@ -6,6 +6,7 @@
 
 enum class ASTNodeType : char {
   kPROGRAM,
+  kBLOCK,
   kASSIGN,
   kDECLARE,
   kBIN_OP,
@@ -18,6 +19,14 @@ enum class ASTNodeType : char {
   kWHILE,
   kBREAK,
   kCONTINUE,
+};
+
+enum class ASTNodeTag : uint8_t {
+  kNONE = 0,
+  kINIT,
+  kCOND,
+  kSTEP,
+  kBODY,
 };
 
 class ASTNode;
@@ -34,14 +43,17 @@ class ASTNode {
 
   auto Children() -> std::vector<ASTNodePtr>;
 
-  void AddChildren(const ASTNodePtr &child);
+  void AddChild(const ASTNodePtr &child, ASTNodeTag tag = ASTNodeTag::kNONE);
 
   auto Type() -> ASTNodeType;
+
+  auto Tag() -> ASTNodeTag;
 
   auto Symbol() -> SymbolPtr;
 
  private:
   ASTNodeType type_;
+  ASTNodeTag tag_;
   SymbolPtr symbol_;
   std::vector<ASTNodePtr> children_;
 };

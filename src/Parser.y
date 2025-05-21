@@ -25,7 +25,7 @@
 
 %type <std::string> type assign_operator
 %type <std::vector<ASTNodePtr>> statements
-%type <ASTNodePtr> program simple_operator statement control block
+%type <ASTNodePtr> program simple_optional statement control block
 %type <ASTNodePtr> simple_statement declarator left_value
 %type <ASTNodePtr> expression
 
@@ -87,16 +87,16 @@ program:
       }
       $$ = MakeASTTreeNode(ASTNodeType::kPROGRAM, "program", $2, drv);
       drv.SetSyntaxTreeRoot($$);
-      $$->AddChildren($5);
+      $$->AddChild($5);
     }
 ;
 
 block:
-    OPENING_BRACE statements CLOSING_BRACE 
+    OPENING_BRACE { EnterScope(drv); } statements CLOSING_BRACE 
     {
-      EnterScope(drv);
-      for (const auto& child : $2) {
-        $$->AddChildren(child);
+      $$ = MakeASTTreeNode(ASTNodeType::kBLOCK, "block", {}, drv);
+      for (const auto& child : $3) {
+        $$->AddChild(child);
       }
       LeaveScope(drv);
     }
@@ -138,8 +138,8 @@ simple_statement:
     {
       if ($2 == "=") {
         $$ = MakeASTTreeNode(ASTNodeType::kASSIGN, "simple_statement", $2, drv);
-        $$->AddChildren($1);
-        $$->AddChildren($3);
+        $$->AddChild($1);
+        $$->AddChild($3);
       } else {
 
         auto op = $2;
@@ -148,12 +148,12 @@ simple_statement:
         }
 
         auto bin_op = MakeASTTreeNode(ASTNodeType::kBIN_OP, "simple_statement", op, drv);
-        bin_op->AddChildren($1);
-        bin_op->AddChildren($3);
+        bin_op->AddChild($1);
+        bin_op->AddChild($3);
 
         $$ = MakeASTTreeNode(ASTNodeType::kASSIGN, "simple_statement", "=", drv);
-        $$->AddChildren($1);
-        $$->AddChildren(bin_op);
+        $$->AddChild($1);
+        $$->AddChild(bin_op);
       }
     }
     | declarator 
@@ -162,7 +162,7 @@ simple_statement:
     }
 ;
 
-simple_operator:
+simple_optional:
     /* empty */
     {
       $$ = {};
@@ -181,13 +181,13 @@ declarator:
     | type VALUE_ID ASSIGN expression
     {
       $$ = MakeASTTreeNode(ASTNodeType::kDECLARE, $1, $2, drv);
-      auto assign_node = MakeASTTreeNode(ASTNodeType::kASSIGN, "declarator", "=", drv);
+      auto assign_node = MakeASTTreeNode(ASTNodeType::kASSIGN, $1, "=", drv);
       
-      assign_node->AddChildren(
+      assign_node->AddChild(
         MakeASTTreeNode(ASTNodeType::kIDENT, "declarator", $2, drv));
-      assign_node->AddChildren($4);  
+      assign_node->AddChild($4);  
 
-      $$->AddChildren(assign_node);
+      $$->AddChild(assign_node);
     }
 ;
 
@@ -206,29 +206,31 @@ control:
     IF LEFT_BRACKET expression RIGHT_BRACKET statement ELSE statement
     {
       $$ = MakeASTTreeNode(ASTNodeType::kIF, "control", {}, drv);
-      $$->AddChildren($3);
-      $$->AddChildren($5);
-      $$->AddChildren($7);
+      $$->AddChild($3);
+      $$->AddChild($5);
+      $$->AddChild($7);
     }
     | IF LEFT_BRACKET expression RIGHT_BRACKET statement %prec IFX
     {
       $$ = MakeASTTreeNode(ASTNodeType::kIF, "control", {}, drv);
-      $$->AddChildren($3);
-      $$->AddChildren($5);
+      $$->AddChild($3);
+      $$->AddChild($5);
     } 
     | WHILE LEFT_BRACKET expression RIGHT_BRACKET statement
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kWHILE, "control", {}, drv);
-      $$->AddChildren($3);
-      $$->AddChildren($5);
+      $$ = MakeASTTreeNode(ASTNodeType::kWHILE, "while", {}, drv);
+      $$->AddChild($3);
+      $$->AddChild($5);
     }
-    | FOR LEFT_BRACKET simple_operator SEMICOLON expression SEMICOLON simple_operator RIGHT_BRACKET statement
+    | FOR LEFT_BRACKET { EnterScope(drv); } simple_optional SEMICOLON expression SEMICOLON simple_optional RIGHT_BRACKET statement
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kWHILE, "control", {}, drv);
-      $$->AddChildren($3);
-      $$->AddChildren($5);
-      $$->AddChildren($7);
-      $$->AddChildren($9);
+      $$ = MakeASTTreeNode(ASTNodeType::kWHILE, "for", {}, drv);
+      $$->AddChild($4, ASTNodeTag::kINIT);
+      $$->AddChild($6, ASTNodeTag::kCOND);
+      $$->AddChild($8, ASTNodeTag::kSTEP);
+      $$->AddChild($10, ASTNodeTag::kBODY);
+
+      LeaveScope(drv);
     } 
     | CONTINUE SEMICOLON
     {
@@ -241,7 +243,7 @@ control:
     | RETURN expression SEMICOLON
     {
       $$ = MakeASTTreeNode(ASTNodeType::kRETURN, "return_statement", {}, drv);
-      $$->AddChildren($2);
+      $$->AddChild($2);
     }
 ;
 
@@ -249,63 +251,63 @@ expression:
     LEFT_BRACKET expression RIGHT_BRACKET   { $$ = $2; }
     
     | expression PLUS expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PLUS", "+", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PLUS", "+", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression SUB expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "SUB", "-", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "SUB", "-", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression MULT expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "MULT", "*", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "MULT", "*", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression SLASH expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "SLASH", "/", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "SLASH", "/", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression PERCENT expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PERCENT", "%", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PERCENT", "%", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression LT expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LT", "<", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LT", "<", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression LT_EQ expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LT_EQ", "<=", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LT_EQ", "<=", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression GT expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "GT", ">", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "GT", ">", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression GT_EQ expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "GT_EQ", ">=", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "GT_EQ", ">=", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression EQ expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "EQ", "==", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "EQ", "==", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression NOT_EQ expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "NOT_EQ", "!=", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "NOT_EQ", "!=", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression LOGIC_AND expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LOGIC_AND", "&&", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LOGIC_AND", "&&", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression LOGIC_OR expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LOGIC_OR", "||", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LOGIC_OR", "||", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression BIT_AND expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_AND", "&", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_AND", "&", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression BIT_EX_OR expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_EX_OR", "^", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_EX_OR", "^", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression BIT_OR expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_OR", "|", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_OR", "|", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression LEFT_SHIFT expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LEFT_SHIFT", "<<", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LEFT_SHIFT", "<<", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression RIGHT_SHIFT expression
-        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "RIGHT_SHIFT", ">>", drv); $$->AddChildren($1); $$->AddChildren($3); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "RIGHT_SHIFT", ">>", drv); $$->AddChild($1); $$->AddChild($3); }
 
     // ?:
     | expression QUESTION expression COLON expression %prec CON_EXP
-        { $$ = MakeASTTreeNode(ASTNodeType::kIF, "conditional_expression", {}, drv); $$->AddChildren($1); $$->AddChildren($3); $$->AddChildren($5); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kIF, "conditional_expression", {}, drv); $$->AddChild($1); $$->AddChild($3); $$->AddChild($5); }
 
     // ! ~ -
     | LOGIC_NOT expression %prec UMINUS
-        { $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "LOGIC_NOT", "!", drv); $$->AddChildren($2); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "LOGIC_NOT", "!", drv); $$->AddChild($2); }
     | BIT_NOT expression %prec UMINUS
-        { $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "BIT_NOT", "~", drv); $$->AddChildren($2); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "BIT_NOT", "~", drv); $$->AddChild($2); }
     | SUB expression %prec UMINUS
-        { $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "SUB", "-", drv); $$->AddChildren($2); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "SUB", "-", drv); $$->AddChild($2); }
 
     // ident and const
     | VALUE_INTEGER
-        { $$ = MakeASTTreeNode(ASTNodeType::kVALUE, "expression", $1, drv); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kVALUE, "int", $1, drv); }
     | VALUE_ID
-        { $$ = MakeASTTreeNode(ASTNodeType::kIDENT, "expression", $1, drv); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kIDENT, "reference", $1, drv); }
     | TRUE
-        { $$ = MakeASTTreeNode(ASTNodeType::kVALUE, "expression", "true", drv); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kVALUE, "bool", "true", drv); }
     | FALSE
-        { $$ = MakeASTTreeNode(ASTNodeType::kVALUE, "expression", "false", drv); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kVALUE, "bool", "false", drv); }
 ;
 
 assign_operator:

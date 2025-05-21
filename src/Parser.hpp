@@ -385,7 +385,7 @@ namespace yy {
       // block
       // statement
       // simple_statement
-      // simple_operator
+      // simple_optional
       // declarator
       // left_value
       // control
@@ -603,16 +603,18 @@ namespace yy {
         S_YYACCEPT = 68,                         // $accept
         S_program = 69,                          // program
         S_block = 70,                            // block
-        S_type = 71,                             // type
-        S_statements = 72,                       // statements
-        S_statement = 73,                        // statement
-        S_simple_statement = 74,                 // simple_statement
-        S_simple_operator = 75,                  // simple_operator
-        S_declarator = 76,                       // declarator
-        S_left_value = 77,                       // left_value
-        S_control = 78,                          // control
-        S_expression = 79,                       // expression
-        S_assign_operator = 80                   // assign_operator
+        S_71_1 = 71,                             // $@1
+        S_type = 72,                             // type
+        S_statements = 73,                       // statements
+        S_statement = 74,                        // statement
+        S_simple_statement = 75,                 // simple_statement
+        S_simple_optional = 76,                  // simple_optional
+        S_declarator = 77,                       // declarator
+        S_left_value = 78,                       // left_value
+        S_control = 79,                          // control
+        S_80_2 = 80,                             // $@2
+        S_expression = 81,                       // expression
+        S_assign_operator = 82                   // assign_operator
       };
     };
 
@@ -653,7 +655,7 @@ namespace yy {
       case symbol_kind::S_block: // block
       case symbol_kind::S_statement: // statement
       case symbol_kind::S_simple_statement: // simple_statement
-      case symbol_kind::S_simple_operator: // simple_operator
+      case symbol_kind::S_simple_optional: // simple_optional
       case symbol_kind::S_declarator: // declarator
       case symbol_kind::S_left_value: // left_value
       case symbol_kind::S_control: // control
@@ -765,7 +767,7 @@ switch (yykind)
       case symbol_kind::S_block: // block
       case symbol_kind::S_statement: // statement
       case symbol_kind::S_simple_statement: // simple_statement
-      case symbol_kind::S_simple_operator: // simple_operator
+      case symbol_kind::S_simple_optional: // simple_optional
       case symbol_kind::S_declarator: // declarator
       case symbol_kind::S_left_value: // left_value
       case symbol_kind::S_control: // control
@@ -2286,8 +2288,8 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 399,     ///< Last index in yytable_.
-      yynnts_ = 13,  ///< Number of nonterminal symbols.
+      yylast_ = 398,     ///< Last index in yytable_.
+      yynnts_ = 15,  ///< Number of nonterminal symbols.
       yyfinal_ = 4 ///< Termination state number.
     };
 
@@ -2365,7 +2367,7 @@ switch (yykind)
       case symbol_kind::S_block: // block
       case symbol_kind::S_statement: // statement
       case symbol_kind::S_simple_statement: // simple_statement
-      case symbol_kind::S_simple_operator: // simple_operator
+      case symbol_kind::S_simple_optional: // simple_optional
       case symbol_kind::S_declarator: // declarator
       case symbol_kind::S_left_value: // left_value
       case symbol_kind::S_control: // control
@@ -2419,7 +2421,7 @@ switch (yykind)
       case symbol_kind::S_block: // block
       case symbol_kind::S_statement: // statement
       case symbol_kind::S_simple_statement: // simple_statement
-      case symbol_kind::S_simple_operator: // simple_operator
+      case symbol_kind::S_simple_optional: // simple_optional
       case symbol_kind::S_declarator: // declarator
       case symbol_kind::S_left_value: // left_value
       case symbol_kind::S_control: // control
@@ -2504,7 +2506,7 @@ switch (yykind)
 
 
 } // yy
-#line 2508 "Parser.hpp"
+#line 2510 "Parser.hpp"
 
 
 

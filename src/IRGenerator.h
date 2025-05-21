@@ -82,7 +82,7 @@ class IRGenerator {
   void Print2Addr(const std::string& path);
 
  private:
-  static std::map<ASTNodeType, ExpHandler> exp_handler_resiter;
+  static std::map<ASTNodeType, ExpHandler> exp_handler_register;
   ContextPtr ctx_;
   SymbolTablePtr symbol_table_;
   ScopedSymbolLookUpHelper def_symbol_helper_;

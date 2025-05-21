@@ -24,8 +24,11 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
 
   SemanticAnalyzer semantic(symbol_table);
 
-  ret = RunOperation("Semantic Analyzer",
-                     [&]() { return semantic.Analyze(driver.AST()); });
+  ret = RunOperation("Semantic Analyzer", [&]() {
+    auto ret = semantic.Analyze(driver.AST());
+    if (debug) semantic.PrintSymbolTable(runtime_dir / "SemanticTable.txt");
+    return ret;
+  });
 
   if (!ret) return 7;
 

@@ -141,7 +141,7 @@ void PrintInstructionA2s(std::ostream& f,
 }  // namespace
 
 std::map<ASTNodeType, IRGenerator::ExpHandler>
-    IRGenerator::exp_handler_resiter = {
+    IRGenerator::exp_handler_register = {
         {ASTNodeType::kASSIGN, AssignExpHandler},
         {ASTNodeType::kDECLARE, MeaninglessNodeHandler},
         {ASTNodeType::kRETURN, ReturnExpHandler},
@@ -155,9 +155,9 @@ std::map<ASTNodeType, IRGenerator::ExpHandler>
 auto IRGenerator::do_ir_generate(Context* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   if (ctx == nullptr || node == nullptr) return {};
-  if (exp_handler_resiter.count(node->Type()) == 0) return {};
+  if (exp_handler_register.count(node->Type()) == 0) return {};
 
-  return exp_handler_resiter[node->Type()](ctx, node);
+  return exp_handler_register[node->Type()](ctx, node);
 }
 
 auto IRGenerator::Generate(const AST& tree) -> std::vector<IRInstructionA2> {

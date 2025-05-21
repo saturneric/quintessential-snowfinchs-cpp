@@ -12,6 +12,11 @@ const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
     {ASTNodeType::kVALUE, "Value"},
     {ASTNodeType::kTYPE, "Type"},
     {ASTNodeType::kIDENT, "Identity"},
+    {ASTNodeType::kBREAK, "Break"},
+    {ASTNodeType::kCONTINUE, "Continue"},
+    {ASTNodeType::kWHILE, "While"},
+    {ASTNodeType::kIF, "If"},
+    {ASTNodeType::kBLOCK, "Block"},
 };
 
 void AST::do_ast_node_print(const ASTNodePtr& node, std::ofstream& stream) {
@@ -34,7 +39,7 @@ void AST::do_ast_node_print(const ASTNodePtr& node, std::ofstream& stream) {
   }
 
   stream << "<" << node->Symbol()->Name() << "," << node->Symbol()->Value()
-         << ">";
+         << "," << node->Symbol()->ScopeId() << ">";
 
   stream << '\n';
 
@@ -66,8 +71,12 @@ ASTNode::ASTNode(ASTNodeType type, SymbolPtr symbol,
 
 auto ASTNode::Children() -> std::vector<ASTNodePtr> { return children_; }
 
-void ASTNode::AddChildren(const ASTNodePtr& child) {
-  if (child != nullptr) children_.push_back(child);
+void ASTNode::AddChild(const ASTNodePtr& child, ASTNodeTag tag) {
+  if (child == nullptr) return;
+
+  // attach tag to distinguish children
+  child->tag_ = tag;
+  children_.push_back(child);
 }
 
 auto ASTNode::Type() -> ASTNodeType { return type_; }
@@ -80,3 +89,5 @@ AST::AST(std::shared_ptr<SymbolTable> symbol_table)
     : symbol_table_(std::move(symbol_table)) {};
 
 void AST::SetRoot(const ASTNodePtr& root) { root_ = root; }
+
+auto ASTNode::Tag() -> ASTNodeTag { return tag_; }

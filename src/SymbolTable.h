@@ -70,6 +70,8 @@ class SymbolTable {
                                    const std::string &name) const
       -> std::vector<SymbolPtr>;
 
+  void PrintByType(SymbolType type, std::ostream &os) const;
+
  private:
   int next_index_ = 1 << 8;
   int next_scope_index_ = 1 << 4;

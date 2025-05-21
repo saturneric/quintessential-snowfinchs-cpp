@@ -71,3 +71,16 @@ auto SymbolTable::SearchScope(int scope_id) -> ScopePtr {
   auto it = by_index.find(scope_id);
   return it != by_index.end() ? *it : nullptr;
 }
+
+void SymbolTable::PrintByType(SymbolType type, std::ostream &os) const {
+  const auto &idx = symbols_.get<ByType>();
+  for (auto it = idx.lower_bound(type), end = idx.upper_bound(type); it != end;
+       ++it) {
+    if (*it) {
+      const auto &sym = *it;
+      os << "Index: " << sym->Index() << " Name: " << sym->Name()
+         << " Value: " << sym->Value() << " ScopeID: " << sym->ScopeId()
+         << "\n";
+    }
+  }
+}
