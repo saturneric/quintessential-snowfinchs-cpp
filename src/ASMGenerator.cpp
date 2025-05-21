@@ -105,7 +105,7 @@ void ASMGenerator::translate(const IRInstructionA2& i) {
     asm_.push_back(op_mov + " " + dst + ", " + acc_reg);
 
     asm_.push_back(r32_ ? "cltd" : "cqto");
-    if (IsImmediate(s_src)) {
+    if (IsImmediate(s_src) && SymLoc(s_src).empty()) {
       alloc_stack_for_immediate(s_src);
 
       asm_.push_back(op_mov + " " + src + ", " + SymLoc(s_src));
@@ -492,7 +492,7 @@ void ASMGenerator::alloc_stack_for_immediate(const SymbolPtr& val) {
   if (SymLoc(val).empty()) {
     stack_offset_ -= stack_offset_dt_;
     val->MetaRef(SymbolMetaKey::kLOCATION) =
-        std::to_string(stack_offset_) + +"(" + sp_ + ")";
+        std::to_string(stack_offset_) + +"(" + bp_ + ")";
   }
 }
 

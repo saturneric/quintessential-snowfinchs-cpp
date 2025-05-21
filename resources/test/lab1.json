@@ -135,6 +135,11 @@
     "exec_exit_code": 89
   },
   {
+    "source_file_path": "lab1/U3.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 1
+  },
+  {
     "source_file_path": "lab1/Z.txt",
     "compiler_exit_code": 42
   },
