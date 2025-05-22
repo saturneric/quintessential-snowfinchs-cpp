@@ -2,40 +2,11 @@
 
 #include <functional>
 #include <map>
-#include <utility>
-#include <vector>
 
 #include "AST.h"
+#include "ControlFlowGraph.h"
+#include "IRInstruction.h"
 #include "ScopedSymbolTable.h"
-
-struct IRInstructionA2 {
-  SymbolPtr op;
-  SymbolPtr dst;
-  SymbolPtr src;
-
-  // for le, gt...
-  SymbolPtr src_2;
-
-  explicit IRInstructionA2(SymbolPtr op, SymbolPtr dst = nullptr,
-                           SymbolPtr src = nullptr)
-      : op(std::move(op)), dst(std::move(dst)), src(std::move(src)) {}
-
-  [[nodiscard]] auto Use() const -> std::vector<SymbolPtr>;
-};
-
-struct IRInstruction {
-  SymbolPtr op;
-  SymbolPtr dst;
-  SymbolPtr src_1;
-  SymbolPtr src_2;
-
-  explicit IRInstruction(SymbolPtr op, SymbolPtr dst = nullptr,
-                         SymbolPtr src_1 = nullptr, SymbolPtr src_2 = nullptr)
-      : op(std::move(op)),
-        dst(std::move(dst)),
-        src_1(std::move(src_1)),
-        src_2(std::move(src_2)) {}
-};
 
 class IRGenerator {
  public:
@@ -84,11 +55,15 @@ class IRGenerator {
 
   explicit IRGenerator(SymbolTablePtr symbol_table);
 
-  auto Generate(const AST& tree) -> std::vector<IRInstructionA2>;
+  auto Generate(const AST& tree) -> std::vector<IRInstructionA2Ptr>;
 
   void Print3Addr(const std::string& path);
 
   void Print2Addr(const std::string& path);
+
+  void PrintCFG(const std::string& path);
+
+  auto ControlFlowGraph() -> ControlFlowGraphPtr;
 
  private:
   static std::map<ASTNodeType, ExpHandler> exp_handler_register;
@@ -98,7 +73,8 @@ class IRGenerator {
   ScopedSymbolLookUpHelper ir_symbol_helper_;
   int tmp_var_idx_ = 1;
 
-  std::vector<IRInstructionA2> instructions_2_addr_;
+  ControlFlowGraphPtr cfg_;
+  std::vector<IRInstructionA2Ptr> instructions_2_addr_;
   std::vector<IRInstruction> ins_ssa_;
   std::unordered_map<std::string, SymbolPtr> op_ins_;
 
@@ -121,7 +97,15 @@ class IRGenerator {
 
   auto lookup_variable(const SymbolPtr& ast_sym) -> SymbolPtr;
 
+  auto new_phi_variable(const SymbolPtr& var, int block_id) -> SymbolPtr;
+
   auto new_temp_variable() -> SymbolPtr;
 
   auto new_label() -> SymbolPtr;
+
+  void build_cfg();
+
+  void liveness_analyse();
+
+  void insert_phi();
 };

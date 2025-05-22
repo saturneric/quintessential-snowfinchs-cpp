@@ -4,19 +4,20 @@
 
 #include <boost/graph/sequential_vertex_coloring.hpp>
 #include <boost/property_map/property_map.hpp>
+#include <utility>
+
+#include "Utils.h"
 
 ASMGenerator::ASMGenerator(SymbolTablePtr symbol_table, bool r32,
-                           const std::vector<IRInstructionA2>& ir)
+                           const std::vector<IRInstructionA2Ptr>& ir,
+                           ControlFlowGraphPtr cfg)
     : symbol_table_(std::move(symbol_table)),
       helper_(SymbolType::kIR, symbol_table_),
       r32_(r32),
-      ir_(ir) {}
+      ir_(ir),
+      cfg_(std::move(cfg)) {}
 
 void ASMGenerator::Generate(const std::string& path) {
-  build_cfg();
-
-  liveness_analyse();
-
   build_inf_graph();
 
   mcs();
@@ -41,11 +42,6 @@ auto IsImmediate(const SymbolPtr& s) -> bool {
   return s->Value() == "immediate";
 }
 
-auto IsVariable(const SymbolPtr& s) -> bool {
-  if (s == nullptr) return false;  // empty symbol
-  return s->Value() == "variable";
-}
-
 inline auto IsStackAccess(const SymbolPtr& s) -> bool {
   if (s == nullptr) return false;  // empty symbol
   // "-4(%esp)" or "-8(%rsp)"
@@ -64,12 +60,6 @@ inline auto IsGlobalVar(const SymbolPtr& s) -> bool {
 inline auto IsInMemory(const SymbolPtr& s) -> bool {
   if (s == nullptr) return false;  // empty symbol
   return IsStackAccess(s) || IsGlobalVar(s);
-}
-
-auto IsJump(const SymbolPtr& op) -> bool {
-  auto n = op->Name();
-  return n == "jmp" || n == "je" || n == "jne" || n == "jg" || n == "jl" ||
-         n == "jge" || n == "jle";
 }
 
 auto SymLoc(const SymbolPtr& op) -> std::string {
@@ -120,7 +110,7 @@ void ASMGenerator::translate(const IRInstructionA2& i) {
   } else if (op == "rtn") {
     asm_.push_back(op_mov + " " + src +
                    std::string{r32_ ? ", %eax" : ", %rax"});
-    if (stack_offset_ != 0) asm_.push_back("leave");
+    if (stack_offset_ != 0) asm_.emplace_back("leave");
     asm_.emplace_back("ret");
   } else {
     asm_.push_back("# unsupported op: " + op);
@@ -383,21 +373,21 @@ void ASMGenerator::build_inf_graph() {
   std::set<SymbolPtr> all_vars;
 
   for (const auto& instr : ir_) {
-    for (const auto& sym : instr.Use()) {
+    for (const auto& sym : instr->Use()) {
       // no reg name yet
       // but have label
       if (sym && IsVariable(sym)) all_vars.insert(sym);
     }
   }
 
-  auto blocks = cfg_.Blocks();
-  auto N = ir_.size();
-  std::vector<std::set<SymbolPtr>> live_in(N);
-  std::vector<std::set<SymbolPtr>> live_out(N);
+  auto blocks = cfg_->Blocks();
 
-  std::unordered_map<int, std::vector<size_t>> block_instrs;
+  std::map<IRInstructionA2Ptr, std::set<SymbolPtr>> live_in;
+  std::map<IRInstructionA2Ptr, std::set<SymbolPtr>> live_out;
+
+  std::unordered_map<int, std::vector<IRInstructionA2Ptr>> block_instrs;
   for (auto& bb : blocks) {
-    block_instrs[bb->id] = bb->instr_indices;
+    block_instrs[bb->id] = bb->instrs;
   }
 
   bool changed = true;
@@ -423,10 +413,10 @@ void ASMGenerator::build_inf_graph() {
         std::vector<SymbolPtr> use;
         std::vector<SymbolPtr> def;
         // ins.Use() return dst/src/src_2
-        for (auto& s : ir_[i].Use()) {
+        for (auto& s : i->Use()) {
           if (IsVariable(s)) use.push_back(s);
         }
-        if (ir_[i].dst && IsVariable(ir_[i].dst)) def.push_back(ir_[i].dst);
+        if (i->dst && IsVariable(i->dst)) def.push_back(i->dst);
 
         // out->in diff
         std::set<SymbolPtr> diff;
@@ -459,12 +449,11 @@ void ASMGenerator::build_inf_graph() {
   }
 
   // build inf graph
-  for (int i = 0; i < N; ++i) {
-    auto& ins = ir_[i];
-    if (ins.dst && IsVariable(ins.dst)) {
+  for (const auto& i : ir_) {
+    if (i->dst && IsVariable(i->dst)) {
       for (const auto& live_var : live_out[i]) {
-        if (live_var != ins.dst) {
-          inf_graph_.AddEdge(ins.dst, live_var);
+        if (live_var != i->dst) {
+          inf_graph_.AddEdge(i->dst, live_var);
         }
       }
     }
@@ -622,7 +611,8 @@ auto ASMGenerator::handle_spling_var(const std::set<SymbolPtr>& spilled_vars)
 
   const auto op_mov = helper_.LookupSymbol(nullptr, "mov");
 
-  for (const auto& i : ir_) {
+  for (const auto& p_i : ir_) {
+    const auto& i = *p_i;
     bool sp_src =
         i.src && i.src->MetaRef(SymbolMetaKey::kIS_SPILLED).has_value();
     bool sp_dst =
@@ -729,160 +719,4 @@ auto ASMGenerator::map_sym(const std::string& name, const std::string& type)
 
 auto ASMGenerator::map_reg(const std::string& name) -> SymbolPtr {
   return symbol_table_->AddSymbol(SymbolType::kAST, name, "register", true);
-}
-
-void ASMGenerator::build_cfg() {
-  std::vector<BasicBlockPtr> blocks;
-  std::map<std::string, int> label2block;
-
-  int current_block_id = 0;
-  auto new_block = [&]() -> BasicBlockPtr {
-    auto bb = std::make_shared<BasicBlock>(current_block_id++);
-    blocks.push_back(bb);
-    return bb;
-  };
-
-  bool need_new_block = true;
-  BasicBlockPtr bb = nullptr;
-
-  for (size_t i = 0; i < ir_.size(); ++i) {
-    const auto& ins = ir_[i];
-    auto opn = ins.op->Name();
-
-    // last ins as jmp
-    if (need_new_block && opn != "label") {
-      bb = new_block();
-      need_new_block = false;
-    }
-
-    // label need jmp
-    if (opn == "label") {
-      bb = new_block();
-      // label in ins.src not ins.dst
-      if (ins.src) {
-        bb->label = ins.src->Name();
-        label2block[bb->label] = bb->id;
-      }
-      need_new_block = false;
-    }
-
-    // ensure bb for ins
-    if (!bb) bb = new_block();
-
-    bb->instr_indices.push_back(i);
-    bb->instrs.push_back(std::make_shared<InstrLiveness>());
-
-    // jmps need new block
-    if (IsJump(ins.op)) need_new_block = true;
-  }
-
-  auto& cfg = cfg_;
-  std::map<int, Vertex> bbid2vertex;
-
-  // add all block to cfg
-  for (auto& bb : blocks) {
-    bbid2vertex[bb->id] = cfg.AddBlock(bb);
-  }
-
-  // add edge
-  for (size_t idx = 0; idx < blocks.size(); ++idx) {
-    auto& bb = blocks[idx];
-    if (bb->instr_indices.empty()) continue;
-    const auto& last_ins = ir_[bb->instr_indices.back()];
-
-    auto jump_label = [&](const SymbolPtr& label) -> int {
-      auto it = label2block.find(label->Name());
-      if (it != label2block.end()) return it->second;
-      return -1;
-    };
-
-    auto op = last_ins.op->Name();
-    if (op == "jmp") {
-      // jmp
-      int succ_id = jump_label(last_ins.src);
-      if (succ_id != -1) cfg.AddEdge(bb->id, succ_id);
-    } else if (op == "je" || op == "jne" /* ... */) {
-      // cond jmp
-      int succ1 = jump_label(last_ins.src);
-      if (succ1 != -1) cfg.AddEdge(bb->id, succ1);
-      // fall through
-      if (idx + 1 < blocks.size()) cfg.AddEdge(bb->id, blocks[idx + 1]->id);
-    } else {
-      // fall through
-      if (idx + 1 < blocks.size()) cfg.AddEdge(bb->id, blocks[idx + 1]->id);
-    }
-  }
-}
-
-void ASMGenerator::liveness_analyse() {
-  auto block_list = cfg_.Blocks();
-
-  for (auto& block : block_list) {
-    std::set<SymbolPtr> use;
-    std::set<SymbolPtr> def;
-    for (auto idx : block->instr_indices) {
-      const auto& ins = ir_[idx];
-
-      // skip label
-      if (ins.op->Name() == "label") continue;
-
-      // not def yet
-      for (auto& s : ins.Use()) {
-        if (!IsVariable(s)) continue;
-        if (def.count(s) == 0) use.insert(s);
-      }
-      if (ins.dst && IsVariable(ins.dst)) def.insert(ins.dst);
-    }
-    block->use = use;
-    block->def = def;
-    block->in = {};
-    block->out = {};
-  }
-
-  std::unordered_map<int, BasicBlockPtr> id2block;
-  for (auto& bb : block_list) {
-    id2block[bb->id] = bb;
-  }
-
-  bool changed = true;
-  while (changed) {
-    changed = false;
-
-    // temp store
-    std::map<int, std::set<SymbolPtr>> next_in;
-    std::map<int, std::set<SymbolPtr>> next_out;
-
-    // calculate all new_in/new_out
-    for (auto& block : block_list) {
-      auto& use = block->use;
-      auto& def = block->def;
-
-      // new_out = ⋃ IN[succ]
-      std::set<SymbolPtr> new_out;
-      for (auto& succ : cfg_.Successors(block->id)) {
-        auto succ_bb = id2block[succ->id];
-        new_out.insert(succ_bb->in.begin(), succ_bb->in.end());
-      }
-
-      // new_in = use ∪ (new_out – def)
-      std::set<SymbolPtr> new_in = use;
-      std::set<SymbolPtr> diff;
-      std::set_difference(new_out.begin(), new_out.end(), def.begin(),
-                          def.end(), std::inserter(diff, diff.end()));
-      new_in.insert(diff.begin(), diff.end());
-
-      next_in[block->id] = std::move(new_in);
-      next_out[block->id] = std::move(new_out);
-    }
-
-    // write out all
-    for (auto& block : block_list) {
-      if (block->in != next_in[block->id] ||
-          block->out != next_out[block->id]) {
-        changed = true;
-        block->in = next_in[block->id];
-        block->out = next_out[block->id];
-      }
-    }
-  }
 }

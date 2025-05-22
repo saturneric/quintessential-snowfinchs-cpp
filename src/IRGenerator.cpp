@@ -6,12 +6,24 @@
 #include <utility>
 
 #include "SymbolMetaTypedef.h"
+#include "Utils.h"
 
 namespace {
 
 const std::string kBinOpType = "binop";
 const std::string kUnOpType = "unop";
 const std::string kCmpOpType = "cmpop";
+
+auto IsCondJump(const SymbolPtr& op) -> bool {
+  auto n = op->Name();
+  return n == "jmp" || n == "je" || n == "jne" || n == "jg" || n == "jl" ||
+         n == "jge" || n == "jle";
+}
+
+auto IsJump(const SymbolPtr& op) -> bool {
+  auto n = op->Name();
+  return n == "jmp" || IsCondJump(op);
+}
 
 void PrintInstructions(std::ostream& f,
                        const std::vector<IRInstruction>& instructions) {
@@ -43,8 +55,9 @@ void PrintInstructions(std::ostream& f,
 }
 
 void PrintInstructionA2s(std::ostream& f,
-                         const std::vector<IRInstructionA2>& instructions) {
-  for (const auto& i : instructions) {
+                         const std::vector<IRInstructionA2Ptr>& instructions) {
+  for (const auto& p_i : instructions) {
+    const auto& i = *p_i;
     f << std::left << std::setw(12) << i.op->Name();
 
     if (i.dst) {
@@ -367,7 +380,7 @@ auto IRGenerator::do_ir_generate(Context* ctx, const ASTNodePtr& node)
   return exp_handler_register[node->Type()](ctx, node);
 }
 
-auto IRGenerator::Generate(const AST& tree) -> std::vector<IRInstructionA2> {
+auto IRGenerator::Generate(const AST& tree) -> std::vector<IRInstructionA2Ptr> {
   auto node = tree.Root();
   if (node == nullptr) return {};
 
@@ -376,6 +389,10 @@ auto IRGenerator::Generate(const AST& tree) -> std::vector<IRInstructionA2> {
   convert2_ssa();
 
   convert_ira3_2_ira2();
+
+  build_cfg();
+
+  liveness_analyse();
 
   return instructions_2_addr_;
 }
@@ -435,7 +452,8 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table)
                                      })),
       symbol_table_(std::move(symbol_table)),
       def_symbol_helper_(SymbolType::kDEFINE, symbol_table_),
-      ir_symbol_helper_(SymbolType::kIR, symbol_table_) {
+      ir_symbol_helper_(SymbolType::kIR, symbol_table_),
+      cfg_(std::make_shared<class ControlFlowGraph>()) {
   // register op
   // TODO(eric): use dymatic handler approach
   reg_op("mov");  // spec op
@@ -527,7 +545,9 @@ void IRGenerator::convert_ira3_2_ira2() {
     SPDLOG_ERROR("Unsupported op: {}", op);
   }
 
-  instructions_2_addr_ = res;
+  for (const auto& i : res) {
+    instructions_2_addr_.push_back(std::make_shared<IRInstructionA2>(i));
+  }
 }
 
 void IRGenerator::convert2_ssa() {
@@ -564,6 +584,14 @@ auto IRGenerator::map_ssa(const SymbolPtr& sym, bool is_def) -> SymbolPtr {
 
 auto IRGenerator::new_temp_variable() -> SymbolPtr {
   auto tmp_var_name = "tmp_ir_" + std::to_string(tmp_var_idx_++);
+  // TODO(eric): should set specific type
+  return map_sym(tmp_var_name, "variable");
+}
+
+auto IRGenerator::new_phi_variable(const SymbolPtr& var, int block_id)
+    -> SymbolPtr {
+  assert(var != nullptr);
+  auto tmp_var_name = "phi_ir_" + std::to_string(block_id) + "_" + var->Name();
   // TODO(eric): should set specific type
   return map_sym(tmp_var_name, "variable");
 }
@@ -660,4 +688,197 @@ auto IRInstructionA2::Use() const -> std::vector<SymbolPtr> {
   if (src) ret.emplace_back(src);
   if (src_2) ret.emplace_back(src_2);
   return ret;
+}
+
+void IRGenerator::build_cfg() {
+  std::vector<CFGBasicBlockPtr> blocks;
+  std::map<std::string, int> label2block;
+
+  int current_block_id = 0;
+  auto new_block = [&]() -> CFGBasicBlockPtr {
+    auto bb = std::make_shared<CFGBasicBlock>(current_block_id++);
+    blocks.push_back(bb);
+    return bb;
+  };
+
+  bool need_new_block = true;
+  CFGBasicBlockPtr bb = nullptr;
+  auto ir = instructions_2_addr_;
+
+  for (const auto& i : ir) {
+    const auto& ins = i;
+    auto opn = ins->op->Name();
+
+    // last ins as jmp
+    if (need_new_block && opn != "label") {
+      bb = new_block();
+      need_new_block = false;
+    }
+
+    // label need jmp
+    if (opn == "label") {
+      bb = new_block();
+      // label in ins.src not ins.dst
+      if (ins->src) {
+        bb->label = ins->src->Name();
+        label2block[bb->label] = bb->id;
+      }
+      need_new_block = false;
+    }
+
+    // ensure bb for ins
+    if (!bb) bb = new_block();
+
+    bb->instrs.push_back(i);
+
+    // jmps need new block
+    if (IsJump(ins->op)) need_new_block = true;
+  }
+
+  std::map<int, Vertex> bbid2vertex;
+
+  // add all block to cfg
+  for (auto& bb : blocks) {
+    bbid2vertex[bb->id] = cfg_->AddBlock(bb);
+  }
+
+  // add edge
+  for (size_t idx = 0; idx < blocks.size(); ++idx) {
+    auto& bb = blocks[idx];
+    if (bb->instrs.empty()) continue;
+    const auto& last_ins = bb->instrs.back();
+
+    auto jump_label = [&](const SymbolPtr& label) -> int {
+      auto it = label2block.find(label->Name());
+      if (it != label2block.end()) return it->second;
+      return -1;
+    };
+
+    auto op = last_ins->op->Name();
+    if (op == "jmp") {
+      // jmp
+      int succ_id = jump_label(last_ins->src);
+      if (succ_id != -1) cfg_->AddEdge(bb->id, succ_id);
+    } else if (IsCondJump(last_ins->op)) {
+      // cond jmp
+      int succ1 = jump_label(last_ins->src);
+      if (succ1 != -1) cfg_->AddEdge(bb->id, succ1);
+      // fall through
+      if (idx + 1 < blocks.size()) cfg_->AddEdge(bb->id, blocks[idx + 1]->id);
+    } else {
+      // fall through
+      if (idx + 1 < blocks.size()) cfg_->AddEdge(bb->id, blocks[idx + 1]->id);
+    }
+  }
+}
+
+void IRGenerator::liveness_analyse() {
+  auto ir = instructions_2_addr_;
+  auto block_list = cfg_->Blocks();
+
+  for (auto& block : block_list) {
+    std::set<SymbolPtr> use;
+    std::set<SymbolPtr> def;
+    for (const auto& ins : block->instrs) {
+      // skip label
+      if (ins->op->Name() == "label") continue;
+
+      // not def yet
+      for (auto& s : ins->Use()) {
+        if (!IsVariable(s)) continue;
+        if (def.count(s) == 0) use.insert(s);
+      }
+      if (ins->dst && IsVariable(ins->dst)) def.insert(ins->dst);
+    }
+    block->use = use;
+    block->def = def;
+    block->in = {};
+    block->out = {};
+  }
+
+  std::unordered_map<int, CFGBasicBlockPtr> id2block;
+  for (auto& bb : block_list) {
+    id2block[bb->id] = bb;
+  }
+
+  bool changed = true;
+  while (changed) {
+    changed = false;
+
+    // temp store
+    std::map<int, std::set<SymbolPtr>> next_in;
+    std::map<int, std::set<SymbolPtr>> next_out;
+
+    // calculate all new_in/new_out
+    for (auto& block : block_list) {
+      auto& use = block->use;
+      auto& def = block->def;
+
+      // new_out = ⋃ IN[succ]
+      std::set<SymbolPtr> new_out;
+      for (auto& succ : cfg_->Successors(block->id)) {
+        auto succ_bb = id2block[succ->id];
+        new_out.insert(succ_bb->in.begin(), succ_bb->in.end());
+      }
+
+      // new_in = use ∪ (new_out – def)
+      std::set<SymbolPtr> new_in = use;
+      std::set<SymbolPtr> diff;
+      std::set_difference(new_out.begin(), new_out.end(), def.begin(),
+                          def.end(), std::inserter(diff, diff.end()));
+      new_in.insert(diff.begin(), diff.end());
+
+      next_in[block->id] = std::move(new_in);
+      next_out[block->id] = std::move(new_out);
+    }
+
+    // write out all
+    for (auto& block : block_list) {
+      if (block->in != next_in[block->id] ||
+          block->out != next_out[block->id]) {
+        changed = true;
+        block->in = next_in[block->id];
+        block->out = next_out[block->id];
+      }
+    }
+  }
+}
+
+void IRGenerator::insert_phi() {
+  for (const auto& block : cfg_->Blocks()) {
+    // block have more than one predecessor
+    if (cfg_->Predecessors(block->id).size() > 1) {
+      // find all defined vars
+      std::map<SymbolPtr, std::vector<SymbolPtr>>
+          phi_candidates;  // var -> ssa var
+      for (const auto& pred : cfg_->Predecessors(block->id)) {
+        for (const auto& v : pred->def) {
+          phi_candidates[v].push_back(v);
+        }
+      }
+
+      for (const auto& [var, versions] : phi_candidates) {
+        if (versions.size() > 1) {
+          // new phi var
+          auto phi_var = new_phi_variable(var, block->id);
+          auto phi_instr = IRInstructionA2{map_op("phi"), phi_var};
+          phi_instr.phi_srcs = versions;
+
+          // 5. 在block的起始插入PHI指令
+          // ir_list.insert(ir_list.begin() + block->instr_indices.front(),
+          //                phi_instr);
+          // 6. 后续此block内的该变量，统一用phi_var
+          // 实现细节：用map或在block里替换
+        }
+      }
+    }
+  }
+}
+
+auto IRGenerator::ControlFlowGraph() -> ControlFlowGraphPtr { return cfg_; }
+
+void IRGenerator::PrintCFG(const std::string& path) {
+  std::ofstream f(path);
+  cfg_->Print(f);
+  f.close();
 }

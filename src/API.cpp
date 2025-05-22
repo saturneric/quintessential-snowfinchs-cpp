@@ -33,16 +33,17 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
   if (!ret) return 7;
 
   IRGenerator irg(symbol_table);
-  std::vector<IRInstructionA2> ir;
+  std::vector<IRInstructionA2Ptr> ir;
 
   ret = RunOperation("IR Generator", [&]() {
     ir = irg.Generate(driver.AST());
     if (debug) irg.Print3Addr(runtime_dir / "PrintIR3.txt");
     if (debug) irg.Print2Addr(runtime_dir / "PrintIR2.txt");
+    if (debug) irg.PrintCFG(runtime_dir / "PrintCFG.txt");
     return true;
   });
 
-  ASMGenerator asm_gen(symbol_table, !r64, ir);
+  ASMGenerator asm_gen(symbol_table, !r64, ir, irg.ControlFlowGraph());
 
   ret = RunOperation("ASM Generator", [&]() {
     asm_gen.Generate(runtime_dir / "ASM.S");

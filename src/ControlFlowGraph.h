@@ -3,33 +3,26 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
 
-#include "IRGenerator.h"
+#include "IRInstruction.h"
+#include "Symbol.h"
 
-struct InstrLiveness {
-  std::vector<SymbolPtr> use, def;
-  std::set<SymbolPtr> in, out;
-};
-
-using InstrLivenessPtr = std::shared_ptr<InstrLiveness>;
-
-struct BasicBlock {
+struct CFGBasicBlock {
   int id;
   std::string label;
-  std::vector<size_t> instr_indices;  // index in ir array
-  std::vector<InstrLivenessPtr> instrs;
+  std::vector<IRInstructionA2Ptr> instrs;  // index in ir array
 
   std::set<SymbolPtr> use;
   std::set<SymbolPtr> def;
   std::set<SymbolPtr> in;
   std::set<SymbolPtr> out;
 
-  explicit BasicBlock(int id, std::string label = "")
+  explicit CFGBasicBlock(int id, std::string label = "")
       : id(id), label(std::move(label)) {}
 };
-using BasicBlockPtr = std::shared_ptr<BasicBlock>;
+using CFGBasicBlockPtr = std::shared_ptr<CFGBasicBlock>;
 
 struct VertexProp {
-  BasicBlockPtr bb;
+  CFGBasicBlockPtr bb;
 };
 
 using CFGGraph = boost::adjacency_list<boost::vecS,            // edge list
@@ -46,20 +39,26 @@ class ControlFlowGraph {
  public:
   ControlFlowGraph() = default;
 
-  auto AddBlock(const BasicBlockPtr& bb) -> Vertex;
+  auto AddBlock(const CFGBasicBlockPtr& bb) -> Vertex;
 
   void AddEdge(int from_id, int to_id);
 
-  [[nodiscard]] auto Blocks() const -> std::vector<BasicBlockPtr>;
+  [[nodiscard]] auto Blocks() const -> std::vector<CFGBasicBlockPtr>;
 
-  [[nodiscard]] auto Successors(int id) const -> std::vector<BasicBlockPtr>;
+  [[nodiscard]] auto Successors(int id) const -> std::vector<CFGBasicBlockPtr>;
 
-  [[nodiscard]] auto Predecessors(int id) const -> std::vector<BasicBlockPtr>;
+  [[nodiscard]] auto Predecessors(int id) const
+      -> std::vector<CFGBasicBlockPtr>;
 
   auto Graph() -> CFGGraph&;
+
   [[nodiscard]] auto Graph() const -> const CFGGraph&;
+
+  void Print(std::ostream& os) const;
 
  private:
   CFGGraph g_;
   std::map<int, Vertex> bb_map_;  // id -> vertex
 };
+
+using ControlFlowGraphPtr = std::shared_ptr<ControlFlowGraph>;

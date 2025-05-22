@@ -11,7 +11,8 @@
 class ASMGenerator {
  public:
   explicit ASMGenerator(SymbolTablePtr symbol_table, bool r32,
-                        const std::vector<IRInstructionA2>& ir);
+                        const std::vector<IRInstructionA2Ptr>& ir,
+                        ControlFlowGraphPtr cfg);
 
   void Generate(const std::string& path);
 
@@ -26,18 +27,14 @@ class ASMGenerator {
 
   SymbolTablePtr symbol_table_;
   ScopedSymbolLookUpHelper helper_;
-  ControlFlowGraph cfg_;
+  ControlFlowGraphPtr cfg_;
   InterferenceGraph inf_graph_;
-  std::vector<IRInstructionA2> ir_;
+  std::vector<IRInstructionA2Ptr> ir_;
   std::vector<IRInstructionA2> ir_opt_;
   std::vector<std::string> asm_;
   std::set<SymbolPtr> constants_;
   std::set<SymbolPtr> vars_;
   std::vector<SymbolPtr> mcs_order_;
-
-  void build_cfg();
-
-  void liveness_analyse();
 
   void translate(const IRInstructionA2& instr);
 

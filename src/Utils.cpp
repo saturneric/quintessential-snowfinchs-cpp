@@ -58,3 +58,7 @@ auto RunOperation(const std::string& name, const Opera& f) -> bool {
   spdlog::debug("{} exec duration = {:.6f}s ret = {} ", name, sw, ret);
   return ret;
 }
+auto IsVariable(const SymbolPtr& s) -> bool {
+  if (s == nullptr) return false;  // empty symbol
+  return s->Value() == "variable";
+}
