@@ -42,6 +42,8 @@ class ASTNode {
   ASTNode(ASTNodeType type, SymbolPtr symbol,
           std::initializer_list<ASTNodePtr> children);
 
+  auto Parent() -> ASTNode *;
+
   auto Children() -> std::vector<ASTNodePtr>;
 
   void AddChild(const ASTNodePtr &child, ASTNodeTag tag = ASTNodeTag::kNONE);
@@ -56,6 +58,7 @@ class ASTNode {
   ASTNodeType type_;
   ASTNodeTag tag_;
   SymbolPtr symbol_;
+  ASTNode *parent_;
   std::vector<ASTNodePtr> children_;
 };
 

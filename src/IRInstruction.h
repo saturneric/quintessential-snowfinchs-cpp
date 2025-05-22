@@ -17,8 +17,7 @@ struct IRInstructionA2 {
   std::set<SymbolPtr> LiveOut;
 
   explicit IRInstructionA2(SymbolPtr op, SymbolPtr dst = nullptr,
-                           SymbolPtr src = nullptr)
-      : op(std::move(op)), dst(std::move(dst)), src(std::move(src)) {}
+                           SymbolPtr src = nullptr, SymbolPtr src_2 = nullptr);
 
   [[nodiscard]] auto Use() const -> std::vector<SymbolPtr>;
 };

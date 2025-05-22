@@ -253,6 +253,11 @@ auto WhileHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   auto label_body = ctx->NewLabel();
   auto label_end = ctx->NewLabel();
 
+  // set continue and break label
+  auto symbol = node->Symbol();
+  MetaSet(symbol, SymbolMetaKey::kCONTINUE_LABEL, label_cond);
+  MetaSet(symbol, SymbolMetaKey::kBREAK_LABEL, label_end);
+
   // 1. init
   if (init) ctx->ExpRoute(init);
 
@@ -282,6 +287,29 @@ auto WhileHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   return nullptr;
 }
 
+auto ContinueBreakHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
+    -> SymbolPtr {
+  auto p_sym = node->Symbol();
+  assert(p_sym != nullptr);
+
+  if (node->Type() == ASTNodeType::kCONTINUE) {
+    auto continue_label =
+        MetaGet<SymbolPtr>(p_sym, SymbolMetaKey::kCONTINUE_LABEL);
+    if (continue_label == nullptr) return nullptr;
+
+    ctx->AddIns("jmp", {}, continue_label);
+  }
+
+  if (node->Type() == ASTNodeType::kBREAK) {
+    auto break_label = MetaGet<SymbolPtr>(p_sym, SymbolMetaKey::kBREAK_LABEL);
+    if (break_label == nullptr) return nullptr;
+
+    ctx->AddIns("jmp", {}, break_label);
+  }
+
+  return nullptr;
+}
+
 }  // namespace
 
 std::map<ASTNodeType, IRGenerator::ExpHandler>
@@ -298,6 +326,8 @@ std::map<ASTNodeType, IRGenerator::ExpHandler>
         {ASTNodeType::kIF, IfHandler},
         {ASTNodeType::kCOND_EXP, CondExpHandler},
         {ASTNodeType::kWHILE, WhileHandler},
+        {ASTNodeType::kCONTINUE, ContinueBreakHandler},
+        {ASTNodeType::kBREAK, ContinueBreakHandler},
 };
 
 auto IRGenerator::do_ir_generate(Context* ctx, const ASTNodePtr& node)
@@ -343,6 +373,13 @@ void IRGenerator::PrintAddr(const std::string& path) {
 }
 
 auto IRGenerator::Context::ExpRoute(const ASTNodePtr& node) -> SymbolPtr {
+  if (node == nullptr) return nullptr;
+
+  // do inheritance of some meta: break_label and continue_label
+  if (node->Parent() != nullptr) {
+    node->Symbol()->Inheritance(node->Parent()->Symbol());
+  }
+
   if (handler_) return handler_(this, node);
   return {};
 }

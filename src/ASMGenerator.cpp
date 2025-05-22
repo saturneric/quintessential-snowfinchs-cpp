@@ -169,18 +169,23 @@ void ASMGenerator::emit_cmp_op(const std::string& op,
 
   const auto s_src = i.src;
   const auto s_dst = i.dst;
-  const auto src = format_operand(s_src);
-  const auto dst = format_operand(s_dst);
+  const auto s_src_2 = i.src_2;
+  auto src = format_operand(s_src);
+  auto dst = format_operand(s_dst);
+  auto src_2 = format_operand(s_src_2);
 
   const auto op_mov = "mov" + suffix;
 
   if (op == "cmp") {
+    if (IsImmediate(s_dst)) std::swap(src, dst);
     asm_.push_back("cmp " + src + ", " + dst);
   }
 
   else if (op == "le") {
     asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);
-    asm_.emplace_back("cmp " + src + ", " + format_operand(i.src_2));
+
+    if (IsImmediate(s_src_2)) std::swap(src, src_2);
+    asm_.emplace_back("cmp " + src + ", " + src_2);
     asm_.push_back("sete " + acc_low_reg);
     asm_.push_back("movzx " + acc_low_reg + ", " + rem_reg);
     asm_.push_back(op_mov + " " + rem_reg + ", " + dst);
@@ -188,7 +193,9 @@ void ASMGenerator::emit_cmp_op(const std::string& op,
 
   else if (op == "neq") {
     asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);
-    asm_.emplace_back("cmp " + src + ", " + format_operand(i.src_2));
+
+    if (IsImmediate(s_src_2)) std::swap(src, src_2);
+    asm_.emplace_back("cmp " + src + ", " + src_2);
     asm_.push_back("setne " + acc_low_reg);
     asm_.push_back("movzx " + acc_low_reg + ", " + rem_reg);
     asm_.push_back(op_mov + " " + rem_reg + ", " + dst);
@@ -196,7 +203,9 @@ void ASMGenerator::emit_cmp_op(const std::string& op,
 
   else if (op == "lt") {
     asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);
-    asm_.emplace_back("cmp " + src + ", " + format_operand(i.src_2));
+
+    if (IsImmediate(s_src_2)) std::swap(src, src_2);
+    asm_.emplace_back("cmp " + src + ", " + src_2);
     asm_.push_back("setl " + acc_low_reg);
     asm_.push_back("movzx " + acc_low_reg + ", " + rem_reg);
     asm_.push_back(op_mov + " " + rem_reg + ", " + dst);
@@ -204,7 +213,9 @@ void ASMGenerator::emit_cmp_op(const std::string& op,
 
   else if (op == "gt") {
     asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);
-    asm_.emplace_back("cmp " + src + ", " + format_operand(i.src_2));
+
+    if (IsImmediate(s_src_2)) std::swap(src, src_2);
+    asm_.emplace_back("cmp " + src + ", " + src_2);
     asm_.push_back("setg " + acc_low_reg);
     asm_.push_back("movzx " + acc_low_reg + ", " + rem_reg);
     asm_.push_back(op_mov + " " + rem_reg + ", " + dst);
@@ -212,7 +223,9 @@ void ASMGenerator::emit_cmp_op(const std::string& op,
 
   else if (op == "ge") {
     asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);
-    asm_.emplace_back("cmp " + src + ", " + format_operand(i.src_2));
+
+    if (IsImmediate(s_src_2)) std::swap(src, src_2);
+    asm_.emplace_back("cmp " + src + ", " + src_2);
     asm_.push_back("setge " + acc_low_reg);
     asm_.push_back("movzx " + acc_low_reg + ", " + rem_reg);
     asm_.push_back(op_mov + " " + rem_reg + ", " + dst);
@@ -557,8 +570,7 @@ void ASMGenerator::handle_spling_var() {
       n_ir.emplace_back(op_mov, tmp_backup_1, reg_1);  // save %r11
       n_ir.emplace_back(op_mov, reg_1, dst);
 
-      n_ir.emplace_back(i.op, reg_1, reg_0);
-      n_ir.back().src_2 = i.src_2;  // sync src_2
+      n_ir.emplace_back(i.op, reg_1, reg_0, i.src_2);  // sync src_2
 
       n_ir.emplace_back(op_mov, dst, reg_1);
       n_ir.emplace_back(op_mov, reg_0, tmp_backup_0);  // restore %r10
@@ -571,8 +583,7 @@ void ASMGenerator::handle_spling_var() {
       n_ir.emplace_back(op_mov, tmp_backup_0, reg_1);  // save %r11
       n_ir.emplace_back(op_mov, reg_1, src);
 
-      n_ir.emplace_back(i.op, dst, reg_1);
-      n_ir.back().src_2 = i.src_2;  // sync src_2
+      n_ir.emplace_back(i.op, dst, reg_1, i.src_2);  // sync src_2
 
       n_ir.emplace_back(op_mov, reg_1, tmp_backup_0);  // restore %r11
     }
@@ -584,15 +595,14 @@ void ASMGenerator::handle_spling_var() {
       n_ir.emplace_back(op_mov, tmp_backup_0, reg_1);  // save %r11
       //  dst -> reg_1
       n_ir.emplace_back(op_mov, reg_1, dst);
-      n_ir.emplace_back(i.op, reg_1, src);
-      n_ir.back().src_2 = i.src_2;  // sync src_2
+      n_ir.emplace_back(i.op, reg_1, src, i.src_2);  // sync src_2
       n_ir.emplace_back(op_mov, dst, reg_1);
       //  mem -> reg_1
       n_ir.emplace_back(op_mov, reg_1, tmp_backup_0);  // restore %r11
     }
 
     else {
-      n_ir.emplace_back(i.op, dst, src);
+      n_ir.emplace_back(i.op, dst, src, i.src_2);
     }
   }
 

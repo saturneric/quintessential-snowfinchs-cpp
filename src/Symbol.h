@@ -26,6 +26,8 @@ enum class SymbolMetaKey : SymbolMetaKeySizeType {
   kSSA_VERSION,
   kSSA_LATEST_SYM,
   kSSA_ORIGIN_SYM,
+  kCONTINUE_LABEL,
+  kBREAK_LABEL,
   kCOUNT,
 };
 
@@ -61,6 +63,8 @@ class Symbol {
   void SetMeta(const SymbolMetaKey& key, std::any value);
 
   void RemoveMeta(const SymbolMetaKey& key);
+
+  void Inheritance(const SymbolPtr& parent);
 
  private:
   int index_;

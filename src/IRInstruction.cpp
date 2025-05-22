@@ -17,3 +17,10 @@ auto IRInstruction::Op() -> SymbolPtr { return op_; }
 auto IRInstruction::DST() -> SymbolPtr { return dst_; }
 
 auto IRInstruction::Use() -> std::vector<SymbolPtr>& { return srcs_; }
+
+IRInstructionA2::IRInstructionA2(SymbolPtr op, SymbolPtr dst, SymbolPtr src,
+                                 SymbolPtr src_2)
+    : op(std::move(op)),
+      dst(std::move(dst)),
+      src(std::move(src)),
+      src_2(std::move(src_2)) {}

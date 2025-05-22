@@ -18,6 +18,8 @@ const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
     {ASTNodeType::kIF, "If"},
     {ASTNodeType::kCOND_EXP, "Conditional Expression"},
     {ASTNodeType::kBLOCK, "Block"},
+    {ASTNodeType::kBREAK, "Break"},
+    {ASTNodeType::kCONTINUE, "Continue"},
 };
 
 void AST::do_ast_node_print(const ASTNodePtr& node, std::ofstream& stream) {
@@ -77,6 +79,8 @@ void ASTNode::AddChild(const ASTNodePtr& child, ASTNodeTag tag) {
 
   // attach tag to distinguish children
   child->tag_ = tag;
+  // set parent
+  child->parent_ = this;
   children_.push_back(child);
 }
 
@@ -92,3 +96,5 @@ AST::AST(std::shared_ptr<SymbolTable> symbol_table)
 void AST::SetRoot(const ASTNodePtr& root) { root_ = root; }
 
 auto ASTNode::Tag() -> ASTNodeTag { return tag_; }
+
+auto ASTNode::Parent() -> ASTNode* { return parent_; }

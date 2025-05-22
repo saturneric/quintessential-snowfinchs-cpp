@@ -46,3 +46,11 @@ auto Symbol::ScopeId() const -> int {
 }
 
 void Symbol::SetValue(std::string value) { value_ = std::move(value); }
+
+void Symbol::Inheritance(const SymbolPtr& parent) {
+  if (parent == nullptr) return;
+  this->SetMeta(SymbolMetaKey::kCONTINUE_LABEL,
+                parent->MetaData(SymbolMetaKey::kCONTINUE_LABEL));
+  this->SetMeta(SymbolMetaKey::kBREAK_LABEL,
+                parent->MetaData(SymbolMetaKey::kBREAK_LABEL));
+}
