@@ -47,6 +47,8 @@ class ASMGenerator {
 
   void emit_logic_op(const std::string& op, const IRInstructionA2& i);
 
+  void emit_unary_op(const std::string& op, const IRInstructionA2& i);
+
   void optimums();
 
   auto format_operand(const SymbolPtr& operand) -> std::string;

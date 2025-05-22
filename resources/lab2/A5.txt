@@ -1,0 +1,7 @@
+int main() {
+  bool test = false;
+  int result = 0xFA & 0x12345;
+  int result2 = 0xFFFA | 0xFF;
+  if (!test) return ~result ^ result2;
+  return 0;
+}

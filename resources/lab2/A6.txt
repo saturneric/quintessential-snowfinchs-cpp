@@ -1,0 +1,8 @@
+int main() {
+  int a1 = 0xFA & 0x12345;
+  int b1 = 4 << 4;
+  int c1 = 128 >> 1;
+  c1 >>= 2;
+  a1 <<= 3;
+  return a1 + b1 + c1;
+}

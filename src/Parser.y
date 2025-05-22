@@ -143,8 +143,8 @@ simple_statement:
       } else {
 
         auto op = $2;
-        if (op.size() >= 2 && op.back() == '=') {
-            op = op.substr(0, 1);
+        if (!op.empty() && op.back() == '=') {
+          op.pop_back();
         }
 
         auto bin_op = MakeASTTreeNode(ASTNodeType::kBIN_OP, "simple_statement", op, drv);

@@ -7,6 +7,31 @@
   {
     "source_file_path": "lab2/A1.txt",
     "compiler_exit_code": 0,
-    "exec_exit_code": 2
+    "exec_exit_code": 1
+  },
+  {
+    "source_file_path": "lab2/A2.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 1
+  },
+  {
+    "source_file_path": "lab2/A3.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 11
+  },
+  {
+    "source_file_path": "lab2/A4.txt",
+    "compiler_exit_code": 0,
+    "expect_float_point_exception": true
+  },  
+  {
+    "source_file_path": "lab2/A5.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 64
+  },
+  {
+    "source_file_path": "lab2/A6.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 80
   }
 ]

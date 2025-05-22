@@ -17,6 +17,11 @@ auto ValueExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   assert(node != nullptr);
 
   auto sym = ctx->MapSymbol(node->Symbol());
+
+  // ident
+  if (node->Type() == ASTNodeType::kIDENT) return sym;
+
+  // immediate
   auto type = MetaGet<SymbolMetaType>(node->Symbol(), SymbolMetaKey::kTYPE);
 
   if (type == SymbolMetaType::kBOOL) {
@@ -74,9 +79,23 @@ auto BinOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   }
 
   else if (opera == "&&") {
-    ctx->AddIns("andlog", tmp, lhs, rhs);
+    ctx->AddIns("land", tmp, lhs, rhs);
   } else if (opera == "||") {
-    ctx->AddIns("orlog", tmp, lhs, rhs);
+    ctx->AddIns("lor", tmp, lhs, rhs);
+  }
+
+  else if (opera == "&") {
+    ctx->AddIns("band", tmp, lhs, rhs);
+  } else if (opera == "|") {
+    ctx->AddIns("bor", tmp, lhs, rhs);
+  } else if (opera == "^") {
+    ctx->AddIns("bxor", tmp, lhs, rhs);
+  }
+
+  else if (opera == "<<") {
+    ctx->AddIns("shl", tmp, lhs, rhs);
+  } else if (opera == ">>") {
+    ctx->AddIns("shr", tmp, lhs, rhs);
   }
 
   else {
@@ -110,13 +129,13 @@ auto UnOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
 
   else if (op == "!") {
     auto sym_tmp1 = ctx->NewTempVariable();
-    ctx->AddIns("not", sym_tmp1, temp);
+    ctx->AddIns("lnot", sym_tmp1, temp);
     sym_tmp = sym_tmp1;
   }
 
   else if (op == "~") {
     auto sym_tmp1 = ctx->NewTempVariable();
-    ctx->AddIns("notb", sym_tmp1, temp);
+    ctx->AddIns("bnot", sym_tmp1, temp);
     sym_tmp = sym_tmp1;
   }
 
@@ -197,7 +216,7 @@ auto CondExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   auto children = node->Children();
 
-  auto cond_sym = ctx->ExpRoute(children[0]);
+  auto cond_sym = ctx->ExpRoute(children.front());
   auto cond = ctx->MapSymbol(cond_sym);
 
   auto label_then = ctx->NewLabel();
@@ -417,8 +436,8 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table)
   reg_op("mov");  // spec op
   reg_op("rtn");  // spec op
   reg_op("neg", kUnOpType);
-  reg_op("not", kUnOpType);
-  reg_op("notb", kUnOpType);
+  reg_op("lnot", kUnOpType);
+  reg_op("bnot", kUnOpType);
 
   reg_op("add", kBinOpType);
   reg_op("sub", kBinOpType);
@@ -431,8 +450,13 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table)
   reg_op("le", kCmpOpType);
   reg_op("gt", kCmpOpType);
   reg_op("ge", kCmpOpType);
-  reg_op("andlog", kBinOpType);
-  reg_op("orlog", kBinOpType);
+  reg_op("land", kBinOpType);
+  reg_op("lor", kBinOpType);
+  reg_op("band", kBinOpType);
+  reg_op("bor", kBinOpType);
+  reg_op("bxor", kBinOpType);
+  reg_op("shl", kBinOpType);
+  reg_op("shr", kBinOpType);
 
   reg_op("brz");
   reg_op("jmp");

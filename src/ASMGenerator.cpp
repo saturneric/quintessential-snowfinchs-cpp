@@ -91,15 +91,16 @@ void ASMGenerator::translate(const IRInstructionA2& i) {
       asm_.push_back(op_mov + " " + src + ", " + dst);
     }
   } else if (op == "add" || op == "sub" || op == "mul" || op == "div" ||
-             op == "mod") {
+             op == "mod" || op == "band" || op == "bor" || op == "bxor" ||
+             op == "shl" || op == "shr") {
     emit_binary_op(op, i);
   } else if (op == "eq" || op == "neq" || op == "lt" || op == "le" ||
              op == "gt" || op == "ge" || op == "cmp") {
     emit_cmp_op(op, i);
-  } else if (op == "andlog" || op == "orlog") {
+  } else if (op == "land" || op == "lor") {
     emit_logic_op(op, i);
-  } else if (op == "neg") {
-    asm_.push_back("neg" + suffix + " " + dst);
+  } else if (op == "neg" || op == "lnot" || op == "bnot") {
+    emit_unary_op(op, i);
   } else if (op == "label") {
     asm_.push_back(src + ": ");
   } else if (op == "je" || op == "jmp" || op == "and" || op == "or") {
@@ -157,6 +158,26 @@ void ASMGenerator::emit_binary_op(const std::string& op,
     } else {
       asm_.push_back(op_mov + " " + acc_reg + ", " + dst);
     }
+  }
+
+  else if (op == "band") {
+    asm_.push_back("and " + src + ", " + dst);
+  }
+
+  else if (op == "bor") {
+    asm_.push_back("or " + src + ", " + dst);
+  }
+
+  else if (op == "bxor") {
+    asm_.push_back("xor " + src + ", " + dst);
+  }
+
+  else if (op == "shl") {
+    asm_.push_back("shl " + src + ", " + dst);
+  }
+
+  else if (op == "shr") {
+    asm_.push_back("shr " + src + ", " + dst);
   }
 }
 
@@ -247,7 +268,7 @@ void ASMGenerator::emit_logic_op(const std::string& op,
 
   const auto op_mov = "mov" + suffix;
 
-  if (op == "andlog") {
+  if (op == "land") {
     asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);  // mov src -> %eax
     asm_.emplace_back("test " + acc_reg + ", " + acc_reg);   // test %eax %eax
     asm_.push_back("setne " + acc_low_reg);                  // test %al
@@ -263,7 +284,7 @@ void ASMGenerator::emit_logic_op(const std::string& op,
     asm_.emplace_back(op_mov + " " + acc_reg + ", " + dst);  // mov %eax -> dst
   }
 
-  if (op == "orlog") {
+  if (op == "lor") {
     asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);  // mov src -> %eax
     asm_.emplace_back("test " + acc_reg + ", " + acc_reg);   // test %eax %eax
     asm_.push_back("setne " + acc_low_reg);                  // test %al
@@ -277,6 +298,34 @@ void ASMGenerator::emit_logic_op(const std::string& op,
     asm_.push_back("movzx " + acc_low_reg + ", " +
                    acc_reg);  // movzx %al -> %eax
     asm_.emplace_back(op_mov + " " + acc_reg + ", " + dst);  // mov %eax -> dst
+  }
+}
+
+void ASMGenerator::emit_unary_op(const std::string& op,
+                                 const IRInstructionA2& i) {
+  std::string suffix = r32_ ? "l" : "q";
+  std::string acc_reg = r32_ ? "%eax" : "%rax";
+  std::string acc_low_reg = "%al";
+  std::string rem_reg = r32_ ? "%edx" : "%rdx";
+  std::string rem_low_reg = "%dl";
+
+  const auto s_src = i.src;
+  const auto s_dst = i.dst;
+  const auto src = format_operand(s_src);
+  const auto dst = format_operand(s_dst);
+
+  if (op == "neg") {
+    asm_.push_back("neg" + suffix + " " + dst);
+  }
+
+  else if (op == "lnot") {
+    asm_.push_back("cmp $0, " + dst);
+    asm_.push_back("sete " + acc_low_reg);
+    asm_.push_back("movzx " + acc_low_reg + ", " + dst);
+  }
+
+  if (op == "bnot") {
+    asm_.push_back("not " + dst);
   }
 }
 

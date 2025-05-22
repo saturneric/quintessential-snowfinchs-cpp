@@ -744,8 +744,8 @@ namespace yy {
       } else {
 
         auto op = yystack_[1].value.as < std::string > ();
-        if (op.size() >= 2 && op.back() == '=') {
-            op = op.substr(0, 1);
+        if (!op.empty() && op.back() == '=') {
+          op.pop_back();
         }
 
         auto bin_op = MakeASTTreeNode(ASTNodeType::kBIN_OP, "simple_statement", op, drv);
