@@ -3,6 +3,7 @@
 #include "ASMGenerator.h"
 #include "BinaryGenerator.h"
 #include "Driver.hpp"
+#include "IR2Generator.h"
 #include "IRGenerator.h"
 #include "SemanticAnalyzer.h"
 #include "Utils.h"
@@ -26,28 +27,36 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
 
   ret = RunOperation("Semantic Analyzer", [&]() {
     auto ret = semantic.Analyze(driver.AST());
-    if (debug) semantic.PrintSymbolTable(runtime_dir / "SemanticTable.txt");
+    if (debug) semantic.PrintSymbolTable(runtime_dir / "PrintSmtTable.txt");
     return ret;
   });
 
   if (!ret) return 7;
 
   IRGenerator irg(symbol_table);
-  std::vector<IRInstructionA2Ptr> ir;
 
   ret = RunOperation("IR Generator", [&]() {
-    ir = irg.Generate(driver.AST());
-    if (debug) irg.Print3Addr(runtime_dir / "PrintIR3.txt");
-    if (debug) irg.Print2Addr(runtime_dir / "PrintIR2.txt");
-    if (debug) irg.PrintCFG(runtime_dir / "PrintCFG.txt");
+    irg.Generate(driver.AST());
+    if (debug) irg.PrintAddr(runtime_dir / "PrintIR3.txt");
+    if (debug) irg.PrintCFG(runtime_dir / "PrintCFG(IR3).txt");
     return true;
   });
 
-  ASMGenerator asm_gen(symbol_table, !r64, ir, irg.ControlFlowGraph());
+  IR2Generator ir2g(symbol_table, irg.ControlFlowGraph()->Instructions());
+
+  ret = RunOperation("IR2 Generator", [&]() {
+    ir2g.Generate();
+    if (debug) ir2g.PrintAddr(runtime_dir / "PrintIR2.txt");
+    if (debug) ir2g.PrintCFG(runtime_dir / "PrintCFG(IR2).txt");
+    return true;
+  });
+
+  ASMGenerator asm_gen(symbol_table, !r64, ir2g.ControlFlowGraph());
 
   ret = RunOperation("ASM Generator", [&]() {
     asm_gen.Generate(runtime_dir / "ASM.S");
-    if (debug) asm_gen.PrintIR(runtime_dir / "PrintIROpt.txt");
+    if (debug) asm_gen.PrintIFG(runtime_dir / "PrintIFG.txt");
+    if (debug) asm_gen.PrintFinalIR(runtime_dir / "PrintIROpt.txt");
     return true;
   });
 

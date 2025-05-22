@@ -3,7 +3,6 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_utility.hpp>
 #include <boost/property_map/property_map.hpp>
-#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -33,7 +32,7 @@ class InterferenceGraph {
   auto GetVertexBySymbol(const SymbolPtr& symbol) const
       -> std::optional<Vertex>;
 
-  void Print() const;
+  void Print(std::ostream& os) const;
 
  private:
   Graph graph_;

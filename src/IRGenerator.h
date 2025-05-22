@@ -29,7 +29,7 @@ class IRGenerator {
 
     static auto SelectInstruction(const std::string& operation) -> std::string;
 
-    [[nodiscard]] auto Instructions() const -> std::vector<IRInstruction>;
+    [[nodiscard]] auto Instructions() const -> std::vector<IRInstructionPtr>;
 
     void EnterScope();
 
@@ -50,16 +50,14 @@ class IRGenerator {
     IRGenerator* ig_;
     ExpHandler handler_;
 
-    std::vector<IRInstruction> ins_;
+    std::vector<IRInstructionPtr> ins_;
   };
 
   explicit IRGenerator(SymbolTablePtr symbol_table);
 
-  auto Generate(const AST& tree) -> std::vector<IRInstructionA2Ptr>;
+  void Generate(const AST& tree);
 
-  void Print3Addr(const std::string& path);
-
-  void Print2Addr(const std::string& path);
+  void PrintAddr(const std::string& path);
 
   void PrintCFG(const std::string& path);
 
@@ -74,8 +72,6 @@ class IRGenerator {
   int tmp_var_idx_ = 1;
 
   ControlFlowGraphPtr cfg_;
-  std::vector<IRInstructionA2Ptr> instructions_2_addr_;
-  std::vector<IRInstruction> ins_ssa_;
   std::unordered_map<std::string, SymbolPtr> op_ins_;
 
   static auto select_instruction(const std::string& operation) -> std::string;
@@ -85,8 +81,6 @@ class IRGenerator {
   auto map_ssa(const SymbolPtr& sym, bool is_def) -> SymbolPtr;
 
   void convert2_ssa();
-
-  void convert_ira3_2_ira2();
 
   auto reg_op(const std::string& name, const std::string& type = {})
       -> SymbolPtr;
@@ -105,7 +99,11 @@ class IRGenerator {
 
   void build_cfg();
 
-  void liveness_analyse();
+  void block_level_liveness_analyse();
+
+  void instruction_level_liveness_analyse();
 
   void insert_phi();
+
+  void refresh_irs_by_cfg();
 };

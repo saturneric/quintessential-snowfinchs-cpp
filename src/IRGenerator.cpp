@@ -1,8 +1,6 @@
 #include "IRGenerator.h"
 
 #include <fstream>
-#include <iomanip>
-#include <iostream>
 #include <utility>
 
 #include "SymbolMetaTypedef.h"
@@ -10,78 +8,8 @@
 
 namespace {
 
-const std::string kBinOpType = "binop";
-const std::string kUnOpType = "unop";
-const std::string kCmpOpType = "cmpop";
-
-auto IsCondJump(const SymbolPtr& op) -> bool {
-  auto n = op->Name();
-  return n == "jmp" || n == "je" || n == "jne" || n == "jg" || n == "jl" ||
-         n == "jge" || n == "jle";
-}
-
-auto IsJump(const SymbolPtr& op) -> bool {
-  auto n = op->Name();
-  return n == "jmp" || IsCondJump(op);
-}
-
-void PrintInstructions(std::ostream& f,
-                       const std::vector<IRInstruction>& instructions) {
-  for (const auto& i : instructions) {
-    f << std::left << std::setw(12) << i.op->Name();
-
-    if (i.dst) {
-      f << i.dst->Name();
-      if (i.src_1) f << ", " << i.src_1->Name();
-      if (i.src_2) f << ", " << i.src_2->Name();
-    } else if (i.src_1) {
-      f << i.src_1->Name();
-      if (i.src_2) f << ", " << i.src_2->Name();
-    }
-
-    f << "    // ";
-
-    if (i.dst) {
-      f << i.dst->Value();
-      if (i.src_1) f << ", " << i.src_1->Value();
-      if (i.src_2) f << ", " << i.src_2->Value();
-    } else if (i.src_1) {
-      f << i.src_1->Value();
-      if (i.src_2) f << ", " << i.src_2->Value();
-    }
-
-    f << "\n";
-  }
-}
-
-void PrintInstructionA2s(std::ostream& f,
-                         const std::vector<IRInstructionA2Ptr>& instructions) {
-  for (const auto& p_i : instructions) {
-    const auto& i = *p_i;
-    f << std::left << std::setw(12) << i.op->Name();
-
-    if (i.dst) {
-      f << i.dst->Name();
-      if (i.src) f << ", " << i.src->Name();
-      if (i.src_2) f << ", " << i.src_2->Name();
-    } else if (i.src) {
-      f << i.src->Name();
-      if (i.src_2) f << ", " << i.src_2->Name();
-    }
-
-    f << "    // ";
-
-    if (i.dst) {
-      f << i.dst->Value();
-      if (i.src) f << ", " << i.src->Value();
-      if (i.src_2) f << ", " << i.src_2->Value();
-    } else if (i.src) {
-      f << i.src->Value();
-      if (i.src_2) f << ", " << i.src_2->Value();
-    }
-
-    f << "\n";
-  }
+auto SSAOriginSym(const SymbolPtr& s) -> SymbolPtr {
+  return MetaGet<SymbolPtr>(s, SymbolMetaKey::kSSA_ORIGIN_SYM);
 }
 
 auto ValueExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
@@ -380,44 +308,37 @@ auto IRGenerator::do_ir_generate(Context* ctx, const ASTNodePtr& node)
   return exp_handler_register[node->Type()](ctx, node);
 }
 
-auto IRGenerator::Generate(const AST& tree) -> std::vector<IRInstructionA2Ptr> {
+void IRGenerator::Generate(const AST& tree) {
   auto node = tree.Root();
-  if (node == nullptr) return {};
+  if (node == nullptr) return;
 
   do_ir_generate(ctx_.get(), node);
 
-  convert2_ssa();
-
-  convert_ira3_2_ira2();
-
   build_cfg();
 
-  liveness_analyse();
+  block_level_liveness_analyse();
 
-  return instructions_2_addr_;
+  instruction_level_liveness_analyse();
+
+  insert_phi();
+
+  // convert2_ssa();
 }
 
 auto IRGenerator::Context::NewTempVariable() -> SymbolPtr {
   return ig_->new_temp_variable();
 }
 
-auto IRGenerator::Context::Instructions() const -> std::vector<IRInstruction> {
+auto IRGenerator::Context::Instructions() const
+    -> std::vector<IRInstructionPtr> {
   return ins_;
 }
 
-void IRGenerator::Print3Addr(const std::string& path) {
+void IRGenerator::PrintAddr(const std::string& path) {
   if (ctx_->Instructions().empty()) return;
 
   std::ofstream f(path);
-  PrintInstructions(f, ins_ssa_);
-  f.close();
-}
-
-void IRGenerator::Print2Addr(const std::string& path) {
-  if (ctx_->Instructions().empty()) return;
-
-  std::ofstream f(path);
-  PrintInstructionA2s(f, instructions_2_addr_);
+  PrintInstructions(f, cfg_->Instructions());
   f.close();
 }
 
@@ -483,85 +404,23 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table)
   // 2 addr
   reg_op("cmp");
   reg_op("je");
-}
 
-void IRGenerator::convert_ira3_2_ira2() {
-  std::vector<IRInstructionA2> res;
-
-  for (const auto& i : ins_ssa_) {
-    const auto& op = i.op->Name();
-    const auto& op_type = i.op->Value();
-
-    if (op_type == kBinOpType) {
-      if (i.dst != i.src_1) res.emplace_back(map_op("mov"), i.dst, i.src_1);
-      res.emplace_back(i.op, i.dst, i.src_2);
-      continue;
-    }
-
-    if (op_type == kUnOpType) {
-      if (i.dst != i.src_1) res.emplace_back(map_op("mov"), i.dst, i.src_1);
-      res.emplace_back(i.op, i.dst);
-      continue;
-    }
-
-    if (op_type == kCmpOpType) {
-      res.emplace_back(i.op, i.dst, i.src_1);
-      res.back().src_2 = i.src_2;
-      continue;
-    }
-
-    if (op == "mov") {
-      if (i.dst != i.src_1) res.emplace_back(i.op, i.dst, i.src_1);
-      continue;
-    }
-
-    if (op == "rtn") {
-      res.emplace_back(i.op, nullptr, i.src_1);
-      continue;
-    }
-
-    if (op == "brz") {
-      if (i.src_1->Value() == "immediate") {
-        if (i.src_1->Name() == "0") {
-          res.emplace_back(map_op("jmp"), nullptr, i.src_2);
-        }
-        continue;
-      }
-      res.emplace_back(map_op("cmp"), i.src_1, map_sym("0", "immediate"));
-      res.emplace_back(map_op("je"), nullptr, i.src_2);
-      continue;
-    }
-
-    if (op == "jmp") {
-      res.emplace_back(i.op, nullptr, i.src_1);
-      continue;
-    }
-
-    if (op == "label") {
-      res.emplace_back(i.op, nullptr, i.src_1);
-      continue;
-    }
-
-    SPDLOG_ERROR("Unsupported op: {}", op);
-  }
-
-  for (const auto& i : res) {
-    instructions_2_addr_.push_back(std::make_shared<IRInstructionA2>(i));
-  }
+  // phi
+  reg_op("phi");
 }
 
 void IRGenerator::convert2_ssa() {
-  ins_ssa_.clear();
+  // ins_ssa_.clear();
 
-  for (auto& inst : ctx_->Instructions()) {
-    auto n_inst = inst;
+  // for (auto& inst : ctx_->Instructions()) {
+  //   auto n_inst = inst;
 
-    n_inst.src_1 = map_ssa(inst.src_1, false);
-    n_inst.src_2 = map_ssa(inst.src_2, false);
-    if (inst.dst != nullptr) n_inst.dst = map_ssa(inst.dst, true);
+  //   n_inst.src_1 = map_ssa(inst.src_1, false);
+  //   n_inst.src_2 = map_ssa(inst.src_2, false);
+  //   if (inst.dst != nullptr) n_inst.dst = map_ssa(inst.dst, true);
 
-    ins_ssa_.push_back(n_inst);
-  }
+  //   ins_ssa_.push_back(n_inst);
+  // }
 }
 
 auto IRGenerator::map_ssa(const SymbolPtr& sym, bool is_def) -> SymbolPtr {
@@ -584,7 +443,6 @@ auto IRGenerator::map_ssa(const SymbolPtr& sym, bool is_def) -> SymbolPtr {
 
 auto IRGenerator::new_temp_variable() -> SymbolPtr {
   auto tmp_var_name = "tmp_ir_" + std::to_string(tmp_var_idx_++);
-  // TODO(eric): should set specific type
   return map_sym(tmp_var_name, "variable");
 }
 
@@ -592,8 +450,10 @@ auto IRGenerator::new_phi_variable(const SymbolPtr& var, int block_id)
     -> SymbolPtr {
   assert(var != nullptr);
   auto tmp_var_name = "phi_ir_" + std::to_string(block_id) + "_" + var->Name();
-  // TODO(eric): should set specific type
-  return map_sym(tmp_var_name, "variable");
+
+  auto sym = map_sym(tmp_var_name, "variable");
+  MetaSet(sym, SymbolMetaKey::kSSA_ORIGIN_SYM, var);
+  return sym;
 }
 
 auto IRGenerator::lookup_variable(const SymbolPtr& ast_sym) -> SymbolPtr {
@@ -659,7 +519,7 @@ void IRGenerator::Context::AddIns(const std::string& op, SymbolPtr dst,
     return;
   }
 
-  ins_.emplace_back(sym_op, dst, src_1, src_2);
+  ins_.emplace_back(std::make_shared<IRInstruction>(sym_op, dst, src_1, src_2));
 }
 
 auto IRGenerator::reg_op(const std::string& name, const std::string& type)
@@ -703,11 +563,11 @@ void IRGenerator::build_cfg() {
 
   bool need_new_block = true;
   CFGBasicBlockPtr bb = nullptr;
-  auto ir = instructions_2_addr_;
+  auto ir = ctx_->Instructions();
 
   for (const auto& i : ir) {
     const auto& ins = i;
-    auto opn = ins->op->Name();
+    auto opn = ins->Op()->Name();
 
     // last ins as jmp
     if (need_new_block && opn != "label") {
@@ -719,8 +579,8 @@ void IRGenerator::build_cfg() {
     if (opn == "label") {
       bb = new_block();
       // label in ins.src not ins.dst
-      if (ins->src) {
-        bb->label = ins->src->Name();
+      if (ins->SRC(0)) {
+        bb->label = ins->SRC(0)->Name();
         label2block[bb->label] = bb->id;
       }
       need_new_block = false;
@@ -729,10 +589,10 @@ void IRGenerator::build_cfg() {
     // ensure bb for ins
     if (!bb) bb = new_block();
 
-    bb->instrs.push_back(i);
+    bb->Instrs().push_back(i);
 
     // jmps need new block
-    if (IsJump(ins->op)) need_new_block = true;
+    if (IsJump(ins->Op())) need_new_block = true;
   }
 
   std::map<int, Vertex> bbid2vertex;
@@ -745,8 +605,8 @@ void IRGenerator::build_cfg() {
   // add edge
   for (size_t idx = 0; idx < blocks.size(); ++idx) {
     auto& bb = blocks[idx];
-    if (bb->instrs.empty()) continue;
-    const auto& last_ins = bb->instrs.back();
+    if (bb->Instrs().empty()) continue;
+    const auto& last_ins = bb->Instrs().back();
 
     auto jump_label = [&](const SymbolPtr& label) -> int {
       auto it = label2block.find(label->Name());
@@ -754,14 +614,14 @@ void IRGenerator::build_cfg() {
       return -1;
     };
 
-    auto op = last_ins->op->Name();
+    auto op = last_ins->Op()->Name();
     if (op == "jmp") {
       // jmp
-      int succ_id = jump_label(last_ins->src);
+      int succ_id = jump_label(last_ins->SRC(0));
       if (succ_id != -1) cfg_->AddEdge(bb->id, succ_id);
-    } else if (IsCondJump(last_ins->op)) {
+    } else if (IsCondJump(last_ins->Op())) {
       // cond jmp
-      int succ1 = jump_label(last_ins->src);
+      int succ1 = jump_label(last_ins->SRC(0));
       if (succ1 != -1) cfg_->AddEdge(bb->id, succ1);
       // fall through
       if (idx + 1 < blocks.size()) cfg_->AddEdge(bb->id, blocks[idx + 1]->id);
@@ -772,23 +632,23 @@ void IRGenerator::build_cfg() {
   }
 }
 
-void IRGenerator::liveness_analyse() {
-  auto ir = instructions_2_addr_;
+void IRGenerator::block_level_liveness_analyse() {
+  auto ir = cfg_->Instructions();
   auto block_list = cfg_->Blocks();
 
   for (auto& block : block_list) {
     std::set<SymbolPtr> use;
     std::set<SymbolPtr> def;
-    for (const auto& ins : block->instrs) {
+    for (const auto& ins : block->Instrs()) {
       // skip label
-      if (ins->op->Name() == "label") continue;
+      if (ins->Op()->Name() == "label") continue;
 
       // not def yet
       for (auto& s : ins->Use()) {
         if (!IsVariable(s)) continue;
         if (def.count(s) == 0) use.insert(s);
       }
-      if (ins->dst && IsVariable(ins->dst)) def.insert(ins->dst);
+      if (ins->DST() && IsVariable(ins->DST())) def.insert(ins->DST());
     }
     block->use = use;
     block->def = def;
@@ -845,34 +705,42 @@ void IRGenerator::liveness_analyse() {
 }
 
 void IRGenerator::insert_phi() {
-  for (const auto& block : cfg_->Blocks()) {
-    // block have more than one predecessor
-    if (cfg_->Predecessors(block->id).size() > 1) {
-      // find all defined vars
-      std::map<SymbolPtr, std::vector<SymbolPtr>>
-          phi_candidates;  // var -> ssa var
-      for (const auto& pred : cfg_->Predecessors(block->id)) {
-        for (const auto& v : pred->def) {
-          phi_candidates[v].push_back(v);
-        }
-      }
+  // for (const auto& block : cfg_->Blocks()) {
+  //   // block have more than one predecessor
+  //   if (cfg_->Predecessors(block->id).size() > 1) {
+  //     // find all defined vars
+  //     std::map<SymbolPtr, std::vector<SymbolPtr>>
+  //         phi_candidates;  // var -> ssa var
+  //     for (const auto& pred : cfg_->Predecessors(block->id)) {
+  //       for (const auto& v : pred->def) {
+  //         phi_candidates[v].push_back(v);
+  //       }
+  //     }
 
-      for (const auto& [var, versions] : phi_candidates) {
-        if (versions.size() > 1) {
-          // new phi var
-          auto phi_var = new_phi_variable(var, block->id);
-          auto phi_instr = IRInstructionA2{map_op("phi"), phi_var};
-          phi_instr.phi_srcs = versions;
+  //     for (const auto& [var, versions] : phi_candidates) {
+  //       if (versions.size() > 1) {
+  //         // new phi var
+  //         auto phi_var = new_phi_variable(var, block->id);
+  //         auto phi_instr =
+  //             std::make_shared<IRInstruction>(map_op("phi"), phi_var);
+  //         phi_instr->phi_srcs = versions;
 
-          // 5. 在block的起始插入PHI指令
-          // ir_list.insert(ir_list.begin() + block->instr_indices.front(),
-          //                phi_instr);
-          // 6. 后续此block内的该变量，统一用phi_var
-          // 实现细节：用map或在block里替换
-        }
-      }
-    }
-  }
+  //         for (auto& ins : block->instrs) {
+  //           if (ins->Op()->Name() == "phi") continue;
+  //           // if we have a new ssa version, stop here
+  //           if (ins->DST() && ins->DST() == var) break;
+
+  //           for (auto& sym : ins->Use()) {
+  //             if (!sym) continue;
+  //             sym = phi_var;
+  //           }
+  //         }
+
+  //         block->instrs.insert(block->instrs.begin(), phi_instr);
+  //       }
+  //     }
+  //   }
+  // }
 }
 
 auto IRGenerator::ControlFlowGraph() -> ControlFlowGraphPtr { return cfg_; }
@@ -881,4 +749,67 @@ void IRGenerator::PrintCFG(const std::string& path) {
   std::ofstream f(path);
   cfg_->Print(f);
   f.close();
+}
+
+void IRGenerator::instruction_level_liveness_analyse() {
+  auto blocks = cfg_->Blocks();
+
+  std::unordered_map<int, std::vector<IRInstructionPtr>> block_instrs;
+  for (auto& bb : blocks) {
+    block_instrs[bb->id] = bb->Instrs();
+  }
+
+  bool changed = true;
+  while (changed) {
+    changed = false;
+
+    for (auto& bb : blocks) {
+      auto& idxs = block_instrs[bb->id];
+      if (idxs.empty()) continue;
+
+      // last ins out = block out
+      auto last = idxs.back();
+      auto old_out = last->LiveOut;
+      last->LiveOut = bb->out;
+      if (last->LiveOut != old_out) changed = true;
+
+      // iterate downward
+      for (int k = static_cast<int>(idxs.size()) - 1; k >= 0; --k) {
+        const auto& i = idxs[k];
+        // live_in = use ∪ (live_out - def)
+        std::set<SymbolPtr> new_in;
+        // use & def of ins
+        std::vector<SymbolPtr> use;
+        std::vector<SymbolPtr> def;
+        // ins.Use() return dst/srcs
+        for (auto& s : i->Use()) {
+          if (IsVariable(s)) use.push_back(s);
+        }
+
+        if (i->DST() && IsVariable(i->DST())) def.push_back(i->DST());
+
+        // out->in diff
+        std::set<SymbolPtr> diff;
+        std::set_difference(i->LiveOut.begin(), i->LiveOut.end(), def.begin(),
+                            def.end(), std::inserter(diff, diff.end()));
+        // use ∪ diff
+        new_in.insert(use.begin(), use.end());
+        new_in.insert(diff.begin(), diff.end());
+
+        if (new_in != i->LiveIn) {
+          i->LiveIn = std::move(new_in);
+          changed = true;
+        }
+
+        // live_out[i-1] = live_in[i]
+        if (k > 0) {
+          const auto& prev = idxs[k - 1];
+          if (prev->LiveOut != i->LiveIn) {
+            prev->LiveOut = i->LiveIn;
+            changed = true;
+          }
+        }
+      }
+    }
+  }
 }

@@ -9,15 +9,31 @@
 struct CFGBasicBlock {
   int id;
   std::string label;
-  std::vector<IRInstructionA2Ptr> instrs;  // index in ir array
 
   std::set<SymbolPtr> use;
   std::set<SymbolPtr> def;
   std::set<SymbolPtr> in;
   std::set<SymbolPtr> out;
 
-  explicit CFGBasicBlock(int id, std::string label = "")
-      : id(id), label(std::move(label)) {}
+  explicit CFGBasicBlock(int id, std::string label = "", bool ir2_mode = false)
+      : id(id), label(std::move(label)), ir2_mode_(ir2_mode) {}
+
+  [[nodiscard]] auto IR2Mode() const -> bool { return ir2_mode_; }
+
+  auto Instrs() -> std::vector<IRInstructionPtr>& {
+    assert(ir2_mode_ == false);
+    return instrs_;
+  }
+
+  auto Instr2As() -> std::vector<IRInstructionA2Ptr>& {
+    assert(ir2_mode_ == true);
+    return instr_a2s_;
+  }
+
+ private:
+  bool ir2_mode_;
+  std::vector<IRInstructionPtr> instrs_;       // index in ir array
+  std::vector<IRInstructionA2Ptr> instr_a2s_;  // index in ir array (2 addr)
 };
 using CFGBasicBlockPtr = std::shared_ptr<CFGBasicBlock>;
 
@@ -55,6 +71,10 @@ class ControlFlowGraph {
   [[nodiscard]] auto Graph() const -> const CFGGraph&;
 
   void Print(std::ostream& os) const;
+
+  [[nodiscard]] auto Instructions() const -> std::vector<IRInstructionPtr>;
+
+  [[nodiscard]] auto Instruction2As() const -> std::vector<IRInstructionA2Ptr>;
 
  private:
   CFGGraph g_;

@@ -9,20 +9,22 @@
 #include "Utils.h"
 
 ASMGenerator::ASMGenerator(SymbolTablePtr symbol_table, bool r32,
-                           const std::vector<IRInstructionA2Ptr>& ir,
                            ControlFlowGraphPtr cfg)
     : symbol_table_(std::move(symbol_table)),
       helper_(SymbolType::kIR, symbol_table_),
       r32_(r32),
-      ir_(ir),
       cfg_(std::move(cfg)) {}
 
 void ASMGenerator::Generate(const std::string& path) {
+  ir2_ = cfg_->Instruction2As();
+
   build_inf_graph();
 
   mcs();
 
   alloc_reg();
+
+  handle_spling_var();
 
   optimums();
 
@@ -30,7 +32,7 @@ void ASMGenerator::Generate(const std::string& path) {
 
   if (stack_offset_ != 0) alloc_stack_memory();
 
-  for (const auto& i : ir_opt_) translate(i);
+  for (const auto& i : ir_opt_) translate(*i);
 
   generate_gcc_asm(path);
 }
@@ -60,13 +62,6 @@ inline auto IsGlobalVar(const SymbolPtr& s) -> bool {
 inline auto IsInMemory(const SymbolPtr& s) -> bool {
   if (s == nullptr) return false;  // empty symbol
   return IsStackAccess(s) || IsGlobalVar(s);
-}
-
-auto SymLoc(const SymbolPtr& op) -> std::string {
-  if (op == nullptr) return {};
-  auto loc = op->MetaData(SymbolMetaKey::kLOCATION);
-  if (!loc.has_value()) return "";
-  return std::any_cast<std::string>(loc);
 }
 
 }  // namespace
@@ -101,6 +96,8 @@ void ASMGenerator::translate(const IRInstructionA2& i) {
   } else if (op == "eq" || op == "neq" || op == "lt" || op == "le" ||
              op == "gt" || op == "ge" || op == "cmp") {
     emit_cmp_op(op, i);
+  } else if (op == "andlog" || op == "orlog") {
+    emit_logic_op(op, i);
   } else if (op == "neg") {
     asm_.push_back("neg" + suffix + " " + dst);
   } else if (op == "label") {
@@ -342,7 +339,6 @@ void ASMGenerator::alloc_reg() {
                                         vertex_order.size()),
       colored_map);
 
-  std::set<SymbolPtr> spilled_vars;
   auto name_map = boost::get(boost::vertex_name, graph);
 
   for (const auto& [v, color] : color_map_storage) {
@@ -354,92 +350,26 @@ void ASMGenerator::alloc_reg() {
       var->MetaRef(SymbolMetaKey::kLOCATION) = registers[color];
     } else {
       var->MetaRef(SymbolMetaKey::kIS_SPILLED) = true;
-      spilled_vars.insert(var);
+      spilled_vars_.insert(var);
     }
   }
 
   for (const auto& var : mcs_order_) {
     if (!var->MetaRef(SymbolMetaKey::kLOCATION).has_value()) {
       var->MetaRef(SymbolMetaKey::kIS_SPILLED) = true;
-      spilled_vars.insert(var);
+      spilled_vars_.insert(var);
     }
   }
-
-  ir_opt_ = handle_spling_var(spilled_vars);
 }
 
 void ASMGenerator::build_inf_graph() {
-  std::set<SymbolPtr> live;
   std::set<SymbolPtr> all_vars;
 
-  for (const auto& instr : ir_) {
+  for (const auto& instr : ir2_) {
     for (const auto& sym : instr->Use()) {
       // no reg name yet
       // but have label
       if (sym && IsVariable(sym)) all_vars.insert(sym);
-    }
-  }
-
-  auto blocks = cfg_->Blocks();
-
-  std::map<IRInstructionA2Ptr, std::set<SymbolPtr>> live_in;
-  std::map<IRInstructionA2Ptr, std::set<SymbolPtr>> live_out;
-
-  std::unordered_map<int, std::vector<IRInstructionA2Ptr>> block_instrs;
-  for (auto& bb : blocks) {
-    block_instrs[bb->id] = bb->instrs;
-  }
-
-  bool changed = true;
-  while (changed) {
-    changed = false;
-
-    for (auto& bb : blocks) {
-      auto& idxs = block_instrs[bb->id];
-      if (idxs.empty()) continue;
-
-      // last ins out = block out
-      auto last = idxs.back();
-      auto old_out = live_out[last];
-      live_out[last] = bb->out;
-      if (live_out[last] != old_out) changed = true;
-
-      // iterate downward
-      for (int k = static_cast<int>(idxs.size()) - 1; k >= 0; --k) {
-        auto i = idxs[k];
-        // live_in = use ∪ (live_out - def)
-        std::set<SymbolPtr> new_in;
-        // use & def of ins
-        std::vector<SymbolPtr> use;
-        std::vector<SymbolPtr> def;
-        // ins.Use() return dst/src/src_2
-        for (auto& s : i->Use()) {
-          if (IsVariable(s)) use.push_back(s);
-        }
-        if (i->dst && IsVariable(i->dst)) def.push_back(i->dst);
-
-        // out->in diff
-        std::set<SymbolPtr> diff;
-        std::set_difference(live_out[i].begin(), live_out[i].end(), def.begin(),
-                            def.end(), std::inserter(diff, diff.end()));
-        // use ∪ diff
-        new_in.insert(use.begin(), use.end());
-        new_in.insert(diff.begin(), diff.end());
-
-        if (new_in != live_in[i]) {
-          live_in[i] = std::move(new_in);
-          changed = true;
-        }
-
-        // live_out[i-1] = live_in[i]
-        if (k > 0) {
-          auto prev = idxs[k - 1];
-          if (live_out[prev] != live_in[i]) {
-            live_out[prev] = live_in[i];
-            changed = true;
-          }
-        }
-      }
     }
   }
 
@@ -449,9 +379,9 @@ void ASMGenerator::build_inf_graph() {
   }
 
   // build inf graph
-  for (const auto& i : ir_) {
+  for (const auto& i : ir2_) {
     if (i->dst && IsVariable(i->dst)) {
-      for (const auto& live_var : live_out[i]) {
+      for (const auto& live_var : i->LiveOut) {
         if (live_var != i->dst) {
           inf_graph_.AddEdge(i->dst, live_var);
         }
@@ -547,45 +477,31 @@ void ASMGenerator::mcs() {
   mcs_order_ = order;
 }
 
-void ASMGenerator::PrintIR(const std::string& path) {
+void ASMGenerator::PrintFinalIR(const std::string& path) {
   std::ofstream f(path);
-  for (const auto& i : ir_opt_) {
-    f << std::left << std::setw(12) << i.op->Name();
-
-    if (i.dst) {
-      f << i.dst->Name();
-      if (i.src) f << ", " << i.src->Name();
-      if (i.src_2) f << ", " << i.src_2->Name();
-    } else if (i.src) {
-      f << i.src->Name();
-      if (i.src_2) f << ", " << i.src_2->Name();
-    }
-
-    f << "\n";
-  }
+  PrintInstructionA2s(f, ir_opt_);
   f.close();
 }
 
 void ASMGenerator::optimums() {
-  std::vector<IRInstructionA2> n_ir;
+  std::vector<IRInstructionA2Ptr> n_ir;
 
-  for (const auto i : ir_opt_) {
-    if (i.op->Name() == "mov" && i.dst == i.src) continue;
+  for (const auto& i : ir_opt_) {
+    if (i->op->Name() == "mov" && i->dst == i->src) continue;
     n_ir.push_back(i);
   }
 
   ir_opt_ = n_ir;
 }
 
-auto ASMGenerator::handle_spling_var(const std::set<SymbolPtr>& spilled_vars)
-    -> std::vector<IRInstructionA2> {
+void ASMGenerator::handle_spling_var() {
   std::unordered_map<SymbolPtr, int> stack_offset;
-  for (const auto& var : spilled_vars) {
+  for (const auto& var : spilled_vars_) {
     stack_offset_ -= stack_offset_dt_;
     stack_offset[var] = stack_offset_;
   }
 
-  for (const auto& var : spilled_vars) {
+  for (const auto& var : spilled_vars_) {
     var->MetaRef(SymbolMetaKey::kIN_STACK) = true;
     var->MetaRef(SymbolMetaKey::kLOCATION) =
         std::to_string(stack_offset[var]) + "(" + bp_ + ")";
@@ -611,7 +527,7 @@ auto ASMGenerator::handle_spling_var(const std::set<SymbolPtr>& spilled_vars)
 
   const auto op_mov = helper_.LookupSymbol(nullptr, "mov");
 
-  for (const auto& p_i : ir_) {
+  for (const auto& p_i : ir2_) {
     const auto& i = *p_i;
     bool sp_src =
         i.src && i.src->MetaRef(SymbolMetaKey::kIS_SPILLED).has_value();
@@ -680,7 +596,9 @@ auto ASMGenerator::handle_spling_var(const std::set<SymbolPtr>& spilled_vars)
     }
   }
 
-  return n_ir;
+  for (const auto& i : n_ir) {
+    ir_opt_.push_back(std::make_shared<IRInstructionA2>(i));
+  }
 }
 
 void ASMGenerator::alloc_stack_for_immediate(const SymbolPtr& val) {
@@ -719,4 +637,14 @@ auto ASMGenerator::map_sym(const std::string& name, const std::string& type)
 
 auto ASMGenerator::map_reg(const std::string& name) -> SymbolPtr {
   return symbol_table_->AddSymbol(SymbolType::kAST, name, "register", true);
+}
+
+auto ASMGenerator::map_op(const std::string& name) -> SymbolPtr {
+  return helper_.LookupSymbol(nullptr, name);
+}
+
+void ASMGenerator::PrintIFG(const std::string& path) {
+  std::ofstream f(path);
+  inf_graph_.Print(f);
+  f.close();
 }

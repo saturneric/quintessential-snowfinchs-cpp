@@ -57,15 +57,15 @@ auto InterferenceGraph::Variables() const -> std::vector<SymbolPtr> {
   return vars;
 }
 
-void InterferenceGraph::Print() const {
+void InterferenceGraph::Print(std::ostream& os) const {
   auto name_map = boost::get(boost::vertex_name, graph_);
-  for (const auto& [name, v] : sym_2_vtx_) {
-    std::cout << name << ": { ";
+  for (const auto& [sym, v] : sym_2_vtx_) {
+    os << sym->Name() << ": { ";
     auto [begin, end] = boost::adjacent_vertices(v, graph_);
     for (auto it = begin; it != end; ++it) {
-      std::cout << name_map[*it] << " ";
+      os << name_map[*it]->Name() << " ";
     }
-    std::cout << "}\n";
+    os << "}\n";
   }
 }
 auto InterferenceGraph::GetGraph() const -> const Graph& { return graph_; }

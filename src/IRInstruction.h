@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "Symbol.h"
 
 struct IRInstructionA2 {
@@ -10,8 +12,9 @@ struct IRInstructionA2 {
   // for le, gt...
   SymbolPtr src_2;
 
-  // for phi only
-  std::vector<SymbolPtr> phi_srcs;
+  std::set<SymbolPtr> LiveIn;
+
+  std::set<SymbolPtr> LiveOut;
 
   explicit IRInstructionA2(SymbolPtr op, SymbolPtr dst = nullptr,
                            SymbolPtr src = nullptr)
@@ -23,15 +26,41 @@ struct IRInstructionA2 {
 using IRInstructionA2Ptr = std::shared_ptr<IRInstructionA2>;
 
 struct IRInstruction {
-  SymbolPtr op;
-  SymbolPtr dst;
-  SymbolPtr src_1;
-  SymbolPtr src_2;
-
   explicit IRInstruction(SymbolPtr op, SymbolPtr dst = nullptr,
-                         SymbolPtr src_1 = nullptr, SymbolPtr src_2 = nullptr)
-      : op(std::move(op)),
-        dst(std::move(dst)),
-        src_1(std::move(src_1)),
-        src_2(std::move(src_2)) {}
+                         const SymbolPtr& src_1 = nullptr,
+                         const SymbolPtr& src_2 = nullptr);
+
+  auto Op() -> SymbolPtr;
+
+  auto DST() -> SymbolPtr;
+
+  auto SRC(int i) -> SymbolPtr;
+
+  auto Use() -> std::vector<SymbolPtr>&;
+
+  std::set<SymbolPtr> LiveIn;
+
+  std::set<SymbolPtr> LiveOut;
+
+ private:
+  SymbolPtr op_;
+  SymbolPtr dst_;
+  std::vector<SymbolPtr> srcs_;
 };
+
+using IRInstructionPtr = std::shared_ptr<IRInstruction>;
+
+const std::string kBinOpType = "binop";
+const std::string kUnOpType = "unop";
+const std::string kCmpOpType = "cmpop";
+
+inline auto IsCondJump(const SymbolPtr& op) -> bool {
+  auto n = op->Name();
+  return n == "jmp" || n == "je" || n == "jne" || n == "jg" || n == "jl" ||
+         n == "jge" || n == "jle";
+}
+
+inline auto IsJump(const SymbolPtr& op) -> bool {
+  auto n = op->Name();
+  return n == "jmp" || IsCondJump(op);
+}

@@ -1,5 +1,7 @@
 #include "ControlFlowGraph.h"
 
+#include "Utils.h"
+
 auto ControlFlowGraph::AddBlock(const CFGBasicBlockPtr& bb) -> Vertex {
   Vertex v = boost::add_vertex(VertexProp{bb}, g_);
   bb_map_[bb->id] = v;
@@ -69,5 +71,31 @@ void ControlFlowGraph::Print(std::ostream& os) const {
       if (!pred->label.empty()) os << "(" << pred->label << ")";
     }
     os << "\n";
+    os << "  Instructions:" << "\n";
+
+    if (bb->IR2Mode()) {
+      PrintInstructionA2s(os, bb->Instr2As());
+    } else {
+      PrintInstructions(os, bb->Instrs());
+    }
+
+    os << "\n";
   }
+}
+
+auto ControlFlowGraph::Instructions() const -> std::vector<IRInstructionPtr> {
+  std::vector<IRInstructionPtr> ret;
+  for (const auto& block : Blocks()) {
+    ret.insert(ret.end(), block->Instrs().begin(), block->Instrs().end());
+  }
+  return ret;
+}
+
+auto ControlFlowGraph::Instruction2As() const
+    -> std::vector<IRInstructionA2Ptr> {
+  std::vector<IRInstructionA2Ptr> ret;
+  for (const auto& block : Blocks()) {
+    ret.insert(ret.end(), block->Instr2As().begin(), block->Instr2As().end());
+  }
+  return ret;
 }
