@@ -25,6 +25,17 @@ void PrintInstructions(std::ostream& f,
       if (i.src_2) f << ", " << i.src_2->Name();
     }
 
+    f << "    // ";
+
+    if (i.dst) {
+      f << i.dst->Value();
+      if (i.src_1) f << ", " << i.src_1->Value();
+      if (i.src_2) f << ", " << i.src_2->Value();
+    } else if (i.src_1) {
+      f << i.src_1->Value();
+      if (i.src_2) f << ", " << i.src_2->Value();
+    }
+
     f << "\n";
   }
 }
@@ -39,6 +50,15 @@ void PrintInstructionA2s(std::ostream& f,
       if (i.src) f << ", " << i.src->Name();
     } else if (i.src) {
       f << i.src->Name();
+    }
+
+    f << "    // ";
+
+    if (i.dst) {
+      f << i.dst->Value();
+      if (i.src) f << ", " << i.src->Value();
+    } else if (i.src) {
+      f << i.src->Value();
     }
 
     f << "\n";
@@ -204,7 +224,7 @@ auto IfHandler(IRGenerator::Context* ctx, const ASTNodePtr& node) -> SymbolPtr {
     ctx->AddIns("label", {}, label_then);
     ctx->ExpRoute(children[1]);  // then
     ctx->AddIns("jmp", {}, label_end);
-    ctx->AddIns("label", label_else);
+    ctx->AddIns("label", {}, label_else);
     ctx->ExpRoute(children.back());  // else
     ctx->AddIns("label", {}, label_end);
   } else {
@@ -423,12 +443,9 @@ void IRGenerator::convert_ira3_2_ira2() {
     }
 
     if (op_type == kCmpOpType) {
-      auto t0 = new_temp_variable();
-      auto t1 = new_temp_variable();
-      res.emplace_back(map_op("mov"), t0, i.src_1);
-      res.emplace_back(map_op("cmp"), t0, i.src_2);
-      res.emplace_back(i.op, t1, t0);
-      res.emplace_back(map_op("mov"), i.dst, t1);
+      res.emplace_back(i.op, i.dst, i.src_1);
+      res.back().src_2 = i.src_2;
+      continue;
     }
 
     if (op == "mov") {
@@ -448,12 +465,12 @@ void IRGenerator::convert_ira3_2_ira2() {
     }
 
     if (op == "jmp") {
-      res.emplace_back(i.op, i.src_1);
+      res.emplace_back(i.op, nullptr, i.src_1);
       continue;
     }
 
     if (op == "label") {
-      res.emplace_back(i.op, i.src_1);
+      res.emplace_back(i.op, nullptr, i.src_1);
       continue;
     }
 

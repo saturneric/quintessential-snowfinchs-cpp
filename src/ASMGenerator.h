@@ -38,6 +38,8 @@ class ASMGenerator {
 
   void emit_binary_op(const std::string& asm_op, const IRInstructionA2& instr);
 
+  void emit_cmp_op(const std::string& asm_op, const IRInstructionA2& i);
+
   void optimums();
 
   auto format_operand(const SymbolPtr& operand) -> std::string;

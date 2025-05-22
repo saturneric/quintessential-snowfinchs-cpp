@@ -38,6 +38,11 @@ auto IsImmediate(const SymbolPtr& s) -> bool {
   return s->Value() == "immediate";
 }
 
+auto IsVariable(const SymbolPtr& s) -> bool {
+  if (s == nullptr) return false;  // empty symbol
+  return s->Value() == "variable";
+}
+
 inline auto IsStackAccess(const SymbolPtr& s) -> bool {
   if (s == nullptr) return false;  // empty symbol
   // "-4(%esp)" or "-8(%rsp)"
@@ -91,20 +96,57 @@ void ASMGenerator::translate(const IRInstructionA2& i) {
     } else {
       asm_.push_back(op_mov + " " + src + ", " + dst);
     }
-  } else if (op == "load") {
-    asm_.push_back(op_mov + " " + src + ", " + dst);
-  } else if (op == "store") {
-    asm_.push_back(op_mov + " " + src + ", " + dst);
-  } else if (op == "add") {
-    emit_binary_op("add" + suffix, i);
-  } else if (op == "sub") {
-    emit_binary_op("sub" + suffix, i);
-  } else if (op == "mul") {
-    emit_binary_op("imul" + suffix, i);
-  } else if (op == "div" || op == "mod") {
+  } else if (op == "add" || op == "sub" || op == "mul" || op == "div" ||
+             op == "mod") {
+    emit_binary_op(op, i);
+  } else if (op == "eq" || op == "neq" || op == "lt" || op == "le" ||
+             op == "gt" || op == "ge" || op == "cmp") {
+    emit_cmp_op(op, i);
+  } else if (op == "neg") {
+    asm_.push_back("neg" + suffix + " " + dst);
+  } else if (op == "label") {
+    asm_.push_back(src + ": ");
+  } else if (op == "je" || op == "jmp" || op == "and" || op == "or") {
+    asm_.push_back(op + " " + src);
+  } else if (op == "rtn") {
+    asm_.push_back(op_mov + " " + src +
+                   std::string{r32_ ? ", %eax" : ", %rax"});
+    if (stack_offset_ != 0) asm_.push_back("leave");
+    asm_.emplace_back("ret");
+  } else {
+    asm_.push_back("# unsupported op: " + op);
+  }
+}
+
+void ASMGenerator::emit_binary_op(const std::string& op,
+                                  const IRInstructionA2& i) {
+  std::string suffix = r32_ ? "l" : "q";
+  std::string acc_reg = r32_ ? "%eax" : "%rax";
+  std::string rem_reg = r32_ ? "%edx" : "%rdx";
+
+  const auto s_src = i.src;
+  const auto s_dst = i.dst;
+  const auto src = format_operand(s_src);
+  const auto dst = format_operand(s_dst);
+
+  const auto op_mov = "mov" + suffix;
+
+  if (op == "add") {
+    asm_.push_back(op + suffix + " " + src + ", " + dst);
+  }
+
+  else if (op == "sub") {
+    asm_.push_back(op + suffix + " " + src + ", " + dst);
+  }
+
+  else if (op == "mul") {
+    asm_.push_back("imul" + suffix + " " + src + ", " + dst);
+  }
+
+  else if (op == "div" || op == "mod") {
     asm_.push_back(op_mov + " " + dst + ", " + acc_reg);
 
-    asm_.push_back(r32_ ? "cltd" : "cqto");
+    asm_.emplace_back(r32_ ? "cltd" : "cqto");
     if (IsImmediate(s_src) && SymLoc(s_src).empty()) {
       alloc_stack_for_immediate(s_src);
 
@@ -119,26 +161,72 @@ void ASMGenerator::translate(const IRInstructionA2& i) {
     } else {
       asm_.push_back(op_mov + " " + acc_reg + ", " + dst);
     }
-  } else if (op == "neg") {
-    asm_.push_back("neg" + suffix + " " + dst);
-  } else if (op == "rtn") {
-    asm_.push_back(op_mov + " " + src +
-                   std::string{r32_ ? ", %eax" : ", %rax"});
-    if (stack_offset_ != 0) asm_.push_back("leave");
-    asm_.push_back("ret");
-  } else {
-    asm_.push_back("# unsupported op: " + op);
   }
 }
 
-void ASMGenerator::emit_binary_op(const std::string& asm_op,
-                                  const IRInstructionA2& instr) {
-  asm_.push_back(asm_op + " " + format_operand(instr.src) + ", " +
-                 format_operand(instr.dst));
+void ASMGenerator::emit_cmp_op(const std::string& op,
+                               const IRInstructionA2& i) {
+  std::string suffix = r32_ ? "l" : "q";
+  std::string acc_reg = r32_ ? "%eax" : "%rax";
+  std::string acc_low_reg = "%al";
+  std::string rem_reg = r32_ ? "%edx" : "%rdx";
+
+  const auto s_src = i.src;
+  const auto s_dst = i.dst;
+  const auto src = format_operand(s_src);
+  const auto dst = format_operand(s_dst);
+
+  const auto op_mov = "mov" + suffix;
+
+  if (op == "cmp") {
+    asm_.push_back("cmp " + src + ", " + dst);
+  }
+
+  else if (op == "le") {
+    asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);
+    asm_.emplace_back("cmp " + src + ", " + format_operand(i.src_2));
+    asm_.push_back("sete " + acc_low_reg);
+    asm_.push_back("movzx " + acc_low_reg + ", " + rem_reg);
+    asm_.push_back(op_mov + " " + rem_reg + ", " + dst);
+  }
+
+  else if (op == "neq") {
+    asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);
+    asm_.emplace_back("cmp " + src + ", " + format_operand(i.src_2));
+    asm_.push_back("setne " + acc_low_reg);
+    asm_.push_back("movzx " + acc_low_reg + ", " + rem_reg);
+    asm_.push_back(op_mov + " " + rem_reg + ", " + dst);
+  }
+
+  else if (op == "lt") {
+    asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);
+    asm_.emplace_back("cmp " + src + ", " + format_operand(i.src_2));
+    asm_.push_back("setl " + acc_low_reg);
+    asm_.push_back("movzx " + acc_low_reg + ", " + rem_reg);
+    asm_.push_back(op_mov + " " + rem_reg + ", " + dst);
+  }
+
+  else if (op == "gt") {
+    asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);
+    asm_.emplace_back("cmp " + src + ", " + format_operand(i.src_2));
+    asm_.push_back("setg " + acc_low_reg);
+    asm_.push_back("movzx " + acc_low_reg + ", " + rem_reg);
+    asm_.push_back(op_mov + " " + rem_reg + ", " + dst);
+  }
+
+  else if (op == "ge") {
+    asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);
+    asm_.emplace_back("cmp " + src + ", " + format_operand(i.src_2));
+    asm_.push_back("setge " + acc_low_reg);
+    asm_.push_back("movzx " + acc_low_reg + ", " + rem_reg);
+    asm_.push_back(op_mov + " " + rem_reg + ", " + dst);
+  }
 }
 
 auto ASMGenerator::format_operand(const SymbolPtr& opr) -> std::string {
   if (opr == nullptr) return {};
+
+  if (opr->Value() == "label") return opr->Name();
 
   // is register
   if (opr->Value() == "register") return opr->Name();
@@ -239,8 +327,9 @@ void ASMGenerator::build_inf_graph() {
 
   for (const auto& instr : ir_) {
     // no reg name yet
-    if (instr.src && !IsImmediate(instr.src)) all_vars.insert(instr.src);
-    if (instr.dst && !IsImmediate(instr.dst)) all_vars.insert(instr.dst);
+    // but have label
+    if (instr.src && IsVariable(instr.src)) all_vars.insert(instr.src);
+    if (instr.dst && IsVariable(instr.dst)) all_vars.insert(instr.dst);
   }
 
   for (int i = static_cast<int>(ir_.size()) - 1; i >= 0; --i) {
@@ -251,11 +340,11 @@ void ASMGenerator::build_inf_graph() {
 
     if (ins.src && !IsImmediate(ins.src)) use.push_back(ins.src);
 
-    if (ins.dst && ins.op->Name() != "mov" && !IsImmediate(ins.dst)) {
+    if (def && ins.op->Name() != "mov" && IsVariable(ins.dst)) {
       use.push_back(ins.dst);
     }
 
-    if (!IsImmediate(def)) {
+    if (def && IsVariable(def)) {
       for (const auto& v : live) {
         if (v != def) {
           inf_graph_.AddEdge(def, v);
@@ -272,6 +361,8 @@ void ASMGenerator::build_inf_graph() {
   for (const auto& var : all_vars) {
     inf_graph_.AddVariable(var);
   }
+
+  vars_ = all_vars;
 }
 
 void ASMGenerator::generate_gcc_asm(const std::string& path) {
@@ -367,8 +458,10 @@ void ASMGenerator::PrintIR(const std::string& path) {
     if (i.dst) {
       f << i.dst->Name();
       if (i.src) f << ", " << i.src->Name();
+      if (i.src_2) f << ", " << i.src_2->Name();
     } else if (i.src) {
       f << i.src->Name();
+      if (i.src_2) f << ", " << i.src_2->Name();
     }
 
     f << "\n";
@@ -451,6 +544,7 @@ auto ASMGenerator::handle_spling_var(const std::set<SymbolPtr>& spilled_vars)
       n_ir.emplace_back(op_mov, reg_1, dst);
 
       n_ir.emplace_back(i.op, reg_1, reg_0);
+      n_ir.back().src_2 = i.src_2;  // sync src_2
 
       n_ir.emplace_back(op_mov, dst, reg_1);
       n_ir.emplace_back(op_mov, reg_0, tmp_backup_0);  // restore %r10
@@ -462,7 +556,10 @@ auto ASMGenerator::handle_spling_var(const std::set<SymbolPtr>& spilled_vars)
 
       n_ir.emplace_back(op_mov, tmp_backup_0, reg_1);  // save %r11
       n_ir.emplace_back(op_mov, reg_1, src);
+
       n_ir.emplace_back(i.op, dst, reg_1);
+      n_ir.back().src_2 = i.src_2;  // sync src_2
+
       n_ir.emplace_back(op_mov, reg_1, tmp_backup_0);  // restore %r11
     }
 
@@ -474,6 +571,7 @@ auto ASMGenerator::handle_spling_var(const std::set<SymbolPtr>& spilled_vars)
       //  dst -> reg_1
       n_ir.emplace_back(op_mov, reg_1, dst);
       n_ir.emplace_back(i.op, reg_1, src);
+      n_ir.back().src_2 = i.src_2;  // sync src_2
       n_ir.emplace_back(op_mov, dst, reg_1);
       //  mem -> reg_1
       n_ir.emplace_back(op_mov, reg_1, tmp_backup_0);  // restore %r11

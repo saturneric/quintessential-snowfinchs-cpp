@@ -13,6 +13,9 @@ struct IRInstructionA2 {
   SymbolPtr dst;
   SymbolPtr src;
 
+  // for le, gt...
+  SymbolPtr src_2;
+
   explicit IRInstructionA2(SymbolPtr op, SymbolPtr dst = nullptr,
                            SymbolPtr src = nullptr)
       : op(std::move(op)), dst(std::move(dst)), src(std::move(src)) {}
