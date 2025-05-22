@@ -2,9 +2,9 @@
 
 #include <set>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
+#include "ControlFlowGraph.h"
 #include "IRGenerator.h"
 #include "InterferenceGraph.h"
 
@@ -26,6 +26,7 @@ class ASMGenerator {
 
   SymbolTablePtr symbol_table_;
   ScopedSymbolLookUpHelper helper_;
+  ControlFlowGraph cfg_;
   InterferenceGraph inf_graph_;
   std::vector<IRInstructionA2> ir_;
   std::vector<IRInstructionA2> ir_opt_;
@@ -33,6 +34,10 @@ class ASMGenerator {
   std::set<SymbolPtr> constants_;
   std::set<SymbolPtr> vars_;
   std::vector<SymbolPtr> mcs_order_;
+
+  void build_cfg();
+
+  void liveness_analyse();
 
   void translate(const IRInstructionA2& instr);
 

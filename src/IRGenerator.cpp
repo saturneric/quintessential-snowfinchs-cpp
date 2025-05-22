@@ -48,8 +48,10 @@ void PrintInstructionA2s(std::ostream& f,
     if (i.dst) {
       f << i.dst->Name();
       if (i.src) f << ", " << i.src->Name();
+      if (i.src_2) f << ", " << i.src_2->Name();
     } else if (i.src) {
       f << i.src->Name();
+      if (i.src_2) f << ", " << i.src_2->Name();
     }
 
     f << "    // ";
@@ -57,8 +59,10 @@ void PrintInstructionA2s(std::ostream& f,
     if (i.dst) {
       f << i.dst->Value();
       if (i.src) f << ", " << i.src->Value();
+      if (i.src_2) f << ", " << i.src_2->Value();
     } else if (i.src) {
       f << i.src->Value();
+      if (i.src_2) f << ", " << i.src_2->Value();
     }
 
     f << "\n";
@@ -601,4 +605,12 @@ auto IRGenerator::Context::NewLabel() -> SymbolPtr { return ig_->new_label(); }
 auto IRGenerator::new_label() -> SymbolPtr {
   auto tmp_var_name = "label_ir_" + std::to_string(tmp_var_idx_++);
   return map_sym(tmp_var_name, "label");
+}
+
+auto IRInstructionA2::Use() const -> std::vector<SymbolPtr> {
+  std::vector<SymbolPtr> ret;
+  if (dst) ret.emplace_back(dst);
+  if (src) ret.emplace_back(src);
+  if (src_2) ret.emplace_back(src_2);
+  return ret;
 }
