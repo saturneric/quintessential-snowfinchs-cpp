@@ -19,6 +19,7 @@ enum class SymbolMetaKey : SymbolMetaKeySizeType {
   kSCOPE,
   kTYPE,
   kHAS_INIT,
+  kIN_LOOP,
   kIS_SPILLED,
   kIN_REGISTER,
   kIN_STACK,

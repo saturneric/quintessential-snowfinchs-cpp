@@ -1,7 +1,9 @@
 #include "IRGenerator.h"
 
+#include <boost/graph/dominator_tree.hpp>
+#include <boost/property_map/property_map.hpp>
 #include <fstream>
-#include <utility>
+#include <queue>
 
 #include "SymbolMetaTypedef.h"
 #include "Utils.h"
@@ -481,6 +483,57 @@ void IRGenerator::convert2_ssa() {
   //   if (inst.dst != nullptr) n_inst.dst = map_ssa(inst.dst, true);
 
   //   ins_ssa_.push_back(n_inst);
+  // }
+
+  auto graph = cfg_->Graph();
+  const auto blocks = cfg_->Blocks();
+  std::map<SymbolPtr, std::set<int>> def_blocks;
+  for (auto& block : cfg_->Blocks()) {
+    for (const auto& v : block->def) {
+      def_blocks[v].insert(block->id);
+    }
+  }
+
+  std::vector<Vertex> dom_tree(num_vertices(graph));
+  auto entry = cfg_->VertexByBlockId(0);
+
+  lengauer_tarjan_dominator_tree(
+      graph, entry,
+      make_iterator_property_map(dom_tree.begin(),
+                                 get(boost::vertex_index, graph)));
+
+  std::vector<std::set<Vertex>> dom_frontier(num_vertices(graph));
+  for (Vertex v = 0; v < num_vertices(graph); ++v) {
+    if (in_degree(v, graph) >= 2) {  // more than one pre block
+      for (auto in_edge : make_iterator_range(in_edges(v, graph))) {
+        Vertex u = source(in_edge, graph);
+        Vertex runner = u;
+        while (runner != dom_tree[v] && runner != entry) {
+          dom_frontier[runner].insert(v);
+          runner = dom_tree[runner];
+        }
+      }
+    }
+  }
+
+  std::map<SymbolPtr, std::set<int>> phi_blocks;
+
+  // for (const auto& [var, blocks] : def_blocks) {
+  //   std::set<int> has_already;
+  //   std::queue<int> worklist;
+  //   for (auto b : blocks) worklist.push(b);
+
+  //   while (!worklist.empty()) {
+  //     auto x = worklist.front();
+  //     worklist.pop();
+  //     for (auto y : dom_frontier[x]) {
+  //       if (phi_blocks[var].count(y) == 0) {
+  //         phi_blocks[var].insert(y);
+  //         cfg_->VertexByBlockId(y)->insert_phi(var);  //
+  //         if (def_blocks[var].count(y) == 0) worklist.push(y);
+  //       }
+  //     }
+  //   }
   // }
 }
 

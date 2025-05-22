@@ -99,3 +99,7 @@ auto ControlFlowGraph::Instruction2As() const
   }
   return ret;
 }
+
+auto ControlFlowGraph::VertexByBlockId(int block_id) const -> Vertex {
+  return bb_map_.at(block_id);
+}

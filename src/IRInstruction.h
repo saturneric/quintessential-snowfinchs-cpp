@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "Symbol.h"
 
 struct IRInstructionA2 {

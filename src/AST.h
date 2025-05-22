@@ -58,7 +58,7 @@ class ASTNode {
   ASTNodeType type_;
   ASTNodeTag tag_;
   SymbolPtr symbol_;
-  ASTNode *parent_;
+  ASTNode *parent_ = nullptr;
   std::vector<ASTNodePtr> children_;
 };
 

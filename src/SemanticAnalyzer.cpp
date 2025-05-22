@@ -310,6 +310,8 @@ auto WhileHandler(SemanticAnalyzer* sa,
   auto children = node->Children();
   if (children.empty()) return node;
 
+  MetaSet(node->Symbol(), SymbolMetaKey::kIN_LOOP, true);
+
   // while
   if (children.size() < 3) {
     auto exp = router(children.front());
@@ -344,7 +346,26 @@ auto WhileHandler(SemanticAnalyzer* sa,
       continue;
     }
 
+    if (child->Tag() == ASTNodeTag::kSTEP) {
+      auto exp = router(child);
+      assert(exp != nullptr);
+
+      if (exp->Type() == ASTNodeType::kDECLARE) {
+        sa->Error(node, "No declaration in step statement.");
+      }
+      continue;
+    }
+
     router(child);
+  }
+
+  return node;
+}
+auto ContinueBreakHandler(SemanticAnalyzer* sa,
+                          const SemanticAnalyzer::NodeRouter& router,
+                          const ASTNodePtr& node) -> ASTNodePtr {
+  if (!MetaGet(node->Symbol(), SymbolMetaKey::kIN_LOOP, false)) {
+    sa->Error(node, "Continue or Break must not be placed outside a loop.");
   }
 
   return node;
@@ -366,6 +387,8 @@ std::map<ASTNodeType, SemanticAnalyzer::NodeHandler>
         {ASTNodeType::kIF, IfHandler},
         {ASTNodeType::kWHILE, WhileHandler},
         {ASTNodeType::kCOND_EXP, CondExpHandler},
+        {ASTNodeType::kCONTINUE, ContinueBreakHandler},
+        {ASTNodeType::kBREAK, ContinueBreakHandler},
 };
 
 SemanticAnalyzer::SemanticAnalyzer(SymbolTablePtr symbol_table)
@@ -376,6 +399,10 @@ SemanticAnalyzer::SemanticAnalyzer(SymbolTablePtr symbol_table)
 auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
   if (node == nullptr) return node;
   if (node_handler_register.count(node->Type()) == 0) return {};
+
+  if (node && (node->Parent() != nullptr)) {
+    node->Symbol()->Inheritance(node->Parent()->Symbol());
+  }
 
   return node_handler_register[node->Type()](
       this, [=](const ASTNodePtr& n) -> ASTNodePtr { return this->visit(n); },

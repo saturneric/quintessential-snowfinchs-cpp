@@ -58,14 +58,8 @@ void IR2Generator::convert_ira3_2_ira2() {
     }
 
     if (op == "brz") {
-      if (i->SRC(0)->Value() == "immediate") {
-        if (i->SRC(0)->Name() == "0") {
-          res.emplace_back(map_op("jmp"), nullptr, i->SRC(1));
-        }
-        continue;
-      }
-      res.emplace_back(map_op("cmp"), i->SRC(0), map_sym("0", "immediate"));
-      res.emplace_back(map_op("je"), nullptr, i->SRC(1));
+      res.emplace_back(i->Op(), nullptr, i->SRC(0));
+      res.back().src_2 = i->SRC(1);
       continue;
     }
 

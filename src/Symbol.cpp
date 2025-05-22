@@ -53,4 +53,6 @@ void Symbol::Inheritance(const SymbolPtr& parent) {
                 parent->MetaData(SymbolMetaKey::kCONTINUE_LABEL));
   this->SetMeta(SymbolMetaKey::kBREAK_LABEL,
                 parent->MetaData(SymbolMetaKey::kBREAK_LABEL));
+  this->SetMeta(SymbolMetaKey::kIN_LOOP,
+                parent->MetaData(SymbolMetaKey::kIN_LOOP));
 }

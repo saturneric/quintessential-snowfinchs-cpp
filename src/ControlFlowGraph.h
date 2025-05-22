@@ -59,6 +59,8 @@ class ControlFlowGraph {
 
   void AddEdge(int from_id, int to_id);
 
+  [[nodiscard]] auto VertexByBlockId(int block_id) const -> Vertex;
+
   [[nodiscard]] auto Blocks() const -> std::vector<CFGBasicBlockPtr>;
 
   [[nodiscard]] auto Successors(int id) const -> std::vector<CFGBasicBlockPtr>;

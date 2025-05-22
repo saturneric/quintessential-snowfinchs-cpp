@@ -52,7 +52,8 @@ class ASMGenerator {
 
   void optimums();
 
-  auto format_operand(const SymbolPtr& operand) -> std::string;
+  auto format_operand(const SymbolPtr& operand, bool force_use_loc = false)
+      -> std::string;
 
   void alloc_reg();
 
