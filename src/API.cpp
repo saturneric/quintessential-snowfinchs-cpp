@@ -51,12 +51,13 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
     return true;
   });
 
-  ASMGenerator asm_gen(symbol_table, !r64, ir2g.ControlFlowGraph());
+  ASMGenerator asm_gen(symbol_table, !r64,
+                       ir2g.ControlFlowGraph()->Instruction2As());
 
   ret = RunOperation("ASM Generator", [&]() {
     asm_gen.Generate(runtime_dir / "ASM.S");
     if (debug) asm_gen.PrintIFG(runtime_dir / "PrintIFG.txt");
-    if (debug) asm_gen.PrintFinalIR(runtime_dir / "PrintIROpt.txt");
+    if (debug) asm_gen.PrintFinalIR(runtime_dir / "PrintFinal.txt");
     return true;
   });
 

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "ControlFlowGraph.h"
+#include "IRInstruction.h"
 #include "InterferenceGraph.h"
 #include "ScopedSymbolTable.h"
 #include "SymbolTable.h"
@@ -12,7 +12,7 @@
 class ASMGenerator {
  public:
   explicit ASMGenerator(SymbolTablePtr symbol_table, bool r32,
-                        ControlFlowGraphPtr cfg);
+                        const std::vector<IRInstructionA2Ptr>& ir2);
 
   void Generate(const std::string& path);
 
@@ -29,15 +29,16 @@ class ASMGenerator {
 
   SymbolTablePtr symbol_table_;
   ScopedSymbolLookUpHelper helper_;
-  ControlFlowGraphPtr cfg_;
   InterferenceGraph inf_graph_;
   std::vector<IRInstructionA2Ptr> ir2_;
-  std::vector<IRInstructionA2Ptr> ir_opt_;
+  std::vector<IRInstructionA2Ptr> ir_final_;
   std::vector<std::string> asm_;
   std::set<SymbolPtr> constants_;
   std::set<SymbolPtr> vars_;
   std::vector<SymbolPtr> mcs_order_;
   std::set<SymbolPtr> spilled_vars_;
+
+  void gen_final_asm_source(const std::string& path);
 
   void translate(const IRInstructionA2& instr);
 

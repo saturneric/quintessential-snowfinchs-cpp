@@ -33,5 +33,10 @@
     "source_file_path": "lab2/A6.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 80
+  },
+  {
+    "source_file_path": "lab2/B1.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 52
   }
 ]

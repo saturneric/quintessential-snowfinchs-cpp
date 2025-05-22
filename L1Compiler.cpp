@@ -77,6 +77,10 @@ auto main(int argc, const char* argv[]) -> int {
     auto input = result["input"].as<std::string>();
     auto output = result["output"].as<std::string>();
 
+    if (debug) {
+      spdlog::set_level(spdlog::level::debug);
+    }
+
     auto [ret, runtime_path] = MakeRuntimeDirectory();
     if (!ret) return -1;
 

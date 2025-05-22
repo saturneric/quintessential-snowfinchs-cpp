@@ -9,32 +9,36 @@
 #include "Utils.h"
 
 ASMGenerator::ASMGenerator(SymbolTablePtr symbol_table, bool r32,
-                           ControlFlowGraphPtr cfg)
+                           const std::vector<IRInstructionA2Ptr>& ir2)
     : symbol_table_(std::move(symbol_table)),
       helper_(SymbolType::kIR, symbol_table_),
       r32_(r32),
-      cfg_(std::move(cfg)) {}
+      ir2_(ir2) {}
 
 void ASMGenerator::Generate(const std::string& path) {
-  ir2_ = cfg_->Instruction2As();
+  spdlog::stopwatch sw;
 
   build_inf_graph();
 
+  spdlog::debug("Built Inf Graph: {:.3}s", sw);
+
   mcs();
+
+  spdlog::debug("Run MCS: {:.3}s", sw);
 
   alloc_reg();
 
+  spdlog::debug("Allocated Register: {:.3}s", sw);
+
   handle_spling_var();
+
+  spdlog::debug("Handled Spilled Variables: {:.3}s", sw);
 
   optimums();
 
-  asm_.clear();
+  gen_final_asm_source(path);
 
-  if (stack_offset_ != 0) alloc_stack_memory();
-
-  for (const auto& i : ir_opt_) translate(*i);
-
-  generate_gcc_asm(path);
+  spdlog::debug("Generated ASM Source Code: {:.3}s", sw);
 }
 
 namespace {
@@ -425,18 +429,18 @@ void ASMGenerator::alloc_reg() {
 }
 
 void ASMGenerator::build_inf_graph() {
-  std::set<SymbolPtr> all_vars;
+  vars_.clear();
 
   for (const auto& instr : ir2_) {
     for (const auto& sym : instr->Use()) {
       // no reg name yet
       // but have label
-      if (sym && IsVariable(sym)) all_vars.insert(sym);
+      if (sym && IsVariable(sym)) vars_.insert(sym);
     }
   }
 
   // insert all vars in to graph
-  for (const auto& v : all_vars) {
+  for (const auto& v : vars_) {
     inf_graph_.AddVariable(v);
   }
 
@@ -450,8 +454,6 @@ void ASMGenerator::build_inf_graph() {
       }
     }
   }
-
-  vars_ = std::move(all_vars);
 }
 
 void ASMGenerator::generate_gcc_asm(const std::string& path) {
@@ -541,19 +543,19 @@ void ASMGenerator::mcs() {
 
 void ASMGenerator::PrintFinalIR(const std::string& path) {
   std::ofstream f(path);
-  PrintInstructionA2s(f, ir_opt_);
+  PrintInstructionA2s(f, ir_final_);
   f.close();
 }
 
 void ASMGenerator::optimums() {
   std::vector<IRInstructionA2Ptr> n_ir;
 
-  for (const auto& i : ir_opt_) {
+  for (const auto& i : ir_final_) {
     if (i->op->Name() == "mov" && i->dst == i->src) continue;
     n_ir.push_back(i);
   }
 
-  ir_opt_ = n_ir;
+  ir_final_ = n_ir;
 }
 
 void ASMGenerator::handle_spling_var() {
@@ -656,7 +658,7 @@ void ASMGenerator::handle_spling_var() {
   }
 
   for (const auto& i : n_ir) {
-    ir_opt_.push_back(std::make_shared<IRInstructionA2>(i));
+    ir_final_.push_back(std::make_shared<IRInstructionA2>(i));
   }
 }
 
@@ -706,4 +708,13 @@ void ASMGenerator::PrintIFG(const std::string& path) {
   std::ofstream f(path);
   inf_graph_.Print(f);
   f.close();
+}
+void ASMGenerator::gen_final_asm_source(const std::string& path) {
+  asm_.clear();
+
+  if (stack_offset_ != 0) alloc_stack_memory();
+
+  for (const auto& i : ir_final_) translate(*i);
+
+  generate_gcc_asm(path);
 }
