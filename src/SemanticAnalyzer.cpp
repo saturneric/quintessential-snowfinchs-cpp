@@ -157,7 +157,7 @@ auto BinOpHandler(SemanticAnalyzer* sa,
   auto sym_lhs_type = MetaGet<SymbolMetaType>(sym_lhs, SymbolMetaKey::kTYPE);
   auto sym_rhs_type = MetaGet<SymbolMetaType>(sym_rhs, SymbolMetaKey::kTYPE);
 
-  if (op == "+" || op == "-" || op == "*" || op == "/") {
+  if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
     if (sym_lhs_type != SymbolMetaType::kINT ||
         sym_rhs_type != SymbolMetaType::kINT) {
       sa->Error(node, "Operands must be integers for binary arithmetic op");
