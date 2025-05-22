@@ -232,6 +232,54 @@ void ASMGenerator::emit_cmp_op(const std::string& op,
   }
 }
 
+void ASMGenerator::emit_logic_op(const std::string& op,
+                                 const IRInstructionA2& i) {
+  std::string suffix = r32_ ? "l" : "q";
+  std::string acc_reg = r32_ ? "%eax" : "%rax";
+  std::string acc_low_reg = "%al";
+  std::string rem_reg = r32_ ? "%edx" : "%rdx";
+  std::string rem_low_reg = "%dl";
+
+  const auto s_src = i.src;
+  const auto s_dst = i.dst;
+  const auto src = format_operand(s_src);
+  const auto dst = format_operand(s_dst);
+
+  const auto op_mov = "mov" + suffix;
+
+  if (op == "andlog") {
+    asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);  // mov src -> %eax
+    asm_.emplace_back("test " + acc_reg + ", " + acc_reg);   // test %eax %eax
+    asm_.push_back("setne " + acc_low_reg);                  // test %al
+
+    asm_.emplace_back(op_mov + " " + dst + ", " + rem_reg);  // mov src -> %edx
+    asm_.emplace_back("test " + rem_reg + ", " + rem_reg);   // test %edx %edx
+    asm_.push_back("setne " + rem_low_reg);                  // test %dl
+
+    asm_.emplace_back("and " + rem_low_reg + ", " +
+                      acc_low_reg);  // and %dl %al -> %al
+    asm_.push_back("movzx " + acc_low_reg + ", " +
+                   acc_reg);  // movzx %al -> %eax
+    asm_.emplace_back(op_mov + " " + acc_reg + ", " + dst);  // mov %eax -> dst
+  }
+
+  if (op == "orlog") {
+    asm_.emplace_back(op_mov + " " + src + ", " + acc_reg);  // mov src -> %eax
+    asm_.emplace_back("test " + acc_reg + ", " + acc_reg);   // test %eax %eax
+    asm_.push_back("setne " + acc_low_reg);                  // test %al
+
+    asm_.emplace_back(op_mov + " " + dst + ", " + rem_reg);  // mov src -> %edx
+    asm_.emplace_back("test " + rem_reg + ", " + rem_reg);   // test %edx %edx
+    asm_.push_back("setne " + rem_low_reg);                  // test %dl
+
+    asm_.emplace_back("or " + rem_low_reg + ", " +
+                      acc_low_reg);  // and %dl %al -> %al
+    asm_.push_back("movzx " + acc_low_reg + ", " +
+                   acc_reg);  // movzx %al -> %eax
+    asm_.emplace_back(op_mov + " " + acc_reg + ", " + dst);  // mov %eax -> dst
+  }
+}
+
 auto ASMGenerator::format_operand(const SymbolPtr& opr) -> std::string {
   if (opr == nullptr) return {};
 
@@ -513,7 +561,7 @@ void ASMGenerator::mcs() {
 void ASMGenerator::PrintIR(const std::string& path) {
   std::ofstream f(path);
   for (const auto& i : ir_opt_) {
-    f << std::left << std::setw(6) << i.op->Name();
+    f << std::left << std::setw(12) << i.op->Name();
 
     if (i.dst) {
       f << i.dst->Name();

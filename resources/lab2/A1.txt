@@ -1,0 +1,15 @@
+int main()
+{
+    bool t = true;
+    bool f = false;
+
+    int a = t ? 1 : 2;
+    
+    if (f && t) a += 4;
+    while(f) {a += 1;}
+    if(f) {}
+    else { return a;}
+    
+    int b = 1 / 0;
+    return 1;
+}

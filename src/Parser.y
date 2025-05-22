@@ -219,8 +219,8 @@ control:
     | WHILE LEFT_BRACKET expression RIGHT_BRACKET statement
     {
       $$ = MakeASTTreeNode(ASTNodeType::kWHILE, "while", {}, drv);
-      $$->AddChild($3);
-      $$->AddChild($5);
+      $$->AddChild($3, ASTNodeTag::kCOND);
+      $$->AddChild($5, ASTNodeTag::kBODY);
     }
     | FOR LEFT_BRACKET { EnterScope(drv); } simple_optional SEMICOLON expression SEMICOLON simple_optional RIGHT_BRACKET statement
     {
@@ -289,7 +289,7 @@ expression:
 
     // ?:
     | expression QUESTION expression COLON expression %prec CON_EXP
-        { $$ = MakeASTTreeNode(ASTNodeType::kIF, "conditional_expression", {}, drv); $$->AddChild($1); $$->AddChild($3); $$->AddChild($5); }
+        { $$ = MakeASTTreeNode(ASTNodeType::kCOND_EXP, "conditional_expression", {}, drv); $$->AddChild($1); $$->AddChild($3); $$->AddChild($5); }
 
     // ! ~ -
     | LOGIC_NOT expression %prec UMINUS

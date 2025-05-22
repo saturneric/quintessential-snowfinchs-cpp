@@ -107,11 +107,16 @@ auto ValueHandler(SemanticAnalyzer* sa,
                   const ASTNodePtr& node) -> ASTNodePtr {
   int val;
   auto symbol = node->Symbol();
-  if (!SafeParseInt(symbol->Name(), val)) {
-    sa->Error(node, "Integer Overflow");
-  }
 
   TypeName2SymbolMetaType(sa, symbol, symbol->Value(), node);
+
+  if (MetaGet<SymbolMetaType>(symbol, SymbolMetaKey::kTYPE) ==
+      SymbolMetaType::kINT) {
+    if (!SafeParseInt(symbol->Name(), val)) {
+      sa->Error(node, "Integer Overflow");
+    }
+  }
+
   return node;
 }
 
@@ -259,6 +264,43 @@ auto IfHandler(SemanticAnalyzer* sa, const SemanticAnalyzer::NodeRouter& router,
   return node;
 }
 
+auto CondExpHandler(SemanticAnalyzer* sa,
+                    const SemanticAnalyzer::NodeRouter& router,
+                    const ASTNodePtr& node) -> ASTNodePtr {
+  // children: [condition, then, else]
+  auto children = node->Children();
+  if (children.empty()) return node;
+
+  // type check
+  auto exp = router(children.front());
+  auto sym = exp->Symbol();
+  auto sym_type = MetaGet<SymbolMetaType>(sym, SymbolMetaKey::kTYPE);
+  if (sym && sym_type != SymbolMetaType::kBOOL) {
+    sa->Error(node, "The condition of if-statement must be boolean type.");
+  }
+
+  // then value
+  auto lhs = router(children[1]);
+
+  // else value
+  auto rhs = router(children.back());
+
+  auto sym_lhs = lhs->Symbol();
+  auto sym_rhs = rhs->Symbol();
+
+  auto sym_lhs_type = MetaGet<SymbolMetaType>(sym_lhs, SymbolMetaKey::kTYPE);
+  auto sym_rhs_type = MetaGet<SymbolMetaType>(sym_rhs, SymbolMetaKey::kTYPE);
+
+  if (sym_lhs_type != sym_rhs_type) {
+    sa->Error(
+        node,
+        "The two sub-exp of condition expression must be as the same type.");
+  }
+
+  MetaSet(node->Symbol(), SymbolMetaKey::kTYPE, sym_lhs_type);
+  return node;
+}
+
 auto WhileHandler(SemanticAnalyzer* sa,
                   const SemanticAnalyzer::NodeRouter& router,
                   const ASTNodePtr& node) -> ASTNodePtr {
@@ -321,6 +363,7 @@ std::map<ASTNodeType, SemanticAnalyzer::NodeHandler>
         {ASTNodeType::kBLOCK, MeaninglessHandler},
         {ASTNodeType::kIF, IfHandler},
         {ASTNodeType::kWHILE, WhileHandler},
+        {ASTNodeType::kCOND_EXP, CondExpHandler},
 };
 
 SemanticAnalyzer::SemanticAnalyzer(SymbolTablePtr symbol_table)

@@ -16,6 +16,7 @@ enum class ASTNodeType : char {
   kVALUE,
   kIDENT,
   kIF,
+  kCOND_EXP,
   kWHILE,
   kBREAK,
   kCONTINUE,

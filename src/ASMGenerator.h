@@ -41,9 +41,11 @@ class ASMGenerator {
 
   void translate(const IRInstructionA2& instr);
 
-  void emit_binary_op(const std::string& asm_op, const IRInstructionA2& instr);
+  void emit_binary_op(const std::string& op, const IRInstructionA2& instr);
 
-  void emit_cmp_op(const std::string& asm_op, const IRInstructionA2& i);
+  void emit_cmp_op(const std::string& op, const IRInstructionA2& i);
+
+  void emit_logic_op(const std::string& op, const IRInstructionA2& i);
 
   void optimums();
 

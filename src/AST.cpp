@@ -16,6 +16,7 @@ const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
     {ASTNodeType::kCONTINUE, "Continue"},
     {ASTNodeType::kWHILE, "While"},
     {ASTNodeType::kIF, "If"},
+    {ASTNodeType::kCOND_EXP, "Conditional Expression"},
     {ASTNodeType::kBLOCK, "Block"},
 };
 

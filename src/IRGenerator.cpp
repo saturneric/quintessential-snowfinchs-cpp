@@ -5,6 +5,8 @@
 #include <iostream>
 #include <utility>
 
+#include "SymbolMetaTypedef.h"
+
 namespace {
 
 const std::string kBinOpType = "binop";
@@ -14,7 +16,7 @@ const std::string kCmpOpType = "cmpop";
 void PrintInstructions(std::ostream& f,
                        const std::vector<IRInstruction>& instructions) {
   for (const auto& i : instructions) {
-    f << std::left << std::setw(6) << i.op->Name();
+    f << std::left << std::setw(12) << i.op->Name();
 
     if (i.dst) {
       f << i.dst->Name();
@@ -43,7 +45,7 @@ void PrintInstructions(std::ostream& f,
 void PrintInstructionA2s(std::ostream& f,
                          const std::vector<IRInstructionA2>& instructions) {
   for (const auto& i : instructions) {
-    f << std::left << std::setw(6) << i.op->Name();
+    f << std::left << std::setw(12) << i.op->Name();
 
     if (i.dst) {
       f << i.dst->Name();
@@ -74,6 +76,15 @@ auto ValueExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   assert(node != nullptr);
 
   auto sym = ctx->MapSymbol(node->Symbol());
+  auto type = MetaGet<SymbolMetaType>(node->Symbol(), SymbolMetaKey::kTYPE);
+
+  if (type == SymbolMetaType::kBOOL) {
+    if (sym->Name() == "true") {
+      return ctx->MapSymbol("1", "immediate");
+    }
+    return ctx->MapSymbol("0", "immediate");
+  }
+
   return sym;
 }
 
@@ -122,9 +133,9 @@ auto BinOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   }
 
   else if (opera == "&&") {
-    ctx->AddIns("and", tmp, lhs, rhs);
+    ctx->AddIns("andlog", tmp, lhs, rhs);
   } else if (opera == "||") {
-    ctx->AddIns("or", tmp, lhs, rhs);
+    ctx->AddIns("orlog", tmp, lhs, rhs);
   }
 
   else {
@@ -241,6 +252,34 @@ auto IfHandler(IRGenerator::Context* ctx, const ASTNodePtr& node) -> SymbolPtr {
   return nullptr;
 }
 
+auto CondExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
+    -> SymbolPtr {
+  auto children = node->Children();
+
+  auto cond_sym = ctx->ExpRoute(children[0]);
+  auto cond = ctx->MapSymbol(cond_sym);
+
+  auto label_then = ctx->NewLabel();
+  auto label_else = children.size() > 2 ? ctx->NewLabel() : nullptr;
+  auto label_end = ctx->NewLabel();
+
+  auto tmp = ctx->NewTempVariable();
+
+  // cond jump
+  ctx->AddIns("brz", {}, cond, label_else);  // brz: if cond == 0 jump else
+  ctx->AddIns("label", {}, label_then);
+  auto lhs = ctx->ExpRoute(children[1]);  // then value
+  ctx->AddIns("mov", tmp, lhs);
+  ctx->AddIns("jmp", {}, label_end);
+  ctx->AddIns("label", {}, label_else);
+  ctx->ExpRoute(children.back());             // else
+  auto rhs = ctx->ExpRoute(children.back());  // else value
+  ctx->AddIns("mov", tmp, rhs);
+  ctx->AddIns("label", {}, label_end);
+
+  return tmp;
+}
+
 auto WhileHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   const auto& children = node->Children();
@@ -316,6 +355,7 @@ std::map<ASTNodeType, IRGenerator::ExpHandler>
         {ASTNodeType::kIDENT, ValueExpHandler},
         {ASTNodeType::kBLOCK, MeaninglessNodeHandler},
         {ASTNodeType::kIF, IfHandler},
+        {ASTNodeType::kCOND_EXP, CondExpHandler},
         {ASTNodeType::kWHILE, WhileHandler},
 };
 
@@ -415,8 +455,8 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table)
   reg_op("le", kCmpOpType);
   reg_op("gt", kCmpOpType);
   reg_op("ge", kCmpOpType);
-  reg_op("and", kBinOpType);
-  reg_op("or", kBinOpType);
+  reg_op("andlog", kBinOpType);
+  reg_op("orlog", kBinOpType);
 
   reg_op("brz");
   reg_op("jmp");
@@ -463,6 +503,12 @@ void IRGenerator::convert_ira3_2_ira2() {
     }
 
     if (op == "brz") {
+      if (i.src_1->Value() == "immediate") {
+        if (i.src_1->Name() == "0") {
+          res.emplace_back(map_op("jmp"), nullptr, i.src_2);
+        }
+        continue;
+      }
       res.emplace_back(map_op("cmp"), i.src_1, map_sym("0", "immediate"));
       res.emplace_back(map_op("je"), nullptr, i.src_2);
       continue;
@@ -538,6 +584,7 @@ auto IRGenerator::Context::MapSymbol(const std::string& name,
 
 auto IRGenerator::Context::MapSymbol(const SymbolPtr& symbol) -> SymbolPtr {
   auto sym = symbol;
+  assert(sym != nullptr);
 
   // should convert to def symbol
   if (sym->Type() == SymbolType::kAST) {
