@@ -1,6 +1,7 @@
 #include "IRGenerator.h"
 
 #include <boost/graph/dominator_tree.hpp>
+#include <boost/graph/filtered_graph.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <fstream>
 #include <queue>
@@ -923,13 +924,14 @@ void IRGenerator::block_level_liveness_analyse() {
 void IRGenerator::block_level_def_analyse() {
   auto blocks = cfg_->Blocks();
   auto graph = cfg_->Graph();
+  auto filtered_graph = cfg_->FilteredGraph();
   std::queue<CFGBasicBlockPtr> worklist;
 
   // calculate dominator tree to detect cycle
   std::vector<Vertex> dom_tree(num_vertices(graph));
-  auto entry_v = cfg_->VertexByBlockId(0);
+  Vertex entry_v = cfg_->VertexByBlockId(0);
   lengauer_tarjan_dominator_tree(
-      graph, entry_v,
+      *filtered_graph, entry_v,
       make_iterator_property_map(dom_tree.begin(),
                                  get(boost::vertex_index, graph)));
 

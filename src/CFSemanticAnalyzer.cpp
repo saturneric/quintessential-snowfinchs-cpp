@@ -15,12 +15,13 @@ auto CFSemanticAnalyzer::Analyse() -> bool {
 void CFSemanticAnalyzer::check_all_paths_return() {
   auto blocks = cfg_->Blocks();
   auto graph = cfg_->Graph();
+  auto filtered_graph = cfg_->FilteredGraph();
 
+  // calculate dominator tree to detect cycle
   std::vector<Vertex> dom_tree(num_vertices(graph));
-  auto entry_v = cfg_->VertexByBlockId(0);
-
+  Vertex entry_v = cfg_->VertexByBlockId(0);
   lengauer_tarjan_dominator_tree(
-      graph, entry_v,
+      *filtered_graph, entry_v,
       make_iterator_property_map(dom_tree.begin(),
                                  get(boost::vertex_index, graph)));
 

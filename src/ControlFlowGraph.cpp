@@ -145,3 +145,14 @@ auto ControlFlowGraph::BlockByBlockId(int block_id) const -> CFGBasicBlockPtr {
   assert(block_id < id_2_bb_.size());
   return id_2_bb_.at(block_id);
 }
+
+auto ControlFlowGraph::FilteredGraph() -> FilteredCFGGraphPtr {
+  if (!f_g_) {
+    // use filtered_graph to connect together
+    auto& full = Graph();
+    f_g_ = std::make_shared<FilteredCFGGraph>(full, KeepEdges{&full},
+                                              KeepReachable{&full});
+  }
+
+  return f_g_;
+}

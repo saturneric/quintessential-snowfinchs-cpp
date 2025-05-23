@@ -66,6 +66,9 @@ auto AssignHandler(SemanticAnalyzer* sa,
     MetaSet(node->Symbol(), SymbolMetaKey::kWILL_RETURN, true);
   }
 
+  // strange, why shouldn't we analyse type?
+  if (sa->Meta("only_redefine_analyse").has_value()) return node;
+
   // check type
   auto sym_type = MetaGet<SymbolMetaType>(sym, SymbolMetaKey::kTYPE);
   auto exp_type =
@@ -100,7 +103,7 @@ auto ReturnHandler(SemanticAnalyzer* sa,
   return node;
 }
 
-auto MeaninglessHandler(SemanticAnalyzer* /*sa*/,
+auto MeaninglessHandler(SemanticAnalyzer* sa,
                         const SemanticAnalyzer::NodeRouter& router,
                         const ASTNodePtr& node) -> ASTNodePtr {
   for (auto& c : node->Children()) {
@@ -110,8 +113,7 @@ auto MeaninglessHandler(SemanticAnalyzer* /*sa*/,
         MetaGet<bool>(child->Symbol(), SymbolMetaKey::kWILL_RETURN, false);
     if (will_return) {
       MetaSet(node->Symbol(), SymbolMetaKey::kWILL_RETURN, true);
-      // should stop here now
-      break;
+      sa->SetMeta("only_redefine_analyse", true);
     }
 
     const auto will_break =
@@ -154,13 +156,17 @@ auto IdentHandler(SemanticAnalyzer* sa,
     return node;
   }
 
-  if (!def_sym->MetaData(SymbolMetaKey::kHAS_INIT).has_value()) {
-    sa->Error(node, "Variable not initialized: " + def_sym->Name());
-    return node;
-  }
-
   // sync type info from def to ast
   MetaSet(sym, SymbolMetaKey::kTYPE, def_sym->MetaData(SymbolMetaKey::kTYPE));
+
+  // strange, why shouldn't we analyse further?
+  if (!sa->Meta("only_redefine_analyse").has_value()) {
+    if (!def_sym->MetaData(SymbolMetaKey::kHAS_INIT).has_value()) {
+      sa->Error(node, "Variable not initialized: " + def_sym->Name());
+      return node;
+    }
+  }
+
   return node;
 }
 
@@ -481,8 +487,8 @@ void SemanticAnalyzer::Error(const ASTNodePtr& /*node*/,
 
 auto SemanticAnalyzer::RecordSymbol(const SymbolPtr& symbol)
     -> std::tuple<bool, SymbolPtr> {
-  auto sym =
-      def_sym_helper_.LookupSymbolInScope(symbol->Scope(), symbol->Name());
+  // we are not allow variable-shadowing
+  auto sym = def_sym_helper_.LookupSymbol(symbol->Scope(), symbol->Name());
 
   // should not check twice
   if (sym != nullptr) return {false, sym};

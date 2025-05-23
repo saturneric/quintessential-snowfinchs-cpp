@@ -123,5 +123,26 @@
     "source_file_path": "lab2/C14.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 0
+  },
+  {
+    "source_file_path": "lab2/D1.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 64
+  },
+  {
+    "source_file_path": "lab2/D2.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab2/D3.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab2/D4.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab2/D5.txt",
+    "compiler_exit_code": 7
   }
 ]

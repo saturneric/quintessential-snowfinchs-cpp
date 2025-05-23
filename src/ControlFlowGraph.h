@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/graph_traits.hpp>
 
 #include "IRInstruction.h"
@@ -58,6 +59,32 @@ using CFGGraph = boost::adjacency_list<boost::vecS,            // edge list
 using Vertex = boost::graph_traits<CFGGraph>::vertex_descriptor;
 using Edge = boost::graph_traits<CFGGraph>::edge_descriptor;
 
+// build filtered graph
+using Graph = CFGGraph;
+using Vertex = boost::graph_traits<CFGGraph>::vertex_descriptor;
+using Edge = boost::graph_traits<CFGGraph>::edge_descriptor;
+
+struct KeepReachable {
+  const Graph* g;
+  auto operator()(Vertex v) const -> bool {
+    return g->operator[](v).bb->reachable;
+  }
+};
+
+struct KeepEdges {
+  const Graph* g;
+  auto operator()(Edge e) const -> bool {
+    auto u = source(e, *g);
+    auto v = target(e, *g);
+    return g->operator[](u).bb->reachable && g->operator[](v).bb->reachable;
+  }
+};
+
+using FilteredCFGGraph =
+    boost::filtered_graph<CFGGraph, KeepEdges, KeepReachable>;
+
+using FilteredCFGGraphPtr = std::shared_ptr<FilteredCFGGraph>;
+
 class ControlFlowGraph {
  public:
   ControlFlowGraph() = default;
@@ -81,6 +108,8 @@ class ControlFlowGraph {
 
   [[nodiscard]] auto Graph() const -> const CFGGraph&;
 
+  auto FilteredGraph() -> FilteredCFGGraphPtr;
+
   void Print(std::ostream& os) const;
 
   [[nodiscard]] auto Instructions() const -> std::vector<IRInstructionPtr>;
@@ -89,6 +118,7 @@ class ControlFlowGraph {
 
  private:
   CFGGraph g_;
+  FilteredCFGGraphPtr f_g_;
   std::map<int, Vertex> bb_map_;             // id -> vertex
   std::map<int, CFGBasicBlockPtr> id_2_bb_;  // id -> block
 };
