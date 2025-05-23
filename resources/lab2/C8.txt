@@ -1,0 +1,12 @@
+int main() {
+	/* Should fail semantic analysis, as negated condition isn't the same as an else block */
+	bool c = true;
+	int i;
+	if (c) {
+		i = 0;
+	}
+	if (!c) {
+		i = 1;
+	}
+	return i;
+}

@@ -61,7 +61,10 @@ auto AssignHandler(SemanticAnalyzer* sa,
     return node;
   }
 
-  router(value);
+  auto node_value = router(value);
+  if (MetaGet<bool>(node_value->Symbol(), SymbolMetaKey::kWILL_RETURN, false)) {
+    MetaSet(node->Symbol(), SymbolMetaKey::kWILL_RETURN, true);
+  }
 
   // check type
   auto sym_type = MetaGet<SymbolMetaType>(sym, SymbolMetaKey::kTYPE);
@@ -93,13 +96,32 @@ auto ReturnHandler(SemanticAnalyzer* sa,
   }
 
   sa->SetMeta("has_return", true);
+  MetaSet(node->Symbol(), SymbolMetaKey::kWILL_RETURN, true);
   return node;
 }
 
 auto MeaninglessHandler(SemanticAnalyzer* /*sa*/,
                         const SemanticAnalyzer::NodeRouter& router,
                         const ASTNodePtr& node) -> ASTNodePtr {
-  for (auto& c : node->Children()) router(c);
+  for (auto& c : node->Children()) {
+    auto child = router(c);
+
+    const auto will_return =
+        MetaGet<bool>(child->Symbol(), SymbolMetaKey::kWILL_RETURN, false);
+    if (will_return) {
+      MetaSet(node->Symbol(), SymbolMetaKey::kWILL_RETURN, true);
+      // should stop here now
+      break;
+    }
+
+    const auto will_break =
+        MetaGet<bool>(child->Symbol(), SymbolMetaKey::kWILL_BREAK, false);
+    if (will_break) {
+      MetaSet(node->Symbol(), SymbolMetaKey::kWILL_BREAK, true);
+      // should stop here now
+      break;
+    }
+  }
   return node;
 }
 
@@ -256,13 +278,33 @@ auto IfHandler(SemanticAnalyzer* sa, const SemanticAnalyzer::NodeRouter& router,
   }
 
   // handle
-  router(children[1]);
+  auto node_then = router(children[1]);
+
+  bool will_return = true;
+  will_return =
+      will_return &&
+      MetaGet<bool>(node_then->Symbol(), SymbolMetaKey::kWILL_RETURN, false);
+
+  bool will_break = true;
+  will_break = will_break && MetaGet<bool>(node_then->Symbol(),
+                                           SymbolMetaKey::kWILL_BREAK, false);
+
+  // no else
+  if (children.size() < 3) {
+    will_return = false;
+    will_break = false;
+  }
 
   // handle optional "else"
   if (children.size() > 2) {
-    router(children.back());
+    auto node_else = router(children.back());
+    will_return =
+        will_return &&
+        MetaGet<bool>(node_else->Symbol(), SymbolMetaKey::kWILL_RETURN, false);
   }
 
+  if (will_return) MetaSet(node->Symbol(), SymbolMetaKey::kWILL_RETURN, true);
+  if (will_break) MetaSet(node->Symbol(), SymbolMetaKey::kWILL_BREAK, true);
   return node;
 }
 
@@ -289,6 +331,15 @@ auto CondExpHandler(SemanticAnalyzer* sa,
 
   auto sym_lhs = lhs->Symbol();
   auto sym_rhs = rhs->Symbol();
+
+  auto will_return = true;
+
+  will_return =
+      will_return && MetaGet<bool>(sym_lhs, SymbolMetaKey::kWILL_RETURN, false);
+  will_return =
+      will_return && MetaGet<bool>(sym_rhs, SymbolMetaKey::kWILL_RETURN, false);
+
+  if (will_return) MetaSet(node->Symbol(), SymbolMetaKey::kWILL_RETURN, true);
 
   auto sym_lhs_type = MetaGet<SymbolMetaType>(sym_lhs, SymbolMetaKey::kTYPE);
   auto sym_rhs_type = MetaGet<SymbolMetaType>(sym_rhs, SymbolMetaKey::kTYPE);
@@ -361,11 +412,16 @@ auto WhileHandler(SemanticAnalyzer* sa,
 
   return node;
 }
+
 auto ContinueBreakHandler(SemanticAnalyzer* sa,
                           const SemanticAnalyzer::NodeRouter& router,
                           const ASTNodePtr& node) -> ASTNodePtr {
   if (!MetaGet(node->Symbol(), SymbolMetaKey::kIN_LOOP, false)) {
     sa->Error(node, "Continue or Break must not be placed outside a loop.");
+  }
+
+  if (node->Type() == ASTNodeType::kBREAK) {
+    MetaSet(node->Symbol(), SymbolMetaKey::kWILL_BREAK, true);
   }
 
   return node;
@@ -448,6 +504,10 @@ auto SemanticAnalyzer::Analyze(const AST& ast) -> bool {
   }
 
   visit(root);
+
+  if (!MetaGet<bool>(root->Symbol(), SymbolMetaKey::kWILL_RETURN, false)) {
+    Error(ast.Root(), "Return statement not found");
+  }
 
   if (root && meta_data_.count("has_return") == 0) {
     Error(ast.Root(), "Return statement not found");

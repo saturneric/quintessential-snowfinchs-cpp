@@ -12,8 +12,15 @@ struct CFGBasicBlock {
 
   std::set<SymbolPtr> use;
   std::set<SymbolPtr> def;
-  std::set<SymbolPtr> in;
-  std::set<SymbolPtr> out;
+  std::set<SymbolPtr> def_in;
+  std::set<SymbolPtr> def_out;
+
+  std::set<SymbolPtr> live_in;
+  std::set<SymbolPtr> live_out;
+
+  bool has_return = false;
+  bool will_return = false;
+  bool reachable = false;
 
   explicit CFGBasicBlock(int id, std::string label = "", bool ir2_mode = false)
       : id(id), label(std::move(label)), ir2_mode_(ir2_mode) {}
@@ -61,6 +68,8 @@ class ControlFlowGraph {
 
   [[nodiscard]] auto VertexByBlockId(int block_id) const -> Vertex;
 
+  [[nodiscard]] auto BlockByBlockId(int block_id) const -> CFGBasicBlockPtr;
+
   [[nodiscard]] auto Blocks() const -> std::vector<CFGBasicBlockPtr>;
 
   [[nodiscard]] auto Successors(int id) const -> std::vector<CFGBasicBlockPtr>;
@@ -80,7 +89,8 @@ class ControlFlowGraph {
 
  private:
   CFGGraph g_;
-  std::map<int, Vertex> bb_map_;  // id -> vertex
+  std::map<int, Vertex> bb_map_;             // id -> vertex
+  std::map<int, CFGBasicBlockPtr> id_2_bb_;  // id -> block
 };
 
 using ControlFlowGraphPtr = std::shared_ptr<ControlFlowGraph>;

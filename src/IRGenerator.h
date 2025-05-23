@@ -103,6 +103,8 @@ class IRGenerator {
 
   void instruction_level_liveness_analyse();
 
+  void block_level_def_analyse();
+
   void insert_phi();
 
   void refresh_irs_by_cfg();

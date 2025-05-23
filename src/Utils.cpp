@@ -89,7 +89,7 @@ void PrintInstructions(std::ostream& f,
     }
 
     f << "\n";
-    f << "% IN: ";
+    f << "% LIVE IN: ";
 
     for (const auto& s : i->LiveIn) {
       assert(s != nullptr);
@@ -98,7 +98,7 @@ void PrintInstructions(std::ostream& f,
     }
 
     f << "\n";
-    f << "% OUT: ";
+    f << "% LIVE OUT: ";
 
     for (const auto& s : i->LiveOut) {
       assert(s != nullptr);
@@ -143,7 +143,7 @@ void PrintInstructionA2s(std::ostream& f,
     }
 
     f << "\n";
-    f << "% IN: ";
+    f << "% LIVE IN: ";
 
     for (const auto& s : i.LiveIn) {
       assert(s != nullptr);
@@ -152,7 +152,7 @@ void PrintInstructionA2s(std::ostream& f,
     }
 
     f << "\n";
-    f << "% OUT: ";
+    f << "% LIVE OUT: ";
 
     for (const auto& s : i.LiveOut) {
       assert(s != nullptr);

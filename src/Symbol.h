@@ -29,6 +29,9 @@ enum class SymbolMetaKey : SymbolMetaKeySizeType {
   kSSA_ORIGIN_SYM,
   kCONTINUE_LABEL,
   kBREAK_LABEL,
+  kDEF_SYMBOL,
+  kWILL_RETURN,
+  kWILL_BREAK,
   kCOUNT,
 };
 

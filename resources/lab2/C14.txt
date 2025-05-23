@@ -1,0 +1,8 @@
+int main() {
+    for (;true;) {
+        int x;
+        break;
+        int y = x;
+    }
+    return 0;
+}

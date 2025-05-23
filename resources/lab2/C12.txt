@@ -1,0 +1,9 @@
+int main() {
+  bool a = false;
+  int x;
+  if (a) {
+    x = 1;
+  }
+  int y = x + 1; // x undeclared
+  return y;
+}

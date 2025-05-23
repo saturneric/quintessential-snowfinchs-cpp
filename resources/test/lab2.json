@@ -65,6 +65,11 @@
     "exec_exit_code": 42
   },
   {
+    "source_file_path": "lab2/A13.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
+  },
+  {
     "source_file_path": "lab2/B1.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 52
@@ -88,5 +93,35 @@
     "source_file_path": "lab2/C7.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 42
+  },
+  {
+    "source_file_path": "lab2/C8.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab2/C9.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab2/C10.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 1
+  },
+  {
+    "source_file_path": "lab2/C11.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab2/C12.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab2/C13.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab2/C14.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
   }
 ]

@@ -1,0 +1,20 @@
+int main() {
+  int result = 0; // boolean pseudo-array, n-th bit 1 ^= n is prime
+
+  for (int i = 2; i <= 31; i += 1) {
+    bool isPrime = true;
+    for (int j = 2; j <= i / 2; j += 1) {
+      if (i % j == 0) {
+        isPrime = false;
+        break;
+      }
+    }
+
+    if (isPrime) {
+      result |= (1 << (i - 1));
+    }
+  }
+
+  int expected = 0x50451456;
+  return expected - result;
+}

@@ -1,0 +1,6 @@
+int main() {
+  int i = 6 * 7;
+  if (i == 42) {
+    return i;
+  }
+}

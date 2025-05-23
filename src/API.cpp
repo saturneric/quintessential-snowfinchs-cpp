@@ -2,6 +2,7 @@
 
 #include "ASMGenerator.h"
 #include "BinaryGenerator.h"
+#include "CFSemanticAnalyzer.h"
 #include "Driver.hpp"
 #include "IR2Generator.h"
 #include "IRGenerator.h"
@@ -41,6 +42,16 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
     if (debug) irg.PrintCFG(runtime_dir / "PrintCFG(IR3).txt");
     return true;
   });
+
+  CFSemanticAnalyzer cf_semantic(irg.ControlFlowGraph());
+
+  ret = RunOperation("CF Semantic Analyzer", [&]() {
+    auto ret = cf_semantic.Analyse();
+    if (debug) irg.PrintCFG(runtime_dir / "PrintCFG(SEMANTIC).txt");
+    return ret;
+  });
+
+  if (!ret) return 7;
 
   IR2Generator ir2g(symbol_table, irg.ControlFlowGraph()->Instructions());
 

@@ -1,5 +1,7 @@
 #include "IR2Generator.h"
 
+#include <queue>
+
 #include "Utils.h"
 
 IR2Generator::IR2Generator(SymbolTablePtr symbol_table,
@@ -164,6 +166,23 @@ void IR2Generator::build_cfg() {
       if (idx + 1 < blocks.size()) cfg_->AddEdge(bb->id, blocks[idx + 1]->id);
     }
   }
+
+  // reachable analyse
+  std::queue<CFGBasicBlockPtr> q;
+  auto entry = cfg_->BlockByBlockId(0);
+  entry->reachable = true;
+  q.push(entry);
+
+  while (!q.empty()) {
+    auto bb = q.front();
+    q.pop();
+    for (const auto& succ : cfg_->Successors(bb->id)) {
+      if (!succ->reachable) {
+        succ->reachable = true;
+        q.push(succ);
+      }
+    }
+  }
 }
 
 void IR2Generator::block_level_liveness_analyse() {
@@ -186,8 +205,8 @@ void IR2Generator::block_level_liveness_analyse() {
     }
     block->use = use;
     block->def = def;
-    block->in = {};
-    block->out = {};
+    block->live_in = {};
+    block->live_out = {};
   }
 
   std::unordered_map<int, CFGBasicBlockPtr> id2block;
@@ -212,7 +231,7 @@ void IR2Generator::block_level_liveness_analyse() {
       std::set<SymbolPtr> new_out;
       for (auto& succ : cfg_->Successors(block->id)) {
         auto succ_bb = id2block[succ->id];
-        new_out.insert(succ_bb->in.begin(), succ_bb->in.end());
+        new_out.insert(succ_bb->live_in.begin(), succ_bb->live_in.end());
       }
 
       // new_in = use ∪ (new_out – def)
@@ -228,11 +247,11 @@ void IR2Generator::block_level_liveness_analyse() {
 
     // write out all
     for (auto& block : block_list) {
-      if (block->in != next_in[block->id] ||
-          block->out != next_out[block->id]) {
+      if (block->live_in != next_in[block->id] ||
+          block->live_out != next_out[block->id]) {
         changed = true;
-        block->in = next_in[block->id];
-        block->out = next_out[block->id];
+        block->live_in = next_in[block->id];
+        block->live_out = next_out[block->id];
       }
     }
   }
@@ -257,7 +276,7 @@ void IR2Generator::instruction_level_liveness_analyse() {
       // last ins out = block out
       auto last = idxs.back();
       auto old_out = last->LiveOut;
-      last->LiveOut = bb->out;
+      last->LiveOut = bb->live_out;
       if (last->LiveOut != old_out) changed = true;
 
       // iterate downward

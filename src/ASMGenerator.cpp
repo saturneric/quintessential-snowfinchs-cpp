@@ -259,10 +259,11 @@ void ASMGenerator::emit_cmp_op(std::vector<std::string>& fins,
   auto src_2 = format_operand(s_src_2);
 
   if (op == "cmp") {
-    if (IsImmediate(s_dst)) {
+    if (IsImmediate(s_dst) || (IsInMemory(s_src) && IsInMemory(s_dst))) {
       fins.push_back(op_mov_ + " " + dst + ", " + acc_reg_);
       dst = acc_reg_;
     }
+
     fins.push_back("cmp" + suffix_ + " " + src + ", " + dst);
     return;
   }

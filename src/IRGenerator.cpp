@@ -3,6 +3,7 @@
 #include <boost/graph/dominator_tree.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <fstream>
+#include <queue>
 
 #include "SymbolMetaTypedef.h"
 #include "Utils.h"
@@ -11,6 +12,17 @@ namespace {
 
 auto SSAOriginSym(const SymbolPtr& s) -> SymbolPtr {
   return MetaGet<SymbolPtr>(s, SymbolMetaKey::kSSA_ORIGIN_SYM);
+}
+
+auto DeclareHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
+    -> SymbolPtr {
+  assert(node != nullptr);
+
+  auto sym = ctx->MapSymbol(node->Symbol());
+  assert(sym != nullptr);
+
+  ctx->AddIns("dcl", sym);
+  return sym;
 }
 
 auto ValueExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
@@ -421,6 +433,8 @@ void IRGenerator::Generate(const AST& tree) {
 
   instruction_level_liveness_analyse();
 
+  block_level_def_analyse();
+
   insert_phi();
 
   // convert2_ssa();
@@ -529,7 +543,8 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table)
   reg_op("mov");  // spec op
   reg_op("rtn");  // spec op
 
-  // phi
+  // live control
+  reg_op("dcl");
   reg_op("phi");
 }
 
@@ -662,7 +677,9 @@ auto IRGenerator::Context::MapSymbol(const SymbolPtr& symbol) -> SymbolPtr {
   // should then convert to ir symbol
   if (sym->Type() == SymbolType::kDEFINE) {
     const auto type = sym->MetaData(SymbolMetaKey::kTYPE);
+    auto o_sym = sym;
     sym = MapSymbol(sym->Value(), "variable");
+    MetaSet(sym, SymbolMetaKey::kDEF_SYMBOL, o_sym);
   }
 
   assert(sym != nullptr);
@@ -726,13 +743,12 @@ auto IRInstructionA2::Use() const -> std::vector<SymbolPtr> {
 }
 
 void IRGenerator::build_cfg() {
-  std::vector<CFGBasicBlockPtr> blocks;
   std::map<std::string, int> label2block;
 
   int current_block_id = 0;
   auto new_block = [&]() -> CFGBasicBlockPtr {
     auto bb = std::make_shared<CFGBasicBlock>(current_block_id++);
-    blocks.push_back(bb);
+    cfg_->AddBlock(bb);
     return bb;
   };
 
@@ -768,15 +784,16 @@ void IRGenerator::build_cfg() {
 
     // jmps need new block
     if (IsJump(ins->Op())) need_new_block = true;
+
+    // rtn also need a block and it's more powerful anyway
+    if (opn == "rtn") {
+      bb->has_return = true;
+      bb->will_return = true;
+      need_new_block = true;
+    }
   }
 
-  std::map<int, Vertex> bbid2vertex;
-
-  // add all block to cfg
-  for (auto& bb : blocks) {
-    bbid2vertex[bb->id] = cfg_->AddBlock(bb);
-  }
-
+  auto blocks = cfg_->Blocks();
   // add edge
   for (size_t idx = 0; idx < blocks.size(); ++idx) {
     auto& bb = blocks[idx];
@@ -790,6 +807,13 @@ void IRGenerator::build_cfg() {
       return -1;
     };
 
+    if (bb->has_return) {
+      // if no function in lab2, we should certainly end here
+      // do not add edge since this blocks will end the whole world
+      continue;
+    }
+
+    // add edge between blocks
     auto op = last_ins->Op()->Name();
     if (op == "jmp") {
       // jmp
@@ -809,13 +833,9 @@ void IRGenerator::build_cfg() {
       if (idx + 1 < blocks.size()) cfg_->AddEdge(bb->id, blocks[idx + 1]->id);
     }
   }
-}
 
-void IRGenerator::block_level_liveness_analyse() {
-  auto ir = cfg_->Instructions();
-  auto block_list = cfg_->Blocks();
-
-  for (auto& block : block_list) {
+  // init use and def set of blocks
+  for (auto& block : blocks) {
     std::set<SymbolPtr> use;
     std::set<SymbolPtr> def;
     for (const auto& ins : block->Instrs()) {
@@ -831,14 +851,31 @@ void IRGenerator::block_level_liveness_analyse() {
     }
     block->use = use;
     block->def = def;
-    block->in = {};
-    block->out = {};
+    block->live_in = {};
+    block->live_out = {};
   }
 
-  std::unordered_map<int, CFGBasicBlockPtr> id2block;
-  for (auto& bb : block_list) {
-    id2block[bb->id] = bb;
+  // reachable analyse
+  std::queue<CFGBasicBlockPtr> q;
+  auto entry = cfg_->BlockByBlockId(0);
+  entry->reachable = true;
+  q.push(entry);
+
+  while (!q.empty()) {
+    auto bb = q.front();
+    q.pop();
+    for (const auto& succ : cfg_->Successors(bb->id)) {
+      if (!succ->reachable) {
+        succ->reachable = true;
+        q.push(succ);
+      }
+    }
   }
+}
+
+void IRGenerator::block_level_liveness_analyse() {
+  auto ir = cfg_->Instructions();
+  auto block_list = cfg_->Blocks();
 
   bool changed = true;
   while (changed) {
@@ -856,8 +893,8 @@ void IRGenerator::block_level_liveness_analyse() {
       // new_out = ⋃ IN[succ]
       std::set<SymbolPtr> new_out;
       for (auto& succ : cfg_->Successors(block->id)) {
-        auto succ_bb = id2block[succ->id];
-        new_out.insert(succ_bb->in.begin(), succ_bb->in.end());
+        auto succ_bb = cfg_->BlockByBlockId(succ->id);
+        new_out.insert(succ_bb->live_in.begin(), succ_bb->live_in.end());
       }
 
       // new_in = use ∪ (new_out – def)
@@ -873,11 +910,87 @@ void IRGenerator::block_level_liveness_analyse() {
 
     // write out all
     for (auto& block : block_list) {
-      if (block->in != next_in[block->id] ||
-          block->out != next_out[block->id]) {
+      if (block->live_in != next_in[block->id] ||
+          block->live_out != next_out[block->id]) {
         changed = true;
-        block->in = next_in[block->id];
-        block->out = next_out[block->id];
+        block->live_in = next_in[block->id];
+        block->live_out = next_out[block->id];
+      }
+    }
+  }
+}
+
+void IRGenerator::block_level_def_analyse() {
+  auto blocks = cfg_->Blocks();
+  auto graph = cfg_->Graph();
+  std::queue<CFGBasicBlockPtr> worklist;
+
+  // calculate dominator tree to detect cycle
+  std::vector<Vertex> dom_tree(num_vertices(graph));
+  auto entry_v = cfg_->VertexByBlockId(0);
+  lengauer_tarjan_dominator_tree(
+      graph, entry_v,
+      make_iterator_property_map(dom_tree.begin(),
+                                 get(boost::vertex_index, graph)));
+
+  auto dominates = [&](Vertex u, Vertex v) {
+    Vertex x = u;
+    while (true) {
+      if (x == v) return true;
+      if (x == entry_v) break;
+      x = dom_tree[x];
+    }
+    return false;
+  };
+
+  for (auto& bb : cfg_->Blocks()) {
+    bb->def_out = bb->def;
+    worklist.push(bb);
+  }
+
+  const int entry_id = 0;
+
+  while (!worklist.empty()) {
+    auto bb = worklist.front();
+    worklist.pop();
+
+    if (!bb->reachable) continue;
+
+    std::vector<CFGBasicBlockPtr> real_preds;
+    Vertex bb_v = cfg_->VertexByBlockId(bb->id);
+    for (auto& p : cfg_->Predecessors(bb->id)) {
+      if (!p->reachable) continue;
+      Vertex p_v = cfg_->VertexByBlockId(p->id);
+      if (!dominates(p_v, bb_v)) {
+        real_preds.push_back(p);
+      }
+    }
+
+    std::set<SymbolPtr> new_in;
+    if (real_preds.empty()) {
+      // entry block
+      new_in = bb->def;
+    } else {
+      new_in = cfg_->BlockByBlockId(real_preds[0]->id)->def_out;
+
+      // calculate new in
+      for (size_t i = 1; i < real_preds.size(); ++i) {
+        std::set<SymbolPtr> tmp;
+        auto& other_out = cfg_->BlockByBlockId(real_preds[i]->id)->def_out;
+        std::set_intersection(new_in.begin(), new_in.end(), other_out.begin(),
+                              other_out.end(), std::inserter(tmp, tmp.begin()));
+        new_in.swap(tmp);
+      }
+    }
+
+    std::set<SymbolPtr> new_out = new_in;
+    new_out.insert(bb->def.begin(), bb->def.end());
+
+    if (new_in != bb->def_in || new_out != bb->def_out) {
+      bb->def_in = std::move(new_in);
+      bb->def_out = std::move(new_out);
+      for (auto& succ : cfg_->Successors(bb->id)) {
+        worklist.push(cfg_->BlockByBlockId(succ->id));
       }
     }
   }
@@ -949,7 +1062,7 @@ void IRGenerator::instruction_level_liveness_analyse() {
       // last ins out = block out
       auto last = idxs.back();
       auto old_out = last->LiveOut;
-      last->LiveOut = bb->out;
+      last->LiveOut = bb->live_out;
       if (last->LiveOut != old_out) changed = true;
 
       // iterate downward

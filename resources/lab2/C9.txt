@@ -1,0 +1,4 @@
+int main() {
+if (true) int x = 1;
+return x;
+}
