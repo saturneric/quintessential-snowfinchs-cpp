@@ -24,6 +24,20 @@ class ASMGenerator {
   bool r32_;
   int stack_offset_dt_ = r32_ ? 4 : 8;
   int stack_offset_ = 0;
+  std::string suffix_ = r32_ ? "l" : "q";
+  std::string acc_reg_ = r32_ ? "%eax" : "%rax";
+  std::string acc_reg_low_ = "%al";
+
+  std::string count_reg_64_ = "%rcx";
+  std::string count_reg_ = r32_ ? "%ecx" : "%rcx";
+  std::string count_reg_low_ = "%cl";
+
+  std::string rem_reg_ = r32_ ? "%edx" : "%rdx";
+
+  const std::string op_mov_ = "mov" + suffix_;
+  const std::string op_push_ = "push";
+  const std::string op_pop_ = "pop";
+
   const std::string sp_ = "%rsp";  // compiling on 64 bit platform!
   const std::string bp_ = "%rbp";  // compiling on 64 bit platform!
 
@@ -32,7 +46,6 @@ class ASMGenerator {
   InterferenceGraph inf_graph_;
   std::vector<IRInstructionA2Ptr> ir2_;
   std::vector<IRInstructionA2Ptr> ir_final_;
-  std::vector<std::string> asm_;
   std::set<SymbolPtr> constants_;
   std::set<SymbolPtr> vars_;
   std::vector<SymbolPtr> mcs_order_;
@@ -40,15 +53,29 @@ class ASMGenerator {
 
   void gen_final_asm_source(const std::string& path);
 
-  void translate(const IRInstructionA2& instr);
+  auto translate(const std::vector<IRInstructionA2Ptr>& ir)
+      -> std::vector<std::string>;
 
-  void emit_binary_op(const std::string& op, const IRInstructionA2& instr);
+  void emit_mov_op(std::vector<std::string>& fins, const std::string& op,
+                   const IRInstructionA2& i);
 
-  void emit_cmp_op(const std::string& op, const IRInstructionA2& i);
+  void emit_binary_op(std::vector<std::string>& fins, const std::string& op,
+                      const IRInstructionA2& instr);
 
-  void emit_logic_op(const std::string& op, const IRInstructionA2& i);
+  void emit_cmp_op(std::vector<std::string>& fins, const std::string& op,
+                   const IRInstructionA2& i);
 
-  void emit_unary_op(const std::string& op, const IRInstructionA2& i);
+  void emit_logic_op(std::vector<std::string>& fins, const std::string& op,
+                     const IRInstructionA2& i);
+
+  void emit_unary_op(std::vector<std::string>& fins, const std::string& op,
+                     const IRInstructionA2& i);
+
+  void emit_spz_op(std::vector<std::string>& fins, const std::string& op,
+                   const IRInstructionA2& i);
+
+  void emit_jmp_op(std::vector<std::string>& fins, const std::string& op,
+                   const IRInstructionA2& i);
 
   void optimums();
 
@@ -65,17 +92,18 @@ class ASMGenerator {
 
   auto map_reg(const std::string& name) -> SymbolPtr;
 
-  void generate_gcc_asm(const std::string& path);
+  void generate_gcc_asm(const std::string& path,
+                        const std::vector<std::string>& ins);
 
   void handle_spling_var();
 
-  void alloc_stack_for_immediate(const SymbolPtr& val);
+  auto alloc_stack_for_immediate(const SymbolPtr& val) -> std::string;
 
   static auto gen_data_var_immediate_label(const SymbolPtr& val) -> std::string;
 
   [[nodiscard]] auto generate_data_segment() const -> std::vector<std::string>;
 
-  void alloc_stack_memory();
+  auto alloc_stack_memory() -> std::vector<std::string>;
 
   auto map_op(const std::string& name) -> SymbolPtr;
 };

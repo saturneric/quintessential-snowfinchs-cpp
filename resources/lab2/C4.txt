@@ -1,0 +1,8 @@
+int main() {
+    int sum = 0;
+    for (int i = 2; i <= 100; i += 1) {
+        if (i % 2 == 1) continue;
+        sum += i;
+    }
+    return sum / 10;
+}

@@ -3,7 +3,6 @@
 #include <boost/graph/dominator_tree.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <fstream>
-#include <queue>
 
 #include "SymbolMetaTypedef.h"
 #include "Utils.h"
@@ -46,11 +45,10 @@ auto BinOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   auto sym_rhs = ctx->ExpRoute(children.back());
 
   assert(sym_lhs->ScopeId() == sym_rhs->ScopeId());
-  auto sym_tmp = ctx->NewTempVariable();
 
   auto lhs = ctx->MapSymbol(sym_lhs);
   auto rhs = ctx->MapSymbol(sym_rhs);
-  auto tmp = ctx->MapSymbol(sym_tmp);
+  auto tmp = ctx->MapSymbol(ctx->NewTempVariable());
 
   auto opera = node->Symbol()->Name();
 
@@ -95,9 +93,13 @@ auto BinOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   }
 
   else if (opera == "<<") {
-    ctx->AddIns("shl", tmp, lhs, rhs);
+    auto tmp1 = ctx->NewTempVariable();
+    ctx->AddIns("band", tmp1, rhs, ctx->MapSymbol("31", "immediate"));
+    ctx->AddIns("sal", tmp, lhs, tmp1);
   } else if (opera == ">>") {
-    ctx->AddIns("shr", tmp, lhs, rhs);
+    auto tmp1 = ctx->NewTempVariable();
+    ctx->AddIns("band", tmp1, rhs, ctx->MapSymbol("31", "immediate"));
+    ctx->AddIns("sar", tmp, lhs, tmp1);
   }
 
   else {
@@ -105,7 +107,7 @@ auto BinOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
     return {};
   }
 
-  return sym_tmp;
+  return tmp;
 }
 
 auto UnOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
@@ -272,11 +274,12 @@ auto WhileHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
 
   auto label_cond = ctx->NewLabel();
   auto label_body = ctx->NewLabel();
+  auto label_step = ctx->NewLabel();
   auto label_end = ctx->NewLabel();
 
   // set continue and break label
   auto symbol = node->Symbol();
-  MetaSet(symbol, SymbolMetaKey::kCONTINUE_LABEL, label_cond);
+  MetaSet(symbol, SymbolMetaKey::kCONTINUE_LABEL, label_step);
   MetaSet(symbol, SymbolMetaKey::kBREAK_LABEL, label_end);
 
   // 1. init
@@ -296,6 +299,8 @@ auto WhileHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   // body
   ctx->AddIns("label", {}, label_body);
   if (body) ctx->ExpRoute(body);
+
+  ctx->AddIns("label", {}, label_step);
 
   // step
   if (step) ctx->ExpRoute(step);
@@ -435,8 +440,7 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table)
       cfg_(std::make_shared<class ControlFlowGraph>()) {
   // register op
   // TODO(eric): use dymatic handler approach
-  reg_op("mov");  // spec op
-  reg_op("rtn");  // spec op
+
   reg_op("neg", kUnOpType);
   reg_op("lnot", kUnOpType);
   reg_op("bnot", kUnOpType);
@@ -459,14 +463,26 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table)
   reg_op("bxor", kBinOpType);
   reg_op("shl", kBinOpType);
   reg_op("shr", kBinOpType);
+  reg_op("sal", kBinOpType);
+  reg_op("sar", kBinOpType);
+  reg_op("test", kBinOpType);
 
   reg_op("brz");
-  reg_op("jmp");
+  reg_op("brnz");
   reg_op("label");
 
-  // 2 addr
   reg_op("cmp");
+  reg_op("jmp");
   reg_op("je");
+  reg_op("jne");
+  reg_op("jge");
+  reg_op("jg");
+  reg_op("jle");
+  reg_op("jl");
+  reg_op("jnz");
+
+  reg_op("mov");  // spec op
+  reg_op("rtn");  // spec op
 
   // phi
   reg_op("phi");

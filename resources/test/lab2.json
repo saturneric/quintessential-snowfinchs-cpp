@@ -43,5 +43,25 @@
     "source_file_path": "lab2/B1.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 52
+  },
+  {
+    "source_file_path": "lab2/C4.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 255
+  },
+  {
+    "source_file_path": "lab2/C5.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 120
+  },
+  {
+    "source_file_path": "lab2/C6.txt",
+    "compiler_exit_code": 0,
+    "expect_float_point_exception": true
+  },
+  {
+    "source_file_path": "lab2/C7.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 42
   }
 ]
