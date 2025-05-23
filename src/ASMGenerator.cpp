@@ -384,7 +384,8 @@ void ASMGenerator::emit_unary_op(std::vector<std::string>& fins,
   else if (op == "lnot") {
     fins.push_back("cmp" + suffix_ + " $0, " + dst);
     fins.push_back("sete " + acc_reg_low_);
-    fins.push_back("movzx " + acc_reg_low_ + ", " + dst);
+    fins.push_back("movzx " + acc_reg_low_ + ", " + acc_reg_);
+    fins.push_back(op_mov_ + " " + acc_reg_ + ", " + dst);
   }
 
   if (op == "bnot") {

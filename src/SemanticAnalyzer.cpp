@@ -24,6 +24,8 @@ auto DeclareHandler(SemanticAnalyzer* sa,
                     const ASTNodePtr& node) -> ASTNodePtr {
   auto symbol = node->Symbol();
 
+  sa->Meta("only_redefine_analyse") = std::any();
+
   // record symbol and alloc inner variable name
   auto [succ, def_sym] = sa->RecordSymbol(symbol);
   if (!succ) {

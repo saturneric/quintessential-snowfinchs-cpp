@@ -144,5 +144,14 @@
   {
     "source_file_path": "lab2/D5.txt",
     "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab2/E1.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 42
+  },
+  {
+    "source_file_path": "lab2/E2.txt",
+    "compiler_exit_code": 7
   }
 ]

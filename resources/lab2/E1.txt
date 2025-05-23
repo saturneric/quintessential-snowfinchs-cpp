@@ -1,0 +1,8 @@
+int main() {
+bool b = false;
+if ((b || !b) && !b || 0/0 == 0)
+  b = true;
+if (!b && 0/0 == 0)
+  return 5;
+if (b) return 42; else return 5;
+}
