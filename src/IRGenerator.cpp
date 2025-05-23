@@ -42,15 +42,66 @@ auto BinOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
   if (children.size() != 2) return {};
 
   auto sym_lhs = ctx->ExpRoute(children.front());
-  auto sym_rhs = ctx->ExpRoute(children.back());
-
-  assert(sym_lhs->ScopeId() == sym_rhs->ScopeId());
-
   auto lhs = ctx->MapSymbol(sym_lhs);
-  auto rhs = ctx->MapSymbol(sym_rhs);
-  auto tmp = ctx->MapSymbol(ctx->NewTempVariable());
 
   auto opera = node->Symbol()->Name();
+  auto tmp = ctx->MapSymbol(ctx->NewTempVariable());
+
+  if (opera == "&&") {
+    auto end = ctx->NewLabel();
+
+    // tmp = 0
+    ctx->AddIns("mov", tmp, ctx->MapSymbol("0", "immediate"));
+
+    // if (!lhs) goto false_label
+    ctx->AddIns("brz", nullptr, lhs, end);
+
+    auto sym_rhs = ctx->ExpRoute(children.back());
+    auto rhs = ctx->MapSymbol(sym_rhs);
+    assert(sym_lhs->ScopeId() == sym_rhs->ScopeId());
+
+    // if (!rhs) goto false_label
+    ctx->AddIns("brz", nullptr, rhs, end);
+
+    // all not 0
+    ctx->AddIns("mov", tmp, ctx->MapSymbol("1", "immediate"));
+
+    // end:
+    ctx->AddIns("label", nullptr, end);
+
+    // avoid next operations
+    return tmp;
+  }
+
+  if (opera == "||") {
+    auto end = ctx->NewLabel();
+
+    // tmp = 0
+    ctx->AddIns("mov", tmp, ctx->MapSymbol("1", "immediate"));
+
+    // if (!lhs) goto false_label
+    ctx->AddIns("brnz", nullptr, lhs, end);
+
+    auto sym_rhs = ctx->ExpRoute(children.back());
+    auto rhs = ctx->MapSymbol(sym_rhs);
+    assert(sym_lhs->ScopeId() == sym_rhs->ScopeId());
+
+    // if (!rhs) goto false_label
+    ctx->AddIns("brnz", nullptr, rhs, end);
+
+    // all not 0
+    ctx->AddIns("mov", tmp, ctx->MapSymbol("0", "immediate"));
+
+    // end:
+    ctx->AddIns("label", nullptr, end);
+
+    // avoid next operations
+    return tmp;
+  }
+
+  auto sym_rhs = ctx->ExpRoute(children.back());
+  auto rhs = ctx->MapSymbol(sym_rhs);
+  assert(sym_lhs->ScopeId() == sym_rhs->ScopeId());
 
   if (opera == "+") {
     ctx->AddIns("add", tmp, lhs, rhs);
@@ -76,12 +127,6 @@ auto BinOpExpHandler(IRGenerator::Context* ctx, const ASTNodePtr& node)
     ctx->AddIns("gt", tmp, lhs, rhs);
   } else if (opera == ">=") {
     ctx->AddIns("ge", tmp, lhs, rhs);
-  }
-
-  else if (opera == "&&") {
-    ctx->AddIns("land", tmp, lhs, rhs);
-  } else if (opera == "||") {
-    ctx->AddIns("lor", tmp, lhs, rhs);
   }
 
   else if (opera == "&") {
@@ -739,6 +784,7 @@ void IRGenerator::build_cfg() {
     const auto& last_ins = bb->Instrs().back();
 
     auto jump_label = [&](const SymbolPtr& label) -> int {
+      assert(label != nullptr);
       auto it = label2block.find(label->Name());
       if (it != label2block.end()) return it->second;
       return -1;

@@ -40,9 +40,29 @@
     "exec_exit_code": 42
   },
   {
+    "source_file_path": "lab2/A8.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 180
+  },
+  {
     "source_file_path": "lab2/A9.txt",
     "compiler_exit_code": 0,
+    "exec_exit_code": 0
+  },
+  {
+    "source_file_path": "lab2/A10.txt",
+    "compiler_exit_code": 0,
     "exec_exit_code": 22
+  },
+  {
+    "source_file_path": "lab2/A11.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
+  },
+  {
+    "source_file_path": "lab2/A12.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 42
   },
   {
     "source_file_path": "lab2/B1.txt",

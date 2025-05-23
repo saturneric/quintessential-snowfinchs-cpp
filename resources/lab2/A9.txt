@@ -1,12 +1,6 @@
 int main() {
-    int a;
-    int b;
-
-    a = 20;
-    b = 0;
-    while (0 < a + 2) {
-        a -= 1;
-        b += 1;
+    if (false && 1/0 == 2) {
+        return -1;
     }
-    return b;
+    return 0;
 }

@@ -57,7 +57,7 @@ void IR2Generator::convert_ira3_2_ira2() {
       continue;
     }
 
-    if (op == "brz") {
+    if (op == "brz" || op == "brnz") {
       res.emplace_back(i->Op(), nullptr, i->SRC(0));
       res.back().src_2 = i->SRC(1);
       continue;
