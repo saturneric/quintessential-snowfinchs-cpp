@@ -54,7 +54,7 @@ const std::string kCmpOpType = "cmpop";
 inline auto IsCondJump(const SymbolPtr& op) -> bool {
   auto n = op->Name();
   return n == "je" || n == "jne" || n == "jg" || n == "jl" || n == "jge" ||
-         n == "jle" || n == "jnz";
+         n == "jle" || n == "jnz" || n == "brz" || n == "brnz";
 }
 
 inline auto IsJump(const SymbolPtr& op) -> bool {

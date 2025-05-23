@@ -251,10 +251,6 @@ void ASMGenerator::emit_binary_op(std::vector<std::string>& fins,
 void ASMGenerator::emit_cmp_op(std::vector<std::string>& fins,
                                const std::string& op,
                                const IRInstructionA2& i) {
-  std::string suffix = r32_ ? "l" : "q";
-  std::string acc_reg = r32_ ? "%eax" : "%rax";
-  std::string acc_low_reg = "%al";
-
   const auto s_src = i.src;
   const auto s_dst = i.dst;
   const auto s_src_2 = i.src_2;
@@ -262,18 +258,19 @@ void ASMGenerator::emit_cmp_op(std::vector<std::string>& fins,
   auto dst = format_operand(s_dst);
   auto src_2 = format_operand(s_src_2);
 
-  const auto op_mov = "mov" + suffix;
-
   if (op == "cmp") {
-    if (IsImmediate(s_dst)) std::swap(src, dst);
+    if (IsImmediate(s_dst)) {
+      fins.push_back(op_mov_ + " " + dst + ", " + acc_reg_);
+      dst = acc_reg_;
+    }
     fins.push_back("cmp" + suffix_ + " " + src + ", " + dst);
     return;
   }
 
   if (op == "brz") {
     if (IsImmediate(s_src)) {
-      fins.emplace_back(op_mov + " " + src + ", " + acc_reg);
-      fins.push_back("cmp" + suffix_ + " $0, " + acc_reg);
+      fins.emplace_back(op_mov_ + " " + src + ", " + acc_reg_);
+      fins.push_back("cmp" + suffix_ + " $0, " + acc_reg_);
     } else {
       fins.push_back("cmp" + suffix_ + " $0, " + src);
     }
@@ -283,8 +280,8 @@ void ASMGenerator::emit_cmp_op(std::vector<std::string>& fins,
 
   if (op == "brnz") {
     if (!IsReg(s_src)) {
-      fins.emplace_back(op_mov + " " + src + ", " + acc_reg);
-      fins.push_back("test" + suffix_ + " " + acc_reg + ", " + acc_reg);
+      fins.emplace_back(op_mov_ + " " + src + ", " + acc_reg_);
+      fins.push_back("test" + suffix_ + " " + acc_reg_ + ", " + acc_reg_);
     } else {
       fins.push_back("test" + suffix_ + " " + src + ", " + src);
     }
@@ -292,35 +289,35 @@ void ASMGenerator::emit_cmp_op(std::vector<std::string>& fins,
     return;
   }
 
-  fins.emplace_back(op_mov + " " + src + ", " + acc_reg);
-  fins.emplace_back("cmp" + suffix_ + " " + src_2 + ", " + acc_reg);
+  fins.emplace_back(op_mov_ + " " + src + ", " + acc_reg_);
+  fins.emplace_back("cmp" + suffix_ + " " + src_2 + ", " + acc_reg_);
 
   if (op == "eq") {
-    fins.push_back("sete " + acc_low_reg);
+    fins.push_back("sete " + acc_reg_low_);
   }
 
   else if (op == "le") {
-    fins.push_back("setle " + acc_low_reg);
+    fins.push_back("setle " + acc_reg_low_);
   }
 
   else if (op == "neq") {
-    fins.push_back("setne " + acc_low_reg);
+    fins.push_back("setne " + acc_reg_low_);
   }
 
   else if (op == "lt") {
-    fins.push_back("setl " + acc_low_reg);
+    fins.push_back("setl " + acc_reg_low_);
   }
 
   else if (op == "gt") {
-    fins.push_back("setg " + acc_low_reg);
+    fins.push_back("setg " + acc_reg_low_);
   }
 
   else if (op == "ge") {
-    fins.push_back("setge " + acc_low_reg);
+    fins.push_back("setge " + acc_reg_low_);
   }
 
-  fins.push_back("movzx " + acc_low_reg + ", " + acc_reg);
-  fins.push_back(op_mov + " " + acc_reg + ", " + dst);
+  fins.push_back("movzx " + acc_reg_low_ + ", " + acc_reg_);
+  fins.push_back(op_mov_ + " " + acc_reg_ + ", " + dst);
 }
 
 void ASMGenerator::emit_logic_op(std::vector<std::string>& fins,
@@ -328,7 +325,7 @@ void ASMGenerator::emit_logic_op(std::vector<std::string>& fins,
                                  const IRInstructionA2& i) {
   std::string suffix = r32_ ? "l" : "q";
   std::string acc_reg = r32_ ? "%eax" : "%rax";
-  std::string acc_low_reg = "%al";
+  std::string acc_reg_low = "%al";
   std::string rem_reg = r32_ ? "%edx" : "%rdx";
   std::string rem_low_reg = "%dl";
 
@@ -342,15 +339,15 @@ void ASMGenerator::emit_logic_op(std::vector<std::string>& fins,
   if (op == "land") {
     fins.emplace_back(op_mov + " " + src + ", " + acc_reg);  // mov src -> %eax
     fins.emplace_back("test " + acc_reg + ", " + acc_reg);   // test %eax %eax
-    fins.push_back("setne " + acc_low_reg);                  // test %al
+    fins.push_back("setne " + acc_reg_low);                  // test %al
 
     fins.emplace_back(op_mov + " " + dst + ", " + rem_reg);  // mov src -> %edx
     fins.emplace_back("test " + rem_reg + ", " + rem_reg);   // test %edx %edx
     fins.push_back("setne " + rem_low_reg);                  // test %dl
 
     fins.emplace_back("and " + rem_low_reg + ", " +
-                      acc_low_reg);  // and %dl %al -> %al
-    fins.push_back("movzx " + acc_low_reg + ", " +
+                      acc_reg_low);  // and %dl %al -> %al
+    fins.push_back("movzx " + acc_reg_low + ", " +
                    acc_reg);  // movzx %al -> %eax
     fins.emplace_back(op_mov + " " + acc_reg + ", " + dst);  // mov %eax -> dst
   }
@@ -358,15 +355,15 @@ void ASMGenerator::emit_logic_op(std::vector<std::string>& fins,
   if (op == "lor") {
     fins.emplace_back(op_mov + " " + src + ", " + acc_reg);  // mov src -> %eax
     fins.emplace_back("test " + acc_reg + ", " + acc_reg);   // test %eax %eax
-    fins.push_back("setne " + acc_low_reg);                  // test %al
+    fins.push_back("setne " + acc_reg_low);                  // test %al
 
     fins.emplace_back(op_mov + " " + dst + ", " + rem_reg);  // mov src -> %edx
     fins.emplace_back("test " + rem_reg + ", " + rem_reg);   // test %edx %edx
     fins.push_back("setne " + rem_low_reg);                  // test %dl
 
     fins.emplace_back("or " + rem_low_reg + ", " +
-                      acc_low_reg);  // and %dl %al -> %al
-    fins.push_back("movzx " + acc_low_reg + ", " +
+                      acc_reg_low);  // and %dl %al -> %al
+    fins.push_back("movzx " + acc_reg_low + ", " +
                    acc_reg);  // movzx %al -> %eax
     fins.emplace_back(op_mov + " " + acc_reg + ", " + dst);  // mov %eax -> dst
   }

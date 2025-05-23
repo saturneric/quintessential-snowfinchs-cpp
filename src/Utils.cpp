@@ -143,6 +143,25 @@ void PrintInstructionA2s(std::ostream& f,
     }
 
     f << "\n";
+    f << "% IN: ";
+
+    for (const auto& s : i.LiveIn) {
+      assert(s != nullptr);
+      if (s == nullptr) continue;
+      f << s->Name() << ", ";
+    }
+
+    f << "\n";
+    f << "% OUT: ";
+
+    for (const auto& s : i.LiveOut) {
+      assert(s != nullptr);
+      if (s == nullptr) continue;
+      f << s->Name() << ", ";
+    }
+
+    f << "\n";
+    f << "\n";
   }
 }
 auto SymLoc(const SymbolPtr& op) -> std::string {

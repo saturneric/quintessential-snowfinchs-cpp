@@ -152,8 +152,11 @@ void IR2Generator::build_cfg() {
       if (succ_id != -1) cfg_->AddEdge(bb->id, succ_id);
     } else if (IsCondJump(last_ins->op)) {
       // cond jmp
-      int succ1 = jump_label(last_ins->src);
+      int succ1 = jump_label(last_ins->src && op != "brz" && op != "brnz"
+                                 ? last_ins->src
+                                 : last_ins->src_2);
       if (succ1 != -1) cfg_->AddEdge(bb->id, succ1);
+
       // fall through
       if (idx + 1 < blocks.size()) cfg_->AddEdge(bb->id, blocks[idx + 1]->id);
     } else {

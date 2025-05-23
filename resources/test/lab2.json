@@ -40,6 +40,11 @@
     "exec_exit_code": 42
   },
   {
+    "source_file_path": "lab2/A9.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 22
+  },
+  {
     "source_file_path": "lab2/B1.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 52

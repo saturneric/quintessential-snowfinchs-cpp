@@ -751,7 +751,10 @@ void IRGenerator::build_cfg() {
       if (succ_id != -1) cfg_->AddEdge(bb->id, succ_id);
     } else if (IsCondJump(last_ins->Op())) {
       // cond jmp
-      int succ1 = jump_label(last_ins->SRC(0));
+      // if brz or brnz, there will be op <cond> <label>
+      int succ1 = jump_label(last_ins->SRC((0)) && op != "brz" && op != "brnz"
+                                 ? last_ins->SRC(0)
+                                 : last_ins->SRC(1));
       if (succ1 != -1) cfg_->AddEdge(bb->id, succ1);
       // fall through
       if (idx + 1 < blocks.size()) cfg_->AddEdge(bb->id, blocks[idx + 1]->id);
