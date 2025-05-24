@@ -57,6 +57,15 @@ auto SymbolTable::SearchSymbols(SymbolType type, int scope,
   return ret;
 }
 
+auto SymbolTable::SearchSymbols(SymbolType type, int scope) const
+    -> std::vector<SymbolPtr> {
+  const auto &by_typescopename = symbols_.get<ByTypeScope>();
+
+  auto range = by_typescopename.equal_range(boost::make_tuple(type, scope));
+  std::vector<SymbolPtr> ret(range.first, range.second);
+  return ret;
+}
+
 auto SymbolTable::AddScope(ScopePtr parent) -> ScopePtr {
   auto scope = std::make_shared<Scope>(parent, next_scope_index_++);
   if (parent != nullptr) parent->AddChild(scope);

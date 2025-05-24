@@ -50,6 +50,13 @@ auto ScopedSymbolLookUpHelper::LookupSymbolsInScope(const ScopePtr& scope,
   return symbol_table_->SearchSymbols(symbol_type_, scope->Id(), name);
 }
 
+auto ScopedSymbolLookUpHelper::LookupSymbolsInScope(const ScopePtr& scope)
+    -> std::vector<SymbolPtr> {
+  if (scope == nullptr) return {};
+  // speed up by index
+  return symbol_table_->SearchSymbols(symbol_type_, scope->Id());
+}
+
 auto ScopedSymbolLookUpHelper::LookupSymbol(ScopePtr scope,
                                             const std::string& name)
     -> SymbolPtr {
@@ -62,6 +69,22 @@ auto ScopedSymbolLookUpHelper::LookupSymbol(ScopePtr scope,
     scope = scope->Parent();
   }
   return nullptr;
+}
+
+auto ScopedSymbolLookUpHelper::LookupSymbols(ScopePtr scope)
+    -> std::vector<SymbolPtr> {
+  // symbol has no scope
+  if (scope == nullptr) return {};
+
+  std::vector<SymbolPtr> ret;
+
+  while (scope != nullptr) {
+    auto sym = LookupSymbolsInScope(scope);
+    ret.insert(ret.end(), sym.begin(), sym.end());
+    scope = scope->Parent();
+  }
+
+  return ret;
 }
 
 auto ScopedSymbolLookUpHelper::LookupSymbolWithoutScope(const std::string& name)

@@ -24,8 +24,6 @@ auto DeclareHandler(SemanticAnalyzer* sa,
                     const ASTNodePtr& node) -> ASTNodePtr {
   auto symbol = node->Symbol();
 
-  sa->Meta("only_redefine_analyse") = std::any();
-
   // record symbol and alloc inner variable name
   auto [succ, def_sym] = sa->RecordSymbol(symbol);
   if (!succ) {
@@ -102,6 +100,10 @@ auto ReturnHandler(SemanticAnalyzer* sa,
 
   sa->SetMeta("has_return", true);
   MetaSet(node->Symbol(), SymbolMetaKey::kWILL_RETURN, true);
+
+  for (auto& sym : sa->VisibleDefineSymbols(node->Symbol()->Scope())) {
+    sym->SetMeta(SymbolMetaKey::kHAS_INIT, true);
+  }
   return node;
 }
 
@@ -115,7 +117,6 @@ auto MeaninglessHandler(SemanticAnalyzer* sa,
         MetaGet<bool>(child->Symbol(), SymbolMetaKey::kWILL_RETURN, false);
     if (will_return) {
       MetaSet(node->Symbol(), SymbolMetaKey::kWILL_RETURN, true);
-      sa->SetMeta("only_redefine_analyse", true);
     }
 
     const auto will_break =
@@ -126,6 +127,7 @@ auto MeaninglessHandler(SemanticAnalyzer* sa,
       break;
     }
   }
+
   return node;
 }
 
@@ -161,12 +163,8 @@ auto IdentHandler(SemanticAnalyzer* sa,
   // sync type info from def to ast
   MetaSet(sym, SymbolMetaKey::kTYPE, def_sym->MetaData(SymbolMetaKey::kTYPE));
 
-  // strange, why shouldn't we analyse further?
-  if (!sa->Meta("only_redefine_analyse").has_value()) {
-    if (!def_sym->MetaData(SymbolMetaKey::kHAS_INIT).has_value()) {
-      sa->Error(node, "Variable not initialized: " + def_sym->Name());
-      return node;
-    }
+  if (!def_sym->MetaData(SymbolMetaKey::kHAS_INIT).has_value()) {
+    sa->Error(node, "Variable not initialized: " + def_sym->Name());
   }
 
   return node;
@@ -538,4 +536,9 @@ void SemanticAnalyzer::PrintSymbolTable(const std::string& path) {
   std::ofstream f(path);
   symbol_table_->PrintByType(SymbolType::kDEFINE, f);
   f.close();
+}
+
+auto SemanticAnalyzer::VisibleDefineSymbols(const ScopePtr& scope)
+    -> std::vector<SymbolPtr> {
+  return def_sym_helper_.LookupSymbols(scope);
 }

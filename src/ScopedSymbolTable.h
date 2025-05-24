@@ -41,6 +41,10 @@ class ScopedSymbolLookUpHelper {
 
   auto LookupSymbol(ScopePtr scope, const std::string& name) -> SymbolPtr;
 
+  auto LookupSymbolsInScope(const ScopePtr& scope) -> std::vector<SymbolPtr>;
+
+  auto LookupSymbols(ScopePtr scope) -> std::vector<SymbolPtr>;
+
  private:
   SymbolType symbol_type_;
   SymbolTablePtr symbol_table_;

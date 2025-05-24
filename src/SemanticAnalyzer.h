@@ -17,6 +17,8 @@ class SemanticAnalyzer {
 
   auto LookupSymbol(const SymbolPtr& symbol) -> SymbolPtr;
 
+  auto VisibleDefineSymbols(const ScopePtr& scope) -> std::vector<SymbolPtr>;
+
   void Error(const ASTNodePtr& node, const std::string& msg);
 
   void SetMeta(const std::string& key, std::any value);
