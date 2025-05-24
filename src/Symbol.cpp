@@ -1,35 +1,49 @@
 #include "Symbol.h"
 
-#include <utility>
+#include "SymbolDefs.h"
+
+struct Symbol::Impl {
+  int index_;
+  SymbolType type_;
+  std::string name_;
+  std::string value_;
+  std::array<std::any, static_cast<size_t>(SymbolMetaKey::kCOUNT)> meta_data_;
+};
 
 Symbol::Symbol(SymbolType type, int index, std::string name)
-    : type_(type), index_(index), name_(std::move(name)) {}
+    : impl_(std::make_unique<Impl>()) {
+  impl_->type_ = type;
+  impl_->index_ = index;
+  impl_->name_ = std::move(name);
+}
+
+Symbol::~Symbol() = default;
 
 void Symbol::SetMeta(const SymbolMetaKey& key, std::any value) {
-  meta_data_[static_cast<SymbolMetaKeySizeType>(key)] = std::move(value);
+  impl_->meta_data_[static_cast<SymbolMetaKeySizeType>(key)] = std::move(value);
 }
 
 auto Symbol::MetaData(const SymbolMetaKey& key) const -> std::any {
-  return meta_data_.at(static_cast<SymbolMetaKeySizeType>(key));
+  return impl_->meta_data_.at(static_cast<SymbolMetaKeySizeType>(key));
 }
 
 auto Symbol::MetaRef(const SymbolMetaKey& key) -> std::any& {
-  return meta_data_[static_cast<SymbolMetaKeySizeType>(key)];
+  return impl_->meta_data_[static_cast<SymbolMetaKeySizeType>(key)];
 }
 
 void Symbol::RemoveMeta(const SymbolMetaKey& key) {
-  meta_data_[static_cast<SymbolMetaKeySizeType>(key)] = {};
+  impl_->meta_data_[static_cast<SymbolMetaKeySizeType>(key)] = {};
 }
 
-void Symbol::SetName(std::string name) { name_ = std::move(name); }
+void Symbol::SetName(std::string name) { impl_->name_ = std::move(name); }
 
-auto Symbol::Type() const -> SymbolType { return type_; }
+auto Symbol::Type() const -> SymbolType { return impl_->type_; }
 
-auto Symbol::Index() const -> int { return index_; }
+auto Symbol::Index() const -> int { return impl_->index_; }
 
-auto Symbol::Name() const -> std::string { return name_; }
+auto Symbol::Name() const -> std::string { return impl_->name_; }
 
-auto Symbol::Value() const -> std::string { return value_; }
+auto Symbol::Value() const -> std::string { return impl_->value_; }
 
 auto Symbol::Scope() const -> ScopePtr {
   auto scope = MetaData(SymbolMetaKey::kSCOPE);
@@ -45,7 +59,7 @@ auto Symbol::ScopeId() const -> int {
   return scope != nullptr ? scope->Id() : kNonScopeId;
 }
 
-void Symbol::SetValue(std::string value) { value_ = std::move(value); }
+void Symbol::SetValue(std::string value) { impl_->value_ = std::move(value); }
 
 void Symbol::Inheritance(const SymbolPtr& parent) {
   if (parent == nullptr) return;

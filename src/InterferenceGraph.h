@@ -1,20 +1,16 @@
 #pragma once
 
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/graph_utility.hpp>
-#include <boost/property_map/property_map.hpp>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
+#include <optional>
 
 #include "Symbol.h"
 
+using INFHandler = int;
+
 class InterferenceGraph {
  public:
-  using Graph =
-      boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS,
-                            boost::property<boost::vertex_name_t, SymbolPtr>>;
-  using Vertex = boost::graph_traits<Graph>::vertex_descriptor;
+  InterferenceGraph();
+
+  ~InterferenceGraph();
 
   void AddVariable(const SymbolPtr& symbol);
 
@@ -23,18 +19,20 @@ class InterferenceGraph {
   void RemoveEdge(const SymbolPtr& var1, const SymbolPtr& var2);
 
   [[nodiscard]] auto Neighbors(const SymbolPtr& var) const
-      -> std::unordered_set<SymbolPtr>;
+      -> std::set<SymbolPtr>;
 
   [[nodiscard]] auto Variables() const -> std::vector<SymbolPtr>;
 
-  auto GetGraph() const -> const Graph&;
-
-  auto GetVertexBySymbol(const SymbolPtr& symbol) const
-      -> std::optional<Vertex>;
+  [[nodiscard]] auto GetVertexBySymbol(const SymbolPtr& symbol) const
+      -> std::optional<INFHandler>;
 
   void Print(std::ostream& os) const;
 
+  [[nodiscard]] auto MCSOrder() const -> std::vector<SymbolPtr>;
+
+  [[nodiscard]] auto Coloring() const -> std::map<SymbolPtr, int>;
+
  private:
-  Graph graph_;
-  std::unordered_map<SymbolPtr, Vertex> sym_2_vtx_;
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
 };

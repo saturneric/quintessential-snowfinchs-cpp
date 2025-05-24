@@ -1,23 +1,23 @@
 #include "ASMGenerator.h"
 
-#include <spdlog/fmt/ranges.h>
-
 #include <boost/graph/sequential_vertex_coloring.hpp>
-#include <boost/property_map/property_map.hpp>
+#include <fstream>
 
+#include "InterferenceGraphAlgos.h"
+#include "SymbolDefs.h"
 #include "Utils.h"
 
 namespace {
 
 template <typename... Args>
-auto MakeIRA2(Args&&... args) -> std::shared_ptr<IRInstructionA2> {
+auto MakeIRA2(Args&&... args) -> IRInstructionPtr {
   return std::make_shared<IRInstructionA2>(std::forward<Args>(args)...);
 }
 
 }  // namespace
 
 ASMGenerator::ASMGenerator(SymbolTablePtr symbol_table, bool r32,
-                           const std::vector<IRInstructionA2Ptr>& ir2)
+                           const std::vector<IRInstructionPtr>& ir2)
     : symbol_table_(std::move(symbol_table)),
       helper_(SymbolType::kIR, symbol_table_),
       r32_(r32),
@@ -29,10 +29,6 @@ void ASMGenerator::Generate(const std::string& path) {
   build_inf_graph();
 
   spdlog::debug("Built Inf Graph: {:.3}s", sw);
-
-  mcs();
-
-  spdlog::debug("Run MCS: {:.3}s", sw);
 
   alloc_reg();
 
@@ -78,14 +74,14 @@ inline auto IsInMemory(const SymbolPtr& s) -> bool {
 
 }  // namespace
 
-auto ASMGenerator::translate(const std::vector<IRInstructionA2Ptr>& ir)
+auto ASMGenerator::translate(const std::vector<IRInstructionPtr>& ir)
     -> std::vector<std::string> {
   std::vector<std::string> ret;
 
   for (const auto& p_i : ir) {
     const auto& i = *p_i;
 
-    auto op = i.op->Name();
+    auto op = i.Op()->Name();
     if (op == "mov") {
       emit_mov_op(ret, op, i);
     } else if (op == "add" || op == "sub" || op == "mul" || op == "div" ||
@@ -114,17 +110,15 @@ auto ASMGenerator::translate(const std::vector<IRInstructionA2Ptr>& ir)
 }
 
 void ASMGenerator::emit_jmp_op(std::vector<std::string>& fins,
-                               const std::string& op,
-                               const IRInstructionA2& i) {
-  const auto s_src = i.src;
+                               const std::string& op, const IRInstruction& i) {
+  const auto s_src = i.SRC(0);
   const auto src = format_operand(s_src);
   fins.push_back(op + " " + src);
 }
 
 void ASMGenerator::emit_spz_op(std::vector<std::string>& fins,
-                               const std::string& op,
-                               const IRInstructionA2& i) {
-  const auto s_src = i.src;
+                               const std::string& op, const IRInstruction& i) {
+  const auto s_src = i.SRC(0);
   const auto src = format_operand(s_src);
 
   if (op == "rtn") {
@@ -139,10 +133,9 @@ void ASMGenerator::emit_spz_op(std::vector<std::string>& fins,
 }
 
 void ASMGenerator::emit_mov_op(std::vector<std::string>& fins,
-                               const std::string& op,
-                               const IRInstructionA2& i) {
-  const auto s_src = i.src;
-  const auto s_dst = i.dst;
+                               const std::string& op, const IRInstruction& i) {
+  const auto s_src = i.SRC(0);
+  const auto s_dst = i.DST();
   const auto src = format_operand(s_src);
   const auto dst = format_operand(s_dst);
 
@@ -165,9 +158,9 @@ void ASMGenerator::emit_mov_op(std::vector<std::string>& fins,
 
 void ASMGenerator::emit_binary_op(std::vector<std::string>& fins,
                                   const std::string& op,
-                                  const IRInstructionA2& i) {
-  const auto s_src = i.src;
-  const auto s_dst = i.dst;
+                                  const IRInstruction& i) {
+  const auto s_src = i.SRC(0);
+  const auto s_dst = i.DST();
   auto src = format_operand(s_src);
   const auto dst = format_operand(s_dst);
 
@@ -249,11 +242,10 @@ void ASMGenerator::emit_binary_op(std::vector<std::string>& fins,
 }
 
 void ASMGenerator::emit_cmp_op(std::vector<std::string>& fins,
-                               const std::string& op,
-                               const IRInstructionA2& i) {
-  const auto s_src = i.src;
-  const auto s_dst = i.dst;
-  const auto s_src_2 = i.src_2;
+                               const std::string& op, const IRInstruction& i) {
+  const auto s_src = i.SRC(0);
+  const auto s_dst = i.DST();
+  const auto s_src_2 = i.SRC(1);
   auto src = format_operand(s_src);
   auto dst = format_operand(s_dst);
   auto src_2 = format_operand(s_src_2);
@@ -323,15 +315,15 @@ void ASMGenerator::emit_cmp_op(std::vector<std::string>& fins,
 
 void ASMGenerator::emit_logic_op(std::vector<std::string>& fins,
                                  const std::string& op,
-                                 const IRInstructionA2& i) {
+                                 const IRInstruction& i) {
   std::string suffix = r32_ ? "l" : "q";
   std::string acc_reg = r32_ ? "%eax" : "%rax";
   std::string acc_reg_low = "%al";
   std::string rem_reg = r32_ ? "%edx" : "%rdx";
   std::string rem_low_reg = "%dl";
 
-  const auto s_src = i.src;
-  const auto s_dst = i.dst;
+  const auto s_src = i.SRC(0);
+  const auto s_dst = i.DST();
   const auto src = format_operand(s_src);
   const auto dst = format_operand(s_dst);
 
@@ -372,9 +364,9 @@ void ASMGenerator::emit_logic_op(std::vector<std::string>& fins,
 
 void ASMGenerator::emit_unary_op(std::vector<std::string>& fins,
                                  const std::string& op,
-                                 const IRInstructionA2& i) {
-  const auto s_src = i.src;
-  const auto s_dst = i.dst;
+                                 const IRInstruction& i) {
+  const auto s_src = i.SRC(0);
+  const auto s_dst = i.DST();
   const auto dst = format_operand(s_dst);
 
   if (op == "neg") {
@@ -443,47 +435,14 @@ const std::vector<std::string> kRegisters32 = {
 
 void ASMGenerator::alloc_reg() {
   auto registers = r32_ ? kRegisters32 : kRegisters64;
-  const auto num_registers = registers.size();
+  auto result = GraphColorRegisterAlloc(inf_graph_, registers);
 
-  using Graph = InterferenceGraph::Graph;
-  const Graph& graph = inf_graph_.GetGraph();
-
-  std::map<InterferenceGraph::Vertex, decltype(registers.size())>
-      color_map_storage;
-  auto colored_map = boost::make_assoc_property_map(color_map_storage);
-
-  std::vector<InterferenceGraph::Vertex> vertex_order;
-  for (const auto& var : mcs_order_) {
-    auto v_opt = inf_graph_.GetVertexBySymbol(var);
-    assert(v_opt);
-
-    if (v_opt) vertex_order.push_back(*v_opt);
+  for (const auto& [var, reg] : result.reg_assignment) {
+    var->MetaRef(SymbolMetaKey::kIN_REGISTER) = true;
+    var->MetaRef(SymbolMetaKey::kLOCATION) = reg;
   }
 
-  // greedy coloring using MCS order
-  boost::sequential_vertex_coloring(
-      graph,
-      boost::make_iterator_property_map(vertex_order.begin(),
-                                        boost::identity_property_map(),
-                                        vertex_order.size()),
-      colored_map);
-
-  auto name_map = boost::get(boost::vertex_name, graph);
-
-  for (const auto& [v, color] : color_map_storage) {
-    const auto& var = name_map[v];
-    assert(var != nullptr);
-
-    if (color < num_registers) {
-      var->MetaRef(SymbolMetaKey::kIN_REGISTER) = true;
-      var->MetaRef(SymbolMetaKey::kLOCATION) = registers[color];
-    } else {
-      var->MetaRef(SymbolMetaKey::kIS_SPILLED) = true;
-      spilled_vars_.insert(var);
-    }
-  }
-
-  for (const auto& var : mcs_order_) {
+  for (const auto& var : result.spilled) {
     if (!var->MetaRef(SymbolMetaKey::kLOCATION).has_value()) {
       var->MetaRef(SymbolMetaKey::kIS_SPILLED) = true;
       spilled_vars_.insert(var);
@@ -509,10 +468,10 @@ void ASMGenerator::build_inf_graph() {
 
   // build inf graph
   for (const auto& i : ir2_) {
-    if (i->dst && IsVariable(i->dst)) {
-      for (const auto& live_var : i->LiveOut) {
-        if (live_var != i->dst) {
-          inf_graph_.AddEdge(i->dst, live_var);
+    if (i->DST() && IsVariable(i->DST())) {
+      for (const auto& live_var : i->LiveOut()) {
+        if (live_var != i->DST()) {
+          inf_graph_.AddEdge(i->DST(), live_var);
         }
       }
     }
@@ -553,106 +512,65 @@ void ASMGenerator::generate_gcc_asm(const std::string& path,
   f.close();
 }
 
-void ASMGenerator::mcs() {
-  using Graph = InterferenceGraph::Graph;
-  const Graph& graph = inf_graph_.GetGraph();
-  auto name_map = boost::get(boost::vertex_name, graph);
-
-  std::vector<InterferenceGraph::Vertex> nodes;
-  for (auto [v, v_end] = boost::vertices(graph); v != v_end; ++v) {
-    nodes.push_back(*v);
-  }
-
-  std::unordered_map<InterferenceGraph::Vertex, int> weights;
-  std::unordered_set<InterferenceGraph::Vertex> visited;
-  std::vector<SymbolPtr> order;
-
-  for (auto v : nodes) {
-    weights[v] = 0;
-  }
-
-  while (visited.size() < nodes.size()) {
-    std::optional<InterferenceGraph::Vertex> max_node;
-    int max_weight = -1;
-
-    for (auto v : nodes) {
-      if (visited.count(v) == 0 && weights[v] > max_weight) {
-        max_weight = weights[v];
-        max_node = v;
-      }
-    }
-
-    if (!max_node) break;
-
-    visited.insert(*max_node);
-    order.push_back(name_map[*max_node]);
-
-    for (auto [adj, adj_end] = boost::adjacent_vertices(*max_node, graph);
-         adj != adj_end; ++adj) {
-      if (visited.count(*adj) == 0) {
-        weights[*adj]++;
-      }
-    }
-  }
-
-  for (const auto& var : vars_) {
-    auto v_opt = inf_graph_.GetVertexBySymbol(var);
-    if (v_opt && visited.count(*v_opt) == 0) {
-      order.push_back(var);
-    }
-  }
-
-  mcs_order_ = order;
-}
-
 void ASMGenerator::PrintFinalIR(const std::string& path) {
   std::ofstream f(path);
-  PrintInstructionA2s(f, ir_final_);
+
+  std::vector<IRInstructionPtr> ir;
+  ir.reserve(ir_final_.size());
+  for (const auto& i : ir_final_) {
+    ir.push_back(i);
+  }
+
+  PrintInstructions(f, ir);
   f.close();
 }
 
 void ASMGenerator::optimums() {
-  std::vector<IRInstructionA2Ptr> n_ir;
+  std::vector<IRInstructionPtr> n_ir;
 
-  IRInstructionA2Ptr l_ir = nullptr;
+  IRInstructionPtr l_ir = nullptr;
   for (const auto& ir : ir_final_) {
-    const auto op = ir->op->Name();
-    if (op == "mov" && ir->dst == ir->src) continue;
+    const auto op = ir->Op()->Name();
+    const auto dst = ir->DST();
+    const auto src = ir->SRC(0);
+    const auto src_2 = ir->SRC(1);
 
-    if (op == "brz" && l_ir && l_ir->op->Value() == kCmpOpType &&
-        l_ir->dst == ir->src) {
+    if (op == "mov" && dst == src) continue;
+
+    if (op == "brz" && l_ir && l_ir->Op()->Value() == kCmpOpType &&
+        l_ir->DST() == src) {
       n_ir.pop_back();
-      n_ir.push_back(MakeIRA2(map_op("cmp"), l_ir->src, l_ir->src_2));
+      n_ir.push_back(MakeIRA2(map_op("cmp"), l_ir->SRC(0), l_ir->SRC(1)));
 
-      const auto op = l_ir->op->Name();
+      const auto op = l_ir->Op()->Name();
 
       if (op == "eq") {
-        n_ir.push_back(MakeIRA2(map_op("jne"), nullptr, ir->src_2));
+        n_ir.push_back(MakeIRA2(map_op("jne"), nullptr, src_2));
       }
       if (op == "neq") {
-        n_ir.push_back(MakeIRA2(map_op("je"), nullptr, ir->src_2));
+        n_ir.push_back(MakeIRA2(map_op("je"), nullptr, src_2));
       }
       if (op == "lt") {
-        n_ir.push_back(MakeIRA2(map_op("jge"), nullptr, ir->src_2));
+        n_ir.push_back(MakeIRA2(map_op("jge"), nullptr, src_2));
       }
       if (op == "le") {
-        n_ir.push_back(MakeIRA2(map_op("jg"), nullptr, ir->src_2));
+        n_ir.push_back(MakeIRA2(map_op("jg"), nullptr, src_2));
       }
       if (op == "gt") {
-        n_ir.push_back(MakeIRA2(map_op("jle"), nullptr, ir->src_2));
+        n_ir.push_back(MakeIRA2(map_op("jle"), nullptr, src_2));
       }
       if (op == "ge") {
-        n_ir.push_back(MakeIRA2(map_op("jl"), nullptr, ir->src_2));
+        n_ir.push_back(MakeIRA2(map_op("jl"), nullptr, src_2));
       }
 
       l_ir = ir;
       continue;
     }
 
-    if (op == "brz" && l_ir && l_ir->op->Name() == "lnot" &&
-        l_ir->dst == ir->src) {
+    if (op == "brz" && l_ir && l_ir->Op()->Name() == "lnot" &&
+        l_ir->DST() == src) {
       n_ir.pop_back();
-      n_ir.push_back(MakeIRA2(map_op("brnz"), nullptr, l_ir->dst, ir->src_2));
+      n_ir.push_back(MakeIRA2(map_op("brnz"), nullptr, l_ir->DST(), src_2));
       l_ir = ir;
       continue;
     }

@@ -40,7 +40,7 @@ class Driver : public yyFlexLexer {
 
   void Print(const std::string& path);
 
-  auto AST() -> AST;
+  auto AST() -> AST&;
 
   void LexerError(const char* msg) override;
 

@@ -22,7 +22,7 @@ class IR2Generator {
   ScopedSymbolLookUpHelper helper_;
   ControlFlowGraphPtr cfg_;
   std::vector<IRInstructionPtr> ir3_;
-  std::vector<IRInstructionA2Ptr> ir2_;
+  std::vector<IRInstructionPtr> ir2_;
 
   auto map_op(const std::string& name) -> SymbolPtr;
 

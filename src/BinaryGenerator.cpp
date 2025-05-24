@@ -1,5 +1,7 @@
 #include "BinaryGenerator.h"
 
+#include <filesystem>
+
 auto BinaryGenerator::Generate(const std::string& asm_path,
                                const std::string& binary_path) -> bool {
   namespace fs = std::filesystem;

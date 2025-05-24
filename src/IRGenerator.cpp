@@ -1,11 +1,9 @@
 #include "IRGenerator.h"
 
-#include <boost/graph/dominator_tree.hpp>
-#include <boost/graph/filtered_graph.hpp>
-#include <boost/property_map/property_map.hpp>
 #include <fstream>
-#include <queue>
 
+#include "ControlFlowGraphAlgos.h"
+#include "SymbolDefs.h"
 #include "SymbolMetaTypedef.h"
 #include "Utils.h"
 
@@ -562,38 +560,38 @@ void IRGenerator::convert2_ssa() {
   //   ins_ssa_.push_back(n_inst);
   // }
 
-  auto graph = cfg_->Graph();
-  const auto blocks = cfg_->Blocks();
-  std::map<SymbolPtr, std::set<int>> def_blocks;
-  for (auto& block : cfg_->Blocks()) {
-    for (const auto& v : block->def) {
-      def_blocks[v].insert(block->id);
-    }
-  }
+  // auto graph = cfg_->Graph();
+  // const auto blocks = cfg_->Blocks();
+  // std::map<SymbolPtr, std::set<int>> def_blocks;
+  // for (auto& block : cfg_->Blocks()) {
+  //   for (const auto& v : block->def) {
+  //     def_blocks[v].insert(block->id);
+  //   }
+  // }
 
-  std::vector<Vertex> dom_tree(num_vertices(graph));
-  auto entry = cfg_->VertexByBlockId(0);
+  // std::vector<Vertex> dom_tree(num_vertices(graph));
+  // auto entry = cfg_->VertexByBlockId(0);
 
-  lengauer_tarjan_dominator_tree(
-      graph, entry,
-      make_iterator_property_map(dom_tree.begin(),
-                                 get(boost::vertex_index, graph)));
+  // lengauer_tarjan_dominator_tree(
+  //     graph, entry,
+  //     make_iterator_property_map(dom_tree.begin(),
+  //                                get(boost::vertex_index, graph)));
 
-  std::vector<std::set<Vertex>> dom_frontier(num_vertices(graph));
-  for (Vertex v = 0; v < num_vertices(graph); ++v) {
-    if (in_degree(v, graph) >= 2) {  // more than one pre block
-      for (auto in_edge : make_iterator_range(in_edges(v, graph))) {
-        Vertex u = source(in_edge, graph);
-        Vertex runner = u;
-        while (runner != dom_tree[v] && runner != entry) {
-          dom_frontier[runner].insert(v);
-          runner = dom_tree[runner];
-        }
-      }
-    }
-  }
+  // std::vector<std::set<Vertex>> dom_frontier(num_vertices(graph));
+  // for (Vertex v = 0; v < num_vertices(graph); ++v) {
+  //   if (in_degree(v, graph) >= 2) {  // more than one pre block
+  //     for (auto in_edge : make_iterator_range(in_edges(v, graph))) {
+  //       Vertex u = source(in_edge, graph);
+  //       Vertex runner = u;
+  //       while (runner != dom_tree[v] && runner != entry) {
+  //         dom_frontier[runner].insert(v);
+  //         runner = dom_tree[runner];
+  //       }
+  //     }
+  //   }
+  // }
 
-  std::map<SymbolPtr, std::set<int>> phi_blocks;
+  // std::map<SymbolPtr, std::set<int>> phi_blocks;
 
   // for (const auto& [var, blocks] : def_blocks) {
   //   std::set<int> has_already;
@@ -712,7 +710,8 @@ void IRGenerator::Context::AddIns(const std::string& op, SymbolPtr dst,
     return;
   }
 
-  ins_.emplace_back(std::make_shared<IRInstruction>(sym_op, dst, src_1, src_2));
+  ins_.emplace_back(
+      std::make_shared<IRInstructionA3>(sym_op, dst, src_1, src_2));
 }
 
 auto IRGenerator::reg_op(const std::string& name, const std::string& type)
@@ -744,259 +743,17 @@ auto IRInstructionA2::Use() const -> std::vector<SymbolPtr> {
 }
 
 void IRGenerator::build_cfg() {
-  std::map<std::string, int> label2block;
-
-  int current_block_id = 0;
-  auto new_block = [&]() -> CFGBasicBlockPtr {
-    auto bb = std::make_shared<CFGBasicBlock>(current_block_id++);
-    cfg_->AddBlock(bb);
-    return bb;
-  };
-
-  bool need_new_block = true;
-  CFGBasicBlockPtr bb = nullptr;
-  auto ir = ctx_->Instructions();
-
-  for (const auto& i : ir) {
-    const auto& ins = i;
-    auto opn = ins->Op()->Name();
-
-    // last ins as jmp
-    if (need_new_block && opn != "label") {
-      bb = new_block();
-      need_new_block = false;
-    }
-
-    // label need jmp
-    if (opn == "label") {
-      bb = new_block();
-      // label in ins.src not ins.dst
-      if (ins->SRC(0)) {
-        bb->label = ins->SRC(0)->Name();
-        label2block[bb->label] = bb->id;
-      }
-      need_new_block = false;
-    }
-
-    // ensure bb for ins
-    if (!bb) bb = new_block();
-
-    bb->Instrs().push_back(i);
-
-    // jmps need new block
-    if (IsJump(ins->Op())) need_new_block = true;
-
-    // rtn also need a block and it's more powerful anyway
-    if (opn == "rtn") {
-      bb->has_return = true;
-      bb->will_return = true;
-      need_new_block = true;
-    }
-  }
-
-  auto blocks = cfg_->Blocks();
-  // add edge
-  for (size_t idx = 0; idx < blocks.size(); ++idx) {
-    auto& bb = blocks[idx];
-    if (bb->Instrs().empty()) continue;
-    const auto& last_ins = bb->Instrs().back();
-
-    auto jump_label = [&](const SymbolPtr& label) -> int {
-      assert(label != nullptr);
-      auto it = label2block.find(label->Name());
-      if (it != label2block.end()) return it->second;
-      return -1;
-    };
-
-    if (bb->has_return) {
-      // if no function in lab2, we should certainly end here
-      // do not add edge since this blocks will end the whole world
-      continue;
-    }
-
-    // add edge between blocks
-    auto op = last_ins->Op()->Name();
-    if (op == "jmp") {
-      // jmp
-      int succ_id = jump_label(last_ins->SRC(0));
-      if (succ_id != -1) cfg_->AddEdge(bb->id, succ_id);
-    } else if (IsCondJump(last_ins->Op())) {
-      // cond jmp
-      // if brz or brnz, there will be op <cond> <label>
-      int succ1 = jump_label(last_ins->SRC((0)) && op != "brz" && op != "brnz"
-                                 ? last_ins->SRC(0)
-                                 : last_ins->SRC(1));
-      if (succ1 != -1) cfg_->AddEdge(bb->id, succ1);
-      // fall through
-      if (idx + 1 < blocks.size()) cfg_->AddEdge(bb->id, blocks[idx + 1]->id);
-    } else {
-      // fall through
-      if (idx + 1 < blocks.size()) cfg_->AddEdge(bb->id, blocks[idx + 1]->id);
-    }
-  }
-
-  // init use and def set of blocks
-  for (auto& block : blocks) {
-    std::set<SymbolPtr> use;
-    std::set<SymbolPtr> def;
-    for (const auto& ins : block->Instrs()) {
-      // skip label
-      if (ins->Op()->Name() == "label") continue;
-
-      // not def yet
-      for (auto& s : ins->Use()) {
-        if (!IsVariable(s)) continue;
-        if (def.count(s) == 0) use.insert(s);
-      }
-      if (ins->DST() && IsVariable(ins->DST())) def.insert(ins->DST());
-    }
-    block->use = use;
-    block->def = def;
-    block->live_in = {};
-    block->live_out = {};
-  }
-
-  // reachable analyse
-  std::queue<CFGBasicBlockPtr> q;
-  auto entry = cfg_->BlockByBlockId(0);
-  entry->reachable = true;
-  q.push(entry);
-
-  while (!q.empty()) {
-    auto bb = q.front();
-    q.pop();
-    for (const auto& succ : cfg_->Successors(bb->id)) {
-      if (!succ->reachable) {
-        succ->reachable = true;
-        q.push(succ);
-      }
-    }
-  }
+  auto res = SplitToBasicBlocks(ctx_->Instructions(), *cfg_);
+  BuildControlFlowEdges(*cfg_, res.blocks, res.label2block);
+  AnalyzeUseDefForBlocks(res.blocks);
+  MarkReachableBlocks(*cfg_);
 }
 
 void IRGenerator::block_level_liveness_analyse() {
-  auto ir = cfg_->Instructions();
-  auto block_list = cfg_->Blocks();
-
-  bool changed = true;
-  while (changed) {
-    changed = false;
-
-    // temp store
-    std::map<int, std::set<SymbolPtr>> next_in;
-    std::map<int, std::set<SymbolPtr>> next_out;
-
-    // calculate all new_in/new_out
-    for (auto& block : block_list) {
-      auto& use = block->use;
-      auto& def = block->def;
-
-      // new_out = ⋃ IN[succ]
-      std::set<SymbolPtr> new_out;
-      for (auto& succ : cfg_->Successors(block->id)) {
-        auto succ_bb = cfg_->BlockByBlockId(succ->id);
-        new_out.insert(succ_bb->live_in.begin(), succ_bb->live_in.end());
-      }
-
-      // new_in = use ∪ (new_out – def)
-      std::set<SymbolPtr> new_in = use;
-      std::set<SymbolPtr> diff;
-      std::set_difference(new_out.begin(), new_out.end(), def.begin(),
-                          def.end(), std::inserter(diff, diff.end()));
-      new_in.insert(diff.begin(), diff.end());
-
-      next_in[block->id] = std::move(new_in);
-      next_out[block->id] = std::move(new_out);
-    }
-
-    // write out all
-    for (auto& block : block_list) {
-      if (block->live_in != next_in[block->id] ||
-          block->live_out != next_out[block->id]) {
-        changed = true;
-        block->live_in = next_in[block->id];
-        block->live_out = next_out[block->id];
-      }
-    }
-  }
+  BlockLevelLivenessAnalyse(*cfg_);
 }
 
-void IRGenerator::block_level_def_analyse() {
-  auto blocks = cfg_->Blocks();
-  auto graph = cfg_->Graph();
-  auto filtered_graph = cfg_->FilteredGraph();
-  std::queue<CFGBasicBlockPtr> worklist;
-
-  // calculate dominator tree to detect cycle
-  std::vector<Vertex> dom_tree(num_vertices(graph));
-  Vertex entry_v = cfg_->VertexByBlockId(0);
-  lengauer_tarjan_dominator_tree(
-      *filtered_graph, entry_v,
-      make_iterator_property_map(dom_tree.begin(),
-                                 get(boost::vertex_index, graph)));
-
-  auto dominates = [&](Vertex u, Vertex v) {
-    Vertex x = u;
-    while (true) {
-      if (x == v) return true;
-      if (x == entry_v) break;
-      x = dom_tree[x];
-    }
-    return false;
-  };
-
-  for (auto& bb : cfg_->Blocks()) {
-    bb->def_out = bb->def;
-    worklist.push(bb);
-  }
-
-  const int entry_id = 0;
-
-  while (!worklist.empty()) {
-    auto bb = worklist.front();
-    worklist.pop();
-
-    if (!bb->reachable) continue;
-
-    std::vector<CFGBasicBlockPtr> real_preds;
-    Vertex bb_v = cfg_->VertexByBlockId(bb->id);
-    for (auto& p : cfg_->Predecessors(bb->id)) {
-      if (!p->reachable) continue;
-      Vertex p_v = cfg_->VertexByBlockId(p->id);
-      if (!dominates(p_v, bb_v)) {
-        real_preds.push_back(p);
-      }
-    }
-
-    std::set<SymbolPtr> new_in;
-    if (real_preds.empty()) {
-      // entry block
-      new_in = bb->def;
-    } else {
-      new_in = cfg_->BlockByBlockId(real_preds[0]->id)->def_out;
-
-      // calculate new in
-      for (size_t i = 1; i < real_preds.size(); ++i) {
-        std::set<SymbolPtr> tmp;
-        auto& other_out = cfg_->BlockByBlockId(real_preds[i]->id)->def_out;
-        std::set_intersection(new_in.begin(), new_in.end(), other_out.begin(),
-                              other_out.end(), std::inserter(tmp, tmp.begin()));
-        new_in.swap(tmp);
-      }
-    }
-
-    std::set<SymbolPtr> new_out = new_in;
-    new_out.insert(bb->def.begin(), bb->def.end());
-
-    if (new_in != bb->def_in || new_out != bb->def_out) {
-      bb->def_in = std::move(new_in);
-      bb->def_out = std::move(new_out);
-      for (auto& succ : cfg_->Successors(bb->id)) {
-        worklist.push(cfg_->BlockByBlockId(succ->id));
-      }
-    }
-  }
-}
+void IRGenerator::block_level_def_analyse() { BlockLevelDefAnalyse(*cfg_); }
 
 void IRGenerator::insert_phi() {
   // for (const auto& block : cfg_->Blocks()) {
@@ -1046,64 +803,5 @@ void IRGenerator::PrintCFG(const std::string& path) {
 }
 
 void IRGenerator::instruction_level_liveness_analyse() {
-  auto blocks = cfg_->Blocks();
-
-  std::unordered_map<int, std::vector<IRInstructionPtr>> block_instrs;
-  for (auto& bb : blocks) {
-    block_instrs[bb->id] = bb->Instrs();
-  }
-
-  bool changed = true;
-  while (changed) {
-    changed = false;
-
-    for (auto& bb : blocks) {
-      auto& idxs = block_instrs[bb->id];
-      if (idxs.empty()) continue;
-
-      // last ins out = block out
-      auto last = idxs.back();
-      auto old_out = last->LiveOut;
-      last->LiveOut = bb->live_out;
-      if (last->LiveOut != old_out) changed = true;
-
-      // iterate downward
-      for (int k = static_cast<int>(idxs.size()) - 1; k >= 0; --k) {
-        const auto& i = idxs[k];
-        // live_in = use ∪ (live_out - def)
-        std::set<SymbolPtr> new_in;
-        // use & def of ins
-        std::vector<SymbolPtr> use;
-        std::vector<SymbolPtr> def;
-        // ins.Use() return dst/srcs
-        for (auto& s : i->Use()) {
-          if (IsVariable(s)) use.push_back(s);
-        }
-
-        if (i->DST() && IsVariable(i->DST())) def.push_back(i->DST());
-
-        // out->in diff
-        std::set<SymbolPtr> diff;
-        std::set_difference(i->LiveOut.begin(), i->LiveOut.end(), def.begin(),
-                            def.end(), std::inserter(diff, diff.end()));
-        // use ∪ diff
-        new_in.insert(use.begin(), use.end());
-        new_in.insert(diff.begin(), diff.end());
-
-        if (new_in != i->LiveIn) {
-          i->LiveIn = std::move(new_in);
-          changed = true;
-        }
-
-        // live_out[i-1] = live_in[i]
-        if (k > 0) {
-          const auto& prev = idxs[k - 1];
-          if (prev->LiveOut != i->LiveIn) {
-            prev->LiveOut = i->LiveIn;
-            changed = true;
-          }
-        }
-      }
-    }
-  }
+  InstructionLevelLivenessAnalyse(*cfg_);
 }

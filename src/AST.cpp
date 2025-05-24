@@ -1,6 +1,16 @@
 #include "AST.h"
 
 #include <fstream>
+#include <stack>
+#include <utility>
+
+struct ASTNode::Impl {
+  ASTNodeType type_;
+  ASTNodeTag tag_;
+  SymbolPtr symbol_;
+  ASTNode* parent_ = nullptr;
+  std::vector<ASTNodePtr> children_;
+};
 
 const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
     {ASTNodeType::kPROGRAM, "Program"},
@@ -22,13 +32,68 @@ const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
     {ASTNodeType::kCONTINUE, "Continue"},
 };
 
+ASTNode::ASTNode() : impl_(std::make_unique<ASTNode::Impl>()) {}
+
+ASTNode::ASTNode(ASTNodeType type, SymbolPtr symbol)
+    : impl_(std::make_unique<ASTNode::Impl>()) {
+  impl_->type_ = type;
+  impl_->symbol_ = std::move(symbol);
+}
+
+ASTNode::ASTNode(ASTNodeType type, SymbolPtr symbol,
+                 std::initializer_list<ASTNodePtr> children)
+    : impl_(std::make_unique<ASTNode::Impl>()) {
+  impl_->type_ = type;
+  impl_->symbol_ = std::move(symbol);
+  impl_->children_ = children;
+}
+
+ASTNode::~ASTNode() = default;
+
+auto ASTNode::Children() -> std::vector<ASTNodePtr> { return impl_->children_; }
+
+void ASTNode::AddChild(const ASTNodePtr& child, ASTNodeTag tag) {
+  if (child == nullptr) return;
+
+  // attach tag to distinguish children
+  child->impl_->tag_ = tag;
+  // set parent
+  child->impl_->parent_ = this;
+  impl_->children_.push_back(child);
+}
+
+auto ASTNode::Type() -> ASTNodeType { return impl_->type_; }
+
+auto ASTNode::Symbol() -> SymbolPtr { return impl_->symbol_; }
+
+auto ASTNode::Tag() -> ASTNodeTag { return impl_->tag_; }
+
+auto ASTNode::Parent() -> ASTNode* { return impl_->parent_; }
+
+struct AST::Impl {
+  SymbolTablePtr symbol_table_;
+  std::shared_ptr<ASTNode> root_ = nullptr;
+  std::stack<int> tab_stack_;
+  const int spaces_in_tab_ = 4;
+};
+
+AST::AST(SymbolTablePtr symbol_table) : impl_(std::make_unique<AST::Impl>()) {
+  impl_->symbol_table_ = std::move(symbol_table);
+}
+
+AST::~AST() = default;
+
+auto AST::Root() const -> ASTNodePtr { return impl_->root_; }
+
+void AST::SetRoot(const ASTNodePtr& root) { impl_->root_ = root; }
+
 void AST::do_ast_node_print(const ASTNodePtr& node, std::ofstream& stream) {
   if (node == nullptr) return;
 
-  tab_stack_.push(tab_stack_.top() + 1);
+  impl_->tab_stack_.push(impl_->tab_stack_.top() + 1);
 
-  for (int i = tab_stack_.top() * spaces_in_tab_; i > 0; i--) {
-    if (i % spaces_in_tab_ == 0) {
+  for (int i = impl_->tab_stack_.top() * impl_->spaces_in_tab_; i > 0; i--) {
+    if (i % impl_->spaces_in_tab_ == 0) {
       stream << '|';
     }
     stream << ' ';
@@ -50,51 +115,17 @@ void AST::do_ast_node_print(const ASTNodePtr& node, std::ofstream& stream) {
     do_ast_node_print(child, stream);
   }
 
-  tab_stack_.pop();
+  impl_->tab_stack_.pop();
 }
 
 void AST::Print(const std::string& path) {
-  if (root_ == nullptr) return;
+  if (impl_->root_ == nullptr) return;
 
-  tab_stack_.push(-1);
+  impl_->tab_stack_.push(-1);
 
   std::ofstream f(path);
 
-  do_ast_node_print(root_, f);
+  do_ast_node_print(impl_->root_, f);
 
   f.close();
 }
-
-ASTNode::ASTNode(ASTNodeType type, SymbolPtr symbol)
-    : type_(type), symbol_(std::move(symbol)) {}
-
-ASTNode::ASTNode(ASTNodeType type, SymbolPtr symbol,
-                 std::initializer_list<ASTNodePtr> children)
-    : type_(type), symbol_(std::move(symbol)), children_(children) {}
-
-auto ASTNode::Children() -> std::vector<ASTNodePtr> { return children_; }
-
-void ASTNode::AddChild(const ASTNodePtr& child, ASTNodeTag tag) {
-  if (child == nullptr) return;
-
-  // attach tag to distinguish children
-  child->tag_ = tag;
-  // set parent
-  child->parent_ = this;
-  children_.push_back(child);
-}
-
-auto ASTNode::Type() -> ASTNodeType { return type_; }
-
-auto ASTNode::Symbol() -> SymbolPtr { return symbol_; }
-
-auto AST::Root() const -> ASTNodePtr { return root_; }
-
-AST::AST(std::shared_ptr<SymbolTable> symbol_table)
-    : symbol_table_(std::move(symbol_table)) {};
-
-void AST::SetRoot(const ASTNodePtr& root) { root_ = root; }
-
-auto ASTNode::Tag() -> ASTNodeTag { return tag_; }
-
-auto ASTNode::Parent() -> ASTNode* { return parent_; }

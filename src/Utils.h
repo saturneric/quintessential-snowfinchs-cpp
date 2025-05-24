@@ -15,6 +15,3 @@ auto SymLoc(const SymbolPtr& op) -> std::string;
 
 void PrintInstructions(std::ostream& f,
                        const std::vector<IRInstructionPtr>& instructions);
-
-void PrintInstructionA2s(std::ostream& f,
-                         const std::vector<IRInstructionA2Ptr>& instructions);

@@ -1,7 +1,7 @@
 #include "CFSemanticAnalyzer.h"
 
-#include <boost/graph/dominator_tree.hpp>
-#include <boost/property_map/property_map.hpp>
+#include "CFGBasicBlock.h"
+#include "SymbolDefs.h"
 
 CFSemanticAnalyzer::CFSemanticAnalyzer(ControlFlowGraphPtr cfg)
     : cfg_(std::move(cfg)) {}
@@ -13,27 +13,8 @@ auto CFSemanticAnalyzer::Analyse() -> bool {
 }
 
 void CFSemanticAnalyzer::check_all_paths_return() {
+  cfg_->BuildDominatorTree();
   auto blocks = cfg_->Blocks();
-  auto graph = cfg_->Graph();
-  auto filtered_graph = cfg_->FilteredGraph();
-
-  // calculate dominator tree to detect cycle
-  std::vector<Vertex> dom_tree(num_vertices(graph));
-  Vertex entry_v = cfg_->VertexByBlockId(0);
-  lengauer_tarjan_dominator_tree(
-      *filtered_graph, entry_v,
-      make_iterator_property_map(dom_tree.begin(),
-                                 get(boost::vertex_index, graph)));
-
-  auto dominates = [&](Vertex u_node, Vertex v_dom) {
-    Vertex x = u_node;
-    while (true) {
-      if (x == v_dom) return true;
-      if (x == entry_v) break;
-      x = dom_tree[x];
-    }
-    return false;
-  };
 
   bool changed;
   do {
@@ -42,11 +23,11 @@ void CFSemanticAnalyzer::check_all_paths_return() {
       if (bb->will_return || !bb->reachable) continue;
 
       std::vector<CFGBasicBlockPtr> filtered_succs;
-      Vertex u_v = cfg_->VertexByBlockId(bb->id);
+      auto u_v = cfg_->BlockByBlockId(bb->id);
       for (auto& succ : cfg_->Successors(bb->id)) {
         if (!succ->reachable) continue;
-        Vertex v_v = cfg_->VertexByBlockId(succ->id);
-        if (!dominates(u_v, v_v)) {
+        auto v_v = cfg_->BlockByBlockId(succ->id);
+        if (!cfg_->Dominates(u_v->id, v_v->id)) {
           filtered_succs.push_back(succ);
         }
       }

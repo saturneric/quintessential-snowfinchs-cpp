@@ -1,5 +1,10 @@
 #include "Utils.h"
 
+#include <iomanip>
+#include <ostream>
+
+#include "SymbolDefs.h"
+
 auto SafeParseInt(const std::string& text, int& result) -> bool {
   if (text.empty()) return false;
 
@@ -91,7 +96,7 @@ void PrintInstructions(std::ostream& f,
     f << "\n";
     f << "% LIVE IN: ";
 
-    for (const auto& s : i->LiveIn) {
+    for (const auto& s : i->LiveIn()) {
       assert(s != nullptr);
       if (s == nullptr) continue;
       f << s->Name() << ", ";
@@ -100,7 +105,7 @@ void PrintInstructions(std::ostream& f,
     f << "\n";
     f << "% LIVE OUT: ";
 
-    for (const auto& s : i->LiveOut) {
+    for (const auto& s : i->LiveOut()) {
       assert(s != nullptr);
       if (s == nullptr) continue;
       f << s->Name() << ", ";
@@ -111,59 +116,6 @@ void PrintInstructions(std::ostream& f,
   }
 }
 
-void PrintInstructionA2s(std::ostream& f,
-                         const std::vector<IRInstructionA2Ptr>& instructions) {
-  for (const auto& p_i : instructions) {
-    const auto& i = *p_i;
-    f << std::left << std::setw(12) << i.op->Name();
-
-    if (i.dst) {
-      f << i.dst->Name();
-      if (i.src) f << ", " << i.src->Name();
-      if (i.src_2) f << ", " << i.src_2->Name();
-    } else if (i.src) {
-      f << i.src->Name();
-      if (i.src_2) f << ", " << i.src_2->Name();
-    }
-
-    f << "    // ";
-
-    if (i.dst) {
-      f << i.dst->Value() << "(" << SymLoc(i.dst) << ")";
-      if (i.src) f << ", " << i.src->Value() << "(" << SymLoc(i.src) << ")";
-
-      if (i.src_2) {
-        f << ", " << i.src_2->Value() << "(" << SymLoc(i.src_2) << ")";
-      }
-    } else if (i.src) {
-      f << i.src->Value() << "(" << SymLoc(i.src) << ")";
-      if (i.src_2) {
-        f << ", " << i.src_2->Value() << "(" << SymLoc(i.src_2) << ")";
-      }
-    }
-
-    f << "\n";
-    f << "% LIVE IN: ";
-
-    for (const auto& s : i.LiveIn) {
-      assert(s != nullptr);
-      if (s == nullptr) continue;
-      f << s->Name() << ", ";
-    }
-
-    f << "\n";
-    f << "% LIVE OUT: ";
-
-    for (const auto& s : i.LiveOut) {
-      assert(s != nullptr);
-      if (s == nullptr) continue;
-      f << s->Name() << ", ";
-    }
-
-    f << "\n";
-    f << "\n";
-  }
-}
 auto SymLoc(const SymbolPtr& op) -> std::string {
   if (op == nullptr) return {};
   auto loc = op->MetaData(SymbolMetaKey::kLOCATION);

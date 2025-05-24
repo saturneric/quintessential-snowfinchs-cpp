@@ -1,126 +1,49 @@
 #pragma once
 
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/filtered_graph.hpp>
-#include <boost/graph/graph_traits.hpp>
-
 #include "IRInstruction.h"
-#include "Symbol.h"
 
-struct CFGBasicBlock {
-  int id;
-  std::string label;
-
-  std::set<SymbolPtr> use;
-  std::set<SymbolPtr> def;
-  std::set<SymbolPtr> def_in;
-  std::set<SymbolPtr> def_out;
-
-  std::set<SymbolPtr> live_in;
-  std::set<SymbolPtr> live_out;
-
-  bool has_return = false;
-  bool will_return = false;
-  bool reachable = false;
-
-  explicit CFGBasicBlock(int id, std::string label = "", bool ir2_mode = false)
-      : id(id), label(std::move(label)), ir2_mode_(ir2_mode) {}
-
-  [[nodiscard]] auto IR2Mode() const -> bool { return ir2_mode_; }
-
-  auto Instrs() -> std::vector<IRInstructionPtr>& {
-    assert(ir2_mode_ == false);
-    return instrs_;
-  }
-
-  auto Instr2As() -> std::vector<IRInstructionA2Ptr>& {
-    assert(ir2_mode_ == true);
-    return instr_a2s_;
-  }
-
- private:
-  bool ir2_mode_;
-  std::vector<IRInstructionPtr> instrs_;       // index in ir array
-  std::vector<IRInstructionA2Ptr> instr_a2s_;  // index in ir array (2 addr)
-};
+class CFGBasicBlock;
 using CFGBasicBlockPtr = std::shared_ptr<CFGBasicBlock>;
 
-struct VertexProp {
-  CFGBasicBlockPtr bb;
-};
-
-using CFGGraph = boost::adjacency_list<boost::vecS,            // edge list
-                                       boost::vecS,            // vertex list
-                                       boost::bidirectionalS,  // directed
-                                       VertexProp  // vertex property
-                                       //,boost::no_property // edge property,
-                                       >;
-
-using Vertex = boost::graph_traits<CFGGraph>::vertex_descriptor;
-using Edge = boost::graph_traits<CFGGraph>::edge_descriptor;
-
-// build filtered graph
-using Graph = CFGGraph;
-using Vertex = boost::graph_traits<CFGGraph>::vertex_descriptor;
-using Edge = boost::graph_traits<CFGGraph>::edge_descriptor;
-
-struct KeepReachable {
-  const Graph* g;
-  auto operator()(Vertex v) const -> bool {
-    return g->operator[](v).bb->reachable;
-  }
-};
-
-struct KeepEdges {
-  const Graph* g;
-  auto operator()(Edge e) const -> bool {
-    auto u = source(e, *g);
-    auto v = target(e, *g);
-    return g->operator[](u).bb->reachable && g->operator[](v).bb->reachable;
-  }
-};
-
-using FilteredCFGGraph =
-    boost::filtered_graph<CFGGraph, KeepEdges, KeepReachable>;
-
-using FilteredCFGGraphPtr = std::shared_ptr<FilteredCFGGraph>;
+using BlockHandle = unsigned long;
+using BlockID = int;
 
 class ControlFlowGraph {
  public:
-  ControlFlowGraph() = default;
+  ControlFlowGraph();
 
-  auto AddBlock(const CFGBasicBlockPtr& bb) -> Vertex;
+  ~ControlFlowGraph();
+
+  auto AddBlock(const CFGBasicBlockPtr& bb) -> BlockHandle;
 
   void AddEdge(int from_id, int to_id);
 
-  [[nodiscard]] auto VertexByBlockId(int block_id) const -> Vertex;
+  [[nodiscard]] auto VertexByBlockId(BlockID block_id) const -> BlockHandle;
 
-  [[nodiscard]] auto BlockByBlockId(int block_id) const -> CFGBasicBlockPtr;
+  [[nodiscard]] auto BlockByBlockId(BlockID block_id) const -> CFGBasicBlockPtr;
 
   [[nodiscard]] auto Blocks() const -> std::vector<CFGBasicBlockPtr>;
 
-  [[nodiscard]] auto Successors(int id) const -> std::vector<CFGBasicBlockPtr>;
-
-  [[nodiscard]] auto Predecessors(int id) const
+  [[nodiscard]] auto Successors(BlockID id) const
       -> std::vector<CFGBasicBlockPtr>;
 
-  auto Graph() -> CFGGraph&;
-
-  [[nodiscard]] auto Graph() const -> const CFGGraph&;
-
-  auto FilteredGraph() -> FilteredCFGGraphPtr;
+  [[nodiscard]] auto Predecessors(BlockID id) const
+      -> std::vector<CFGBasicBlockPtr>;
 
   void Print(std::ostream& os) const;
 
   [[nodiscard]] auto Instructions() const -> std::vector<IRInstructionPtr>;
 
-  [[nodiscard]] auto Instruction2As() const -> std::vector<IRInstructionA2Ptr>;
+  void BuildFilteredGraph();
+
+  void BuildDominatorTree();
+
+  [[nodiscard]] auto Dominates(BlockID u_block_id, BlockID v_block_id) const
+      -> bool;
 
  private:
-  CFGGraph g_;
-  FilteredCFGGraphPtr f_g_;
-  std::map<int, Vertex> bb_map_;             // id -> vertex
-  std::map<int, CFGBasicBlockPtr> id_2_bb_;  // id -> block
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
 };
 
 using ControlFlowGraphPtr = std::shared_ptr<ControlFlowGraph>;

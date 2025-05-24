@@ -1,7 +1,9 @@
 #include "SemanticAnalyzer.h"
 
 #include <algorithm>
+#include <fstream>
 
+#include "SymbolDefs.h"
 #include "SymbolMetaTypedef.h"
 #include "Utils.h"
 

@@ -1,5 +1,12 @@
 #include "API.h"
 
+// cxxpots
+#include <cxxopts.hpp>
+
+// std
+#include <fstream>
+#include <iostream>
+
 namespace {
 
 auto CheckInputOutput(const cxxopts::ParseResult& result, std::string& input,

@@ -1,39 +1,11 @@
 #pragma once
 
 #include <any>
-#include <utility>
 
 #include "Scope.h"
 
-enum class SymbolType : uint8_t {
-  kNONE,
-  kAST,
-  kDEFINE,
-  kIR,
-};
-
-using SymbolMetaKeySizeType = uint8_t;
-
-enum class SymbolMetaKey : SymbolMetaKeySizeType {
-  kNONE = 0,
-  kSCOPE,
-  kTYPE,
-  kHAS_INIT,
-  kIN_LOOP,
-  kIS_SPILLED,
-  kIN_REGISTER,
-  kIN_STACK,
-  kLOCATION,
-  kSSA_VERSION,
-  kSSA_LATEST_SYM,
-  kSSA_ORIGIN_SYM,
-  kCONTINUE_LABEL,
-  kBREAK_LABEL,
-  kDEF_SYMBOL,
-  kWILL_RETURN,
-  kWILL_BREAK,
-  kCOUNT,
-};
+enum class SymbolType : uint8_t;
+enum class SymbolMetaKey : uint8_t;
 
 class Symbol;
 using SymbolPtr = std::shared_ptr<Symbol>;
@@ -41,6 +13,8 @@ using SymbolPtr = std::shared_ptr<Symbol>;
 class Symbol {
  public:
   Symbol(SymbolType type, int index, std::string name);
+
+  ~Symbol();
 
   [[nodiscard]] auto Type() const -> SymbolType;
 
@@ -71,11 +45,8 @@ class Symbol {
   void Inheritance(const SymbolPtr& parent);
 
  private:
-  int index_;
-  SymbolType type_;
-  std::string name_;
-  std::string value_;
-  std::array<std::any, static_cast<size_t>(SymbolMetaKey::kCOUNT)> meta_data_;
+  struct Impl;  // PIMPL
+  std::unique_ptr<Impl> impl_;
 };
 
 template <typename T>

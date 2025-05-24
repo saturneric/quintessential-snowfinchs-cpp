@@ -4,6 +4,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <fstream>
+
 #include "API.h"
 
 auto main(int argc, char** argv) -> int {

@@ -63,7 +63,7 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
   });
 
   ASMGenerator asm_gen(symbol_table, !r64,
-                       ir2g.ControlFlowGraph()->Instruction2As());
+                       ir2g.ControlFlowGraph()->Instructions());
 
   ret = RunOperation("ASM Generator", [&]() {
     asm_gen.Generate(runtime_dir / "ASM.S");

@@ -12,7 +12,7 @@
 class ASMGenerator {
  public:
   explicit ASMGenerator(SymbolTablePtr symbol_table, bool r32,
-                        const std::vector<IRInstructionA2Ptr>& ir2);
+                        const std::vector<IRInstructionPtr>& ir2);
 
   void Generate(const std::string& path);
 
@@ -44,38 +44,37 @@ class ASMGenerator {
   SymbolTablePtr symbol_table_;
   ScopedSymbolLookUpHelper helper_;
   InterferenceGraph inf_graph_;
-  std::vector<IRInstructionA2Ptr> ir2_;
-  std::vector<IRInstructionA2Ptr> ir_final_;
+  std::vector<IRInstructionPtr> ir2_;
+  std::vector<IRInstructionPtr> ir_final_;
   std::set<SymbolPtr> constants_;
   std::set<SymbolPtr> vars_;
-  std::vector<SymbolPtr> mcs_order_;
   std::set<SymbolPtr> spilled_vars_;
 
   void gen_final_asm_source(const std::string& path);
 
-  auto translate(const std::vector<IRInstructionA2Ptr>& ir)
+  auto translate(const std::vector<IRInstructionPtr>& ir)
       -> std::vector<std::string>;
 
   void emit_mov_op(std::vector<std::string>& fins, const std::string& op,
-                   const IRInstructionA2& i);
+                   const IRInstruction& i);
 
   void emit_binary_op(std::vector<std::string>& fins, const std::string& op,
-                      const IRInstructionA2& instr);
+                      const IRInstruction& instr);
 
   void emit_cmp_op(std::vector<std::string>& fins, const std::string& op,
-                   const IRInstructionA2& i);
+                   const IRInstruction& i);
 
   void emit_logic_op(std::vector<std::string>& fins, const std::string& op,
-                     const IRInstructionA2& i);
+                     const IRInstruction& i);
 
   void emit_unary_op(std::vector<std::string>& fins, const std::string& op,
-                     const IRInstructionA2& i);
+                     const IRInstruction& i);
 
   void emit_spz_op(std::vector<std::string>& fins, const std::string& op,
-                   const IRInstructionA2& i);
+                   const IRInstruction& i);
 
   void emit_jmp_op(std::vector<std::string>& fins, const std::string& op,
-                   const IRInstructionA2& i);
+                   const IRInstruction& i);
 
   void optimums();
 
@@ -85,8 +84,6 @@ class ASMGenerator {
   void alloc_reg();
 
   void build_inf_graph();
-
-  void mcs();
 
   auto map_sym(const std::string& name, const std::string& type) -> SymbolPtr;
 

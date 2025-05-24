@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include "SymbolDefs.h"
+
 auto Driver::Parse(const std::string& path) -> int {
   std::ifstream input(path);
   if (!input.is_open()) {
@@ -53,9 +55,7 @@ auto Driver::yylex() -> int { return 0; }
 
 auto yyFlexLexer::yylex() -> int { return 0; }
 
-auto Driver::AST() -> class AST {
-  return ast_;
-}
+auto Driver::AST() -> class AST& { return ast_; }
 
 void Driver::LexerError(const char* msg) {
   lexer_error_ = true;

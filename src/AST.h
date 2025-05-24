@@ -1,41 +1,19 @@
 #pragma once
 
-#include <utility>
-
+#include "ASTDefs.h"
 #include "SymbolTable.h"
 
-enum class ASTNodeType : char {
-  kPROGRAM,
-  kBLOCK,
-  kASSIGN,
-  kDECLARE,
-  kBIN_OP,
-  kUN_OP,
-  kRETURN,
-  kTYPE,
-  kVALUE,
-  kIDENT,
-  kIF,
-  kCOND_EXP,
-  kWHILE,
-  kBREAK,
-  kCONTINUE,
-};
-
-enum class ASTNodeTag : uint8_t {
-  kNONE = 0,
-  kINIT,
-  kCOND,
-  kSTEP,
-  kBODY,
-};
+enum class ASTNodeType : uint8_t;
+enum class ASTNodeTag : uint8_t;
 
 class ASTNode;
 using ASTNodePtr = std::shared_ptr<ASTNode>;
 
 class ASTNode {
  public:
-  ASTNode() = default;
+  ASTNode();
+
+  ~ASTNode();
 
   ASTNode(ASTNodeType type, SymbolPtr symbol);
 
@@ -55,16 +33,15 @@ class ASTNode {
   auto Symbol() -> SymbolPtr;
 
  private:
-  ASTNodeType type_;
-  ASTNodeTag tag_;
-  SymbolPtr symbol_;
-  ASTNode *parent_ = nullptr;
-  std::vector<ASTNodePtr> children_;
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
 };
 
 class AST {
  public:
-  explicit AST(std::shared_ptr<SymbolTable> symbol_table);
+  explicit AST(SymbolTablePtr symbol_table);
+
+  ~AST();
 
   void SetRoot(const ASTNodePtr &root);
 
@@ -73,11 +50,8 @@ class AST {
   [[nodiscard]] auto Root() const -> ASTNodePtr;
 
  private:
-  std::shared_ptr<SymbolTable> symbol_table_;
-  std::shared_ptr<ASTNode> root_ = nullptr;
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
 
-  std::stack<int> tab_stack_;
-
-  const int spaces_in_tab_ = 4;
   void do_ast_node_print(const ASTNodePtr &node, std::ofstream &stream);
 };
