@@ -1,4 +1,8 @@
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SRC_FILES)
+add_subdirectory(pch)
+add_subdirectory(model)
+add_subdirectory(core)
+add_subdirectory(handlers)
+add_subdirectory(driver)
 
-add_library(core SHARED ${SRC_FILES})
-target_precompile_headers(core PUBLIC "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/pch.h>")
+add_executable(compiler L1Compiler.cpp)
+target_link_libraries(compiler PRIVATE pch driver)

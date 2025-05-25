@@ -1,0 +1,4 @@
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SRC_FILES)
+
+add_library(model SHARED ${SRC_FILES})
+target_link_libraries(model PRIVATE pch)

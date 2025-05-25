@@ -24,9 +24,6 @@ include_directories(compiler include)
 
 add_subdirectory(src)
 
-add_executable(compiler L1Compiler.cpp)
-target_link_libraries(compiler PRIVATE core)
-
 if(BUILD_TEST_CASES)
   add_subdirectory(test)
 endif()
