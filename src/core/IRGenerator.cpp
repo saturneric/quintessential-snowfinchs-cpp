@@ -343,7 +343,8 @@ auto IRInstructionA2::Use() const -> std::vector<SymbolPtr> {
 }
 
 void IRGenerator::build_cfg() {
-  auto res = SplitToBasicBlocks(ctx_->Instructions(), *cfg_);
+  // do optimums before build cfg
+  auto res = SplitToBasicBlocks(optimums(ctx_->Instructions()), *cfg_);
   BuildControlFlowEdges(*cfg_, res.blocks, res.label2block);
   AnalyzeUseDefForBlocks(res.blocks);
   MarkReachableBlocks(*cfg_);
@@ -404,4 +405,29 @@ void IRGenerator::PrintCFG(const std::string& path) {
 
 void IRGenerator::instruction_level_liveness_analyse() {
   InstructionLevelLivenessAnalyse(*cfg_);
+}
+
+auto IRGenerator::optimums(const std::vector<IRInstructionPtr>& irs)
+    -> std::vector<IRInstructionPtr> {
+  std::vector<IRInstructionPtr> ret;
+
+  IRInstructionPtr l_ir = nullptr;
+  for (const auto& ir : irs) {
+    const auto op = ir->Op()->Name();
+    const auto dst = ir->DST();
+    const auto src_1 = ir->SRC(0);
+    const auto src_2 = ir->SRC(1);
+
+    // opt a += b; or a = a + b;
+    if (op == "mov" && l_ir && l_ir->Op()->Value() == kBinOpType &&
+        src_1 == l_ir->DST() && dst == l_ir->SRC(0)) {
+      l_ir->SetDST(dst);
+      continue;
+    }
+
+    ret.push_back(ir);
+    l_ir = ir;
+  }
+
+  return ret;
 }

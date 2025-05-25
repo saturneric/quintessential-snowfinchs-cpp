@@ -21,12 +21,12 @@ auto BinaryGenerator::Generate(const std::string& asm_path,
     return false;
   }
 
-  std::string cmd = compiler + " -no-pie -o \"" + binary_path + "\" \"" +
-                    asm_path + "\"" + " -O3";
+  const auto cmd = compiler + " -static -no-pie -o \"" + binary_path + "\" \"" +
+                   asm_path + "\"";
   spdlog::debug("build command: {}", cmd);
 
   if (std::system(cmd.c_str()) != 0) {
-    spdlog::error("compiler build failed, please chack source file.");
+    spdlog::error("compiler build failed, please check source file.");
     return false;
   }
 

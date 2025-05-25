@@ -29,6 +29,8 @@ auto IRInstructionA3::DST() const -> SymbolPtr { return dst_; }
 
 auto IRInstructionA3::Use() const -> std::vector<SymbolPtr> { return srcs_; }
 
+void IRInstructionA3::SetDST(SymbolPtr d) { dst_ = d; }
+
 IRInstructionA2::IRInstructionA2(SymbolPtr op, SymbolPtr dst, SymbolPtr src,
                                  SymbolPtr src_2)
     : op(std::move(op)),
@@ -75,3 +77,4 @@ void IRInstructionA2::RenameVariable(SymbolPtr v, SymbolPtr n) {
   if (src == v) src = n;
   if (src_2 == v) src_2 = n;
 }
+void IRInstructionA2::SetDST(SymbolPtr d) { dst = d; }

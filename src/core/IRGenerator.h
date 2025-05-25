@@ -114,4 +114,7 @@ class IRGenerator {
   void insert_phi();
 
   void refresh_irs_by_cfg();
+
+  static auto optimums(const std::vector<IRInstructionPtr>&)
+      -> std::vector<IRInstructionPtr>;
 };

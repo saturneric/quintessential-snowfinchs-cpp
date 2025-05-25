@@ -27,6 +27,8 @@ class IRInstruction {
   virtual auto LiveOut() -> std::set<SymbolPtr>& = 0;
 
   virtual void RenameVariable(SymbolPtr v, SymbolPtr n) = 0;
+
+  virtual void SetDST(SymbolPtr) = 0;
 };
 
 using IRInstructionPtr = std::shared_ptr<IRInstruction>;
@@ -60,6 +62,8 @@ struct IRInstructionA2 : public IRInstruction {
   auto LiveOut() -> std::set<SymbolPtr>& override;
 
   void RenameVariable(SymbolPtr v, SymbolPtr n) override;
+
+  void SetDST(SymbolPtr d) override;
 };
 
 using IRInstructionA2Ptr = std::shared_ptr<IRInstructionA2>;
@@ -85,6 +89,8 @@ class IRInstructionA3 : public IRInstruction {
   auto LiveOut() -> std::set<SymbolPtr>& override;
 
   void RenameVariable(SymbolPtr v, SymbolPtr n) override;
+
+  void SetDST(SymbolPtr d) override;
 
  private:
   SymbolPtr op_;
