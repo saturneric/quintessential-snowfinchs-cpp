@@ -2,9 +2,9 @@
 set -e
 
 SOURCE_DIR=$(pwd)
-BUILD_DIR="$SOURCE_DIR/build-make"
+BUILD_DIR="$SOURCE_DIR/build"
 
-MAX_JOBS=12
+MAX_JOBS=16
 JOBS=$(nproc)
 
 echo "Detected CPU cores: $JOBS"
