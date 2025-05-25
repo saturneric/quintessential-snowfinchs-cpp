@@ -75,6 +75,11 @@
     "exec_exit_code": 52
   },
   {
+    "source_file_path": "lab2/C3.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 150
+  },
+  {
     "source_file_path": "lab2/C4.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 255

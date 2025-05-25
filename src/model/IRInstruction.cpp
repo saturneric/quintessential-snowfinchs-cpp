@@ -1,5 +1,16 @@
 #include "IRInstruction.h"
 
+auto IsCondJump(const SymbolPtr& op) -> bool {
+  auto n = op->Name();
+  return n == "je" || n == "jne" || n == "jg" || n == "jl" || n == "jge" ||
+         n == "jle" || n == "jnz" || n == "brz" || n == "brnz";
+}
+
+auto IsJump(const SymbolPtr& op) -> bool {
+  auto n = op->Name();
+  return n == "jmp" || IsCondJump(op);
+}
+
 IRInstructionA3::IRInstructionA3(SymbolPtr op, SymbolPtr dst,
                                  const SymbolPtr& src_1, const SymbolPtr& src_2)
     : op_(std::move(op)), dst_(std::move(dst)) {
@@ -33,15 +44,12 @@ auto IRInstructionA3::LiveIn() -> std::set<SymbolPtr>& { return live_in_; }
 
 auto IRInstructionA3::LiveOut() -> std::set<SymbolPtr>& { return live_out_; }
 
-auto IsCondJump(const SymbolPtr& op) -> bool {
-  auto n = op->Name();
-  return n == "je" || n == "jne" || n == "jg" || n == "jl" || n == "jge" ||
-         n == "jle" || n == "jnz" || n == "brz" || n == "brnz";
-}
+void IRInstructionA3::RenameVariable(SymbolPtr v, SymbolPtr n) {
+  if (dst_ == v) dst_ = n;
 
-auto IsJump(const SymbolPtr& op) -> bool {
-  auto n = op->Name();
-  return n == "jmp" || IsCondJump(op);
+  for (auto& src : srcs_) {
+    if (src == v) src = n;
+  }
 }
 
 auto IRInstructionA2::Type() const -> IRInstructionType {
@@ -57,5 +65,13 @@ auto IRInstructionA2::SRC(int i) const -> SymbolPtr {
   if (i == 1) return src_2;
   return nullptr;
 }
+
 auto IRInstructionA2::LiveIn() -> std::set<SymbolPtr>& { return live_in; }
+
 auto IRInstructionA2::LiveOut() -> std::set<SymbolPtr>& { return live_out; }
+
+void IRInstructionA2::RenameVariable(SymbolPtr v, SymbolPtr n) {
+  if (dst == v) dst = n;
+  if (src == v) src = n;
+  if (src_2 == v) src_2 = n;
+}

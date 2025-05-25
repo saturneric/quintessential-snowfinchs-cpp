@@ -6,6 +6,7 @@
 #include "core/Driver.hpp"
 #include "core/IR2Generator.h"
 #include "core/IRGenerator.h"
+#include "core/IRVariableOptimizer.h"
 #include "core/SemanticAnalyzer.h"
 #include "core/Utils.h"
 
@@ -57,6 +58,17 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
   });
 
   if (!ret) return 7;
+
+  IRVariableOptimizer irv_opt(symbol_table, irg.ControlFlowGraph());
+
+  ret = RunOperation("IRVariableOptimizer", [&]() {
+    irv_opt.AnalyzeLiveRanges();
+    irv_opt.AllocateSlots();
+    irv_opt.RewriteInstructions();
+    if (debug) irv_opt.PrintLiveRanges(runtime_dir / "PrintVarLiveRanges.txt");
+    if (debug) irv_opt.PrintSlotMap(runtime_dir / "PrintVar2Slot.txt");
+    return true;
+  });
 
   IR2Generator ir2g(symbol_table, irg.ControlFlowGraph()->Instructions());
 

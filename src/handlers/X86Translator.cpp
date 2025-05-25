@@ -42,11 +42,8 @@ const std::vector<std::string> kRegisters64 = {
 };
 
 const std::vector<std::string> kRegisters32 = {
-    "%ebx",
-    "%ecx",
-    "%esi",
-    "%edi",
-};
+    "%ebx",  "%ecx",  "%esi",  "%edi",  "%r8d",  "%r9d",
+    "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d"};
 
 }  // namespace
 
