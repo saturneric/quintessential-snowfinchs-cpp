@@ -1,0 +1,4 @@
+int main() {
+int shift_zero = 5 >> 5;
+return 10 / shift_zero;
+}

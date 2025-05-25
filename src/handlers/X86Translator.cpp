@@ -217,6 +217,15 @@ void X86Translator::emit_binary_op(std::vector<std::string>& fins,
 
   if (op == "shl" || op == "shr" || op == "sal" || op == "sar") {
     if (!IsImmediate(s_src)) {
+      // dst == %ecx, special case
+      if (dst == count_reg_) {
+        fins.push_back(op_mov_ + " " + dst + ", " + rem_reg_);
+        fins.push_back(op_mov_ + " " + src + ", " + count_reg_);
+        fins.push_back(op + suffix_ + " " + count_reg_low_ + ", " + rem_reg_);
+        fins.push_back(op_mov_ + " " + rem_reg_ + ", " + dst);
+        return;
+      }
+
       // borrow %ecx
       fins.push_back(op_push_ + " " + count_reg_64_);
       fins.push_back(op_mov_ + " " + src + ", " + count_reg_);

@@ -1,0 +1,11 @@
+int main() {
+    int mask = (1 << 8) - 1;
+    if (mask != 255) return 1;
+    int a = 17 | 33;
+    if (a != 49) return 2;
+    a ^= mask;
+    if (a != 206) return 3;
+    a >>= 4;
+    if (a != 12) return 4;
+    return a & (mask << 4);
+}
