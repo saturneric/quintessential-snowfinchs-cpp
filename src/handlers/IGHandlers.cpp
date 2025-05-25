@@ -4,6 +4,7 @@
 #include "model/Symbol.h"
 #include "model/SymbolDefs.h"
 #include "model/SymbolMetaTypedef.h"
+#include "model/Utils.h"
 
 namespace {
 
@@ -143,10 +144,22 @@ auto BinOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   }
 
   else if (opera == "<<") {
+    // opt for immediate which is less than 32
+    if (IsImmediate(rhs) && std::stoi(rhs->Name()) < 32) {
+      ctx->AddIns("sal", tmp, lhs, rhs);
+      return tmp;
+    }
+
     auto tmp1 = ctx->NewTempVariable();
     ctx->AddIns("band", tmp1, rhs, ctx->MapSymbol("31", "immediate"));
     ctx->AddIns("sal", tmp, lhs, tmp1);
   } else if (opera == ">>") {
+    // opt for immediate which is less than 32
+    if (IsImmediate(rhs) && std::stoi(rhs->Name()) < 32) {
+      ctx->AddIns("sar", tmp, lhs, rhs);
+      return tmp;
+    }
+
     auto tmp1 = ctx->NewTempVariable();
     ctx->AddIns("band", tmp1, rhs, ctx->MapSymbol("31", "immediate"));
     ctx->AddIns("sar", tmp, lhs, tmp1);

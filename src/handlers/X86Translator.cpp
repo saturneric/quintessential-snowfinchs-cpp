@@ -11,11 +11,6 @@ auto MakeIRA2(Args&&... args) -> IRInstructionPtr {
   return std::make_shared<IRInstructionA2>(std::forward<Args>(args)...);
 }
 
-auto IsImmediate(const SymbolPtr& s) -> bool {
-  if (s == nullptr) return false;  // empty symbol
-  return s->Value() == "immediate";
-}
-
 inline auto IsStackAccess(const SymbolPtr& s) -> bool {
   if (s == nullptr) return false;  // empty symbol
   // "-4(%esp)" or "-8(%rsp)"

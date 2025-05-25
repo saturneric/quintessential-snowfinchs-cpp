@@ -63,3 +63,8 @@ auto SymLoc(const SymbolPtr& op) -> std::string {
   if (!loc.has_value()) return "";
   return std::any_cast<std::string>(loc);
 }
+
+auto IsImmediate(const SymbolPtr& s) -> bool {
+  if (s == nullptr) return false;  // empty symbol
+  return s->Value() == "immediate";
+}
