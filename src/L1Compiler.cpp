@@ -3,7 +3,11 @@
 // cxxpots
 #include <cxxopts.hpp>
 
+// spdlog
+#include <spdlog/spdlog.h>
+
 // std
+#include <fstream>
 #include <iostream>
 
 namespace {

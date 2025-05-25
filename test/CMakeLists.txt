@@ -21,7 +21,7 @@ add_library(fpe_trap SHARED FPETrap.cpp)
 
 add_executable(compiler_test ${TEST_FILES})
 target_precompile_headers(compiler_test PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/pch_test.h>")
-target_link_libraries(compiler_test PRIVATE pch driver GTest::gtest)
+target_link_libraries(compiler_test PRIVATE driver GTest::gtest)
 
 include(GoogleTest)
 gtest_discover_tests(compiler_test)

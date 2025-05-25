@@ -5,6 +5,4 @@ add_subdirectory(handlers)
 add_subdirectory(driver)
 
 add_executable(compiler L1Compiler.cpp)
-target_compile_definitions(compiler PRIVATE pch_EXPORTS)
-target_precompile_headers(compiler REUSE_FROM pch)
 target_link_libraries(compiler PRIVATE driver)
