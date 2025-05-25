@@ -12,17 +12,17 @@ auto BinaryGenerator::Generate(const std::string& asm_path,
   }
 
   std::string compiler;
-  if (check_compiler_exists("gcc")) {
-    compiler = "gcc";
-  } else if (check_compiler_exists("clang")) {
+  if (check_compiler_exists("clang")) {
     compiler = "clang";
+  } else if (check_compiler_exists("gcc")) {
+    compiler = "gcc";
   } else {
     SPDLOG_ERROR("cannot find suitable compiler: gcc or clang");
     return false;
   }
 
-  const auto cmd = compiler + " -static -no-pie -o \"" + binary_path + "\" \"" +
-                   asm_path + "\"";
+  const auto cmd =
+      compiler + " -static -o \"" + binary_path + "\" \"" + asm_path + "\"";
   spdlog::debug("build command: {}", cmd);
 
   if (std::system(cmd.c_str()) != 0) {

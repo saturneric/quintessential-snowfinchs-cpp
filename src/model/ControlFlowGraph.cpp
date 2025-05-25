@@ -46,18 +46,29 @@ struct ControlFlowGraph::Impl {
   std::map<int, CFGBasicBlockPtr> id_2_bb_;  // id -> block
   std::vector<Vertex> dom_tree_;
   Vertex dom_entry_;
+  bool built_filtered_graph_ = false;
+  bool built_dom_tree_ = false;
+
+  void ResetCache() {
+    built_filtered_graph_ = false;
+    built_dom_tree_ = false;
+  }
 };
 
 auto ControlFlowGraph::AddBlock(const CFGBasicBlockPtr& bb) -> BlockHandle {
   auto v = boost::add_vertex(VertexProp{bb}, impl_->g_);
   impl_->bb_map_[bb->id] = v;
   impl_->id_2_bb_[bb->id] = bb;
+
+  impl_->ResetCache();
   return v;
 }
 
 void ControlFlowGraph::AddEdge(BlockID from_id, BlockID to_id) {
   assert(impl_->bb_map_.count(from_id) && impl_->bb_map_.count(to_id));
   boost::add_edge(impl_->bb_map_[from_id], impl_->bb_map_[to_id], impl_->g_);
+
+  impl_->ResetCache();
 }
 
 auto ControlFlowGraph::Blocks() const -> std::vector<CFGBasicBlockPtr> {
@@ -176,10 +187,14 @@ auto ControlFlowGraph::BlockByBlockId(BlockID block_id) const
 }
 
 void ControlFlowGraph::BuildFilteredGraph() {
+  if (impl_->built_filtered_graph_) return;
+
   // use filtered_graph to connect together
   auto& full = impl_->g_;
   impl_->f_g_ = std::make_shared<FilteredCFGGraph>(full, KeepEdges{&full},
                                                    KeepReachable{&full});
+
+  impl_->built_filtered_graph_ = true;
 }
 
 auto KeepReachable::operator()(Vertex v) const -> bool {
@@ -194,6 +209,8 @@ auto KeepEdges::operator()(Edge e) const -> bool {
 void ControlFlowGraph::BuildDominatorTree() {
   BuildFilteredGraph();
 
+  if (impl_->built_dom_tree_) return;
+
   auto& g = impl_->g_;
   auto filtered_graph = impl_->f_g_;
   size_t n = num_vertices(g);
@@ -204,6 +221,8 @@ void ControlFlowGraph::BuildDominatorTree() {
       *filtered_graph, impl_->dom_entry_,
       make_iterator_property_map(impl_->dom_tree_.begin(),
                                  get(boost::vertex_index, g)));
+
+  impl_->built_dom_tree_ = true;
 }
 
 auto ControlFlowGraph::Dominates(BlockID u_block_id, BlockID v_block_id) const
