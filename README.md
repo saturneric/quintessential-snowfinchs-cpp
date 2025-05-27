@@ -68,6 +68,9 @@ Run the full test suite:
 * [GNU Flex](https://github.com/westes/flex) – Lexical analyzer generator
 * [GNU Bison](https://www.gnu.org/software/bison/) – Parser generator
 * [GoogleTest](https://github.com/google/googletest) – Unit testing framework
+* [Boost](https://www.boost.org/) – A collection of peer-reviewed, portable C++
+  libraries covering common tasks such as smart pointers, data structures,
+  algorithms, threading, serialization, and more.
 
 ## Resources
 
