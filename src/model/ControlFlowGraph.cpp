@@ -9,7 +9,8 @@
 #include "CFGBasicBlock.h"
 #include "Utils.h"
 
-namespace {
+namespace CFG {
+
 struct VertexProp {
   CFGBasicBlockPtr bb;
 };
@@ -23,29 +24,29 @@ using CFGGraph = boost::adjacency_list<boost::vecS,            // edge list
 using Vertex = boost::graph_traits<CFGGraph>::vertex_descriptor;
 using Edge = boost::graph_traits<CFGGraph>::edge_descriptor;
 
-struct KeepReachable {
-  const CFGGraph* g;
-  auto operator()(Vertex v) const -> bool;
-};
-
 struct KeepEdges {
   const CFGGraph* g;
-  auto operator()(Edge e) const -> bool;
+  auto operator()(CFG::Edge e) const -> bool;
+};
+
+struct KeepReachable {
+  const CFGGraph* g;
+  auto operator()(CFG::Vertex v) const -> bool;
 };
 
 using FilteredCFGGraph =
     boost::filtered_graph<CFGGraph, KeepEdges, KeepReachable>;
-
 using FilteredCFGGraphPtr = std::shared_ptr<FilteredCFGGraph>;
-}  // namespace
+
+}  // namespace CFG
 
 struct ControlFlowGraph::Impl {
-  CFGGraph g_;
-  FilteredCFGGraphPtr f_g_;
-  std::map<int, Vertex> bb_map_;             // id -> vertex
+  CFG::CFGGraph g_;
+  CFG::FilteredCFGGraphPtr f_g_;
+  std::map<int, CFG::Vertex> bb_map_;        // id -> vertex
   std::map<int, CFGBasicBlockPtr> id_2_bb_;  // id -> block
-  std::vector<Vertex> dom_tree_;
-  Vertex dom_entry_;
+  std::vector<CFG::Vertex> dom_tree_;
+  CFG::Vertex dom_entry_;
   bool built_filtered_graph_ = false;
   bool built_dom_tree_ = false;
 
@@ -56,7 +57,7 @@ struct ControlFlowGraph::Impl {
 };
 
 auto ControlFlowGraph::AddBlock(const CFGBasicBlockPtr& bb) -> BlockHandle {
-  auto v = boost::add_vertex(VertexProp{bb}, impl_->g_);
+  auto v = boost::add_vertex(CFG::VertexProp{bb}, impl_->g_);
   impl_->bb_map_[bb->id] = v;
   impl_->id_2_bb_[bb->id] = bb;
 
@@ -84,9 +85,9 @@ auto ControlFlowGraph::Successors(BlockID id) const
   std::vector<CFGBasicBlockPtr> out;
   auto it = impl_->bb_map_.find(id);
   if (it == impl_->bb_map_.end()) return out;
-  Vertex v = it->second;
+  CFG::Vertex v = it->second;
   for (auto ep = out_edges(v, impl_->g_); ep.first != ep.second; ++ep.first) {
-    Vertex tgt = target(*ep.first, impl_->g_);
+    CFG::Vertex tgt = target(*ep.first, impl_->g_);
     out.push_back(impl_->g_[tgt].bb);
   }
   return out;
@@ -97,9 +98,9 @@ auto ControlFlowGraph::Predecessors(BlockID id) const
   std::vector<CFGBasicBlockPtr> out;
   auto it = impl_->bb_map_.find(id);
   if (it == impl_->bb_map_.end()) return out;
-  Vertex v = it->second;
+  CFG::Vertex v = it->second;
   for (auto ep = in_edges(v, impl_->g_); ep.first != ep.second; ++ep.first) {
-    Vertex src = source(*ep.first, impl_->g_);
+    CFG::Vertex src = source(*ep.first, impl_->g_);
     out.push_back(impl_->g_[src].bb);
   }
   return out;
@@ -175,7 +176,7 @@ auto ControlFlowGraph::Instructions() const -> std::vector<IRInstructionPtr> {
   return ret;
 }
 
-auto ControlFlowGraph::VertexByBlockId(BlockID block_id) const -> Vertex {
+auto ControlFlowGraph::VertexByBlockId(BlockID block_id) const -> BlockHandle {
   assert(block_id < impl_->bb_map_.size());
   return impl_->bb_map_.at(block_id);
 }
@@ -191,16 +192,16 @@ void ControlFlowGraph::BuildFilteredGraph() {
 
   // use filtered_graph to connect together
   auto& full = impl_->g_;
-  impl_->f_g_ = std::make_shared<FilteredCFGGraph>(full, KeepEdges{&full},
-                                                   KeepReachable{&full});
+  impl_->f_g_ = std::make_shared<CFG::FilteredCFGGraph>(
+      full, CFG::KeepEdges{&full}, CFG::KeepReachable{&full});
 
   impl_->built_filtered_graph_ = true;
 }
 
-auto KeepReachable::operator()(Vertex v) const -> bool {
+auto CFG::KeepReachable::operator()(CFG::Vertex v) const -> bool {
   return g->operator[](v).bb->reachable;
 }
-auto KeepEdges::operator()(Edge e) const -> bool {
+auto CFG::KeepEdges::operator()(CFG::Edge e) const -> bool {
   auto u = source(e, *g);
   auto v = target(e, *g);
   return g->operator[](u).bb->reachable && g->operator[](v).bb->reachable;
@@ -214,7 +215,7 @@ void ControlFlowGraph::BuildDominatorTree() {
   auto& g = impl_->g_;
   auto filtered_graph = impl_->f_g_;
   size_t n = num_vertices(g);
-  impl_->dom_tree_.assign(n, Vertex());
+  impl_->dom_tree_.assign(n, CFG::Vertex());
   impl_->dom_entry_ = VertexByBlockId(0);
 
   lengauer_tarjan_dominator_tree(
@@ -230,7 +231,7 @@ auto ControlFlowGraph::Dominates(BlockID u_block_id, BlockID v_block_id) const
   auto u_vertex = VertexByBlockId(u_block_id);
   auto v_vertex = VertexByBlockId(v_block_id);
 
-  Vertex x = u_vertex;
+  CFG::Vertex x = u_vertex;
   while (true) {
     if (x == v_vertex) return true;
     if (x == impl_->dom_entry_) break;

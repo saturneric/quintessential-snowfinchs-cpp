@@ -68,8 +68,8 @@ auto TypeName2SymbolMetaType(SemanticAnalyzer* sa, const SymbolPtr& sym,
   }
 }
 
-auto DeclareHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-                    const ASTNodePtr& node) -> ASTNodePtr {
+auto SMDeclareHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                      const ASTNodePtr& node) -> ASTNodePtr {
   auto symbol = node->Symbol();
 
   // record symbol and alloc inner variable name
@@ -92,8 +92,8 @@ auto DeclareHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-auto AssignHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-                   const ASTNodePtr& node) -> ASTNodePtr {
+auto SMAssignHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                     const ASTNodePtr& node) -> ASTNodePtr {
   auto children = node->Children();
   if (children.empty()) return node;
 
@@ -129,8 +129,8 @@ auto AssignHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-auto ReturnHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-                   const ASTNodePtr& node) -> ASTNodePtr {
+auto SMReturnHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                     const ASTNodePtr& node) -> ASTNodePtr {
   auto children = node->Children();
 
   if (children.empty()) return node;
@@ -153,8 +153,8 @@ auto ReturnHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-auto MeaninglessHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-                        const ASTNodePtr& node) -> ASTNodePtr {
+auto SMMeaninglessHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                          const ASTNodePtr& node) -> ASTNodePtr {
   for (auto& c : node->Children()) {
     auto child = router(c);
 
@@ -176,8 +176,8 @@ auto MeaninglessHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-auto ValueHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-                  const ASTNodePtr& node) -> ASTNodePtr {
+auto SMValueHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                    const ASTNodePtr& node) -> ASTNodePtr {
   int val;
   auto symbol = node->Symbol();
 
@@ -193,8 +193,8 @@ auto ValueHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-auto IdentHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-                  const ASTNodePtr& node) -> ASTNodePtr {
+auto SMIdentHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                    const ASTNodePtr& node) -> ASTNodePtr {
   auto sym = node->Symbol();
 
   auto def_sym = sa->LookupSymbol(sym);
@@ -213,8 +213,8 @@ auto IdentHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-auto BinOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-                  const ASTNodePtr& node) -> ASTNodePtr {
+auto SMBinOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                    const ASTNodePtr& node) -> ASTNodePtr {
   auto children = node->Children();
 
   auto lhs = router(children.front());
@@ -274,8 +274,8 @@ auto BinOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-auto UnOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-                 const ASTNodePtr& node) -> ASTNodePtr {
+auto SMUnOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                   const ASTNodePtr& node) -> ASTNodePtr {
   auto children = node->Children();
   if (children.empty()) return node;
 
@@ -310,8 +310,8 @@ auto UnOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-auto IfHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-               const ASTNodePtr& node) -> ASTNodePtr {
+auto SMIfHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                 const ASTNodePtr& node) -> ASTNodePtr {
   // children: [condition, then, (else)?]
   auto children = node->Children();
   if (children.empty()) return node;
@@ -355,8 +355,8 @@ auto IfHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-auto CondExpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-                    const ASTNodePtr& node) -> ASTNodePtr {
+auto SMCondExpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                      const ASTNodePtr& node) -> ASTNodePtr {
   // children: [condition, then, else]
   auto children = node->Children();
   if (children.empty()) return node;
@@ -400,8 +400,8 @@ auto CondExpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-auto WhileHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-                  const ASTNodePtr& node) -> ASTNodePtr {
+auto SMWhileHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                    const ASTNodePtr& node) -> ASTNodePtr {
   // children: [condition, body]
   auto children = node->Children();
   if (children.empty()) return node;
@@ -458,8 +458,8 @@ auto WhileHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-auto ContinueBreakHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
-                          const ASTNodePtr& node) -> ASTNodePtr {
+auto SMContinueBreakHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                            const ASTNodePtr& node) -> ASTNodePtr {
   if (!MetaGet(node->Symbol(), SymbolMetaKey::kIN_LOOP, false)) {
     sa->Error(node, "Continue or Break must not be placed outside a loop.");
   }
@@ -471,22 +471,23 @@ auto ContinueBreakHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-const SMHandlerMapping kMapping = {
-    {ASTNodeType::kASSIGN, AssignHandler},
-    {ASTNodeType::kDECLARE, DeclareHandler},
-    {ASTNodeType::kRETURN, ReturnHandler},
-    {ASTNodeType::kUN_OP, UnOpHandler},
-    {ASTNodeType::kBIN_OP, BinOpHandler},
-    {ASTNodeType::kVALUE, ValueHandler},
-    {ASTNodeType::kPROGRAM, MeaninglessHandler},
-    {ASTNodeType::kIDENT, IdentHandler},
-    {ASTNodeType::kBLOCK, MeaninglessHandler},
-    {ASTNodeType::kIF, IfHandler},
-    {ASTNodeType::kWHILE, WhileHandler},
-    {ASTNodeType::kCOND_EXP, CondExpHandler},
-    {ASTNodeType::kCONTINUE, ContinueBreakHandler},
-    {ASTNodeType::kBREAK, ContinueBreakHandler},
+const SMHandlerMapping kSMHandlerMapping = {
+    {ASTNodeType::kASSIGN, SMAssignHandler},
+    {ASTNodeType::kDECLARE, SMDeclareHandler},
+    {ASTNodeType::kRETURN, SMReturnHandler},
+    {ASTNodeType::kUN_OP, SMUnOpHandler},
+    {ASTNodeType::kBIN_OP, SMBinOpHandler},
+    {ASTNodeType::kVALUE, SMValueHandler},
+    {ASTNodeType::kPROGRAM, SMMeaninglessHandler},
+    {ASTNodeType::kIDENT, SMIdentHandler},
+    {ASTNodeType::kBLOCK, SMMeaninglessHandler},
+    {ASTNodeType::kIF, SMIfHandler},
+    {ASTNodeType::kWHILE, SMWhileHandler},
+    {ASTNodeType::kCOND_EXP, SMCondExpHandler},
+    {ASTNodeType::kCONTINUE, SMContinueBreakHandler},
+    {ASTNodeType::kBREAK, SMContinueBreakHandler},
 };
 
 }  // namespace
-auto GetSMHandlersMap() -> SMHandlerMapping { return kMapping; }
+
+auto GetSMHandlersMap() -> SMHandlerMapping { return kSMHandlerMapping; }

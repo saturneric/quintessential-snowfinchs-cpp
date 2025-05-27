@@ -19,7 +19,7 @@ auto DeclareHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return sym;
 }
 
-auto ValueExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+auto IRValueExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   assert(node != nullptr);
 
@@ -41,7 +41,7 @@ auto ValueExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return sym;
 }
 
-auto BinOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+auto IRBinOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   auto children = node->Children();
 
@@ -173,7 +173,7 @@ auto BinOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return tmp;
 }
 
-auto UnOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+auto IRUnOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   auto children = node->Children();
 
@@ -214,7 +214,7 @@ auto UnOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return sym_tmp;
 }
 
-auto MeaninglessNodeHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+auto IRMeaninglessNodeHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   for (const auto& child : node->Children()) {
     ctx->ExpRoute(child);
@@ -222,7 +222,7 @@ auto MeaninglessNodeHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return {};
 }
 
-auto ReturnExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+auto IRReturnExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   auto children = node->Children();
 
@@ -234,7 +234,7 @@ auto ReturnExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return {};
 }
 
-auto AssignExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+auto IRAssignExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   auto children = node->Children();
 
@@ -250,7 +250,7 @@ auto AssignExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return {};
 }
 
-auto IfHandler(IRGeneratorContext* ctx, const ASTNodePtr& node) -> SymbolPtr {
+auto IRIfHandler(IRGeneratorContext* ctx, const ASTNodePtr& node) -> SymbolPtr {
   auto children = node->Children();
 
   auto cond_sym = ctx->ExpRoute(children[0]);
@@ -279,7 +279,7 @@ auto IfHandler(IRGeneratorContext* ctx, const ASTNodePtr& node) -> SymbolPtr {
   return nullptr;
 }
 
-auto CondExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+auto IRCondHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   auto children = node->Children();
 
@@ -307,7 +307,7 @@ auto CondExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return tmp;
 }
 
-auto WhileHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+auto IRWhileHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   const auto& children = node->Children();
 
@@ -376,7 +376,7 @@ auto WhileHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return nullptr;
 }
 
-auto ContinueBreakHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+auto IRContinueBreakHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   auto p_sym = node->Symbol();
   assert(p_sym != nullptr);
@@ -399,23 +399,23 @@ auto ContinueBreakHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return nullptr;
 }
 
-const IRHandlerMapping kMapping = {
-    {ASTNodeType::kASSIGN, AssignExpHandler},
-    {ASTNodeType::kDECLARE, MeaninglessNodeHandler},
-    {ASTNodeType::kRETURN, ReturnExpHandler},
-    {ASTNodeType::kUN_OP, UnOpExpHandler},
-    {ASTNodeType::kBIN_OP, BinOpExpHandler},
-    {ASTNodeType::kVALUE, ValueExpHandler},
-    {ASTNodeType::kPROGRAM, MeaninglessNodeHandler},
-    {ASTNodeType::kIDENT, ValueExpHandler},
-    {ASTNodeType::kBLOCK, MeaninglessNodeHandler},
-    {ASTNodeType::kIF, IfHandler},
-    {ASTNodeType::kCOND_EXP, CondExpHandler},
-    {ASTNodeType::kWHILE, WhileHandler},
-    {ASTNodeType::kCONTINUE, ContinueBreakHandler},
-    {ASTNodeType::kBREAK, ContinueBreakHandler},
+const IRHandlerMapping kIRHandlerMapping = {
+    {ASTNodeType::kASSIGN, IRAssignExpHandler},
+    {ASTNodeType::kDECLARE, IRMeaninglessNodeHandler},
+    {ASTNodeType::kRETURN, IRReturnExpHandler},
+    {ASTNodeType::kUN_OP, IRUnOpExpHandler},
+    {ASTNodeType::kBIN_OP, IRBinOpExpHandler},
+    {ASTNodeType::kVALUE, IRValueExpHandler},
+    {ASTNodeType::kPROGRAM, IRMeaninglessNodeHandler},
+    {ASTNodeType::kIDENT, IRValueExpHandler},
+    {ASTNodeType::kBLOCK, IRMeaninglessNodeHandler},
+    {ASTNodeType::kIF, IRIfHandler},
+    {ASTNodeType::kCOND_EXP, IRCondHandler},
+    {ASTNodeType::kWHILE, IRWhileHandler},
+    {ASTNodeType::kCONTINUE, IRContinueBreakHandler},
+    {ASTNodeType::kBREAK, IRContinueBreakHandler},
 };
 
 }  // namespace
 
-auto GetIRHandlersMap() -> IRHandlerMapping { return kMapping; }
+auto GetIRHandlersMap() -> IRHandlerMapping { return kIRHandlerMapping; }

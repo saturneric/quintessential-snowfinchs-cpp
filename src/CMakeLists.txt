@@ -1,4 +1,3 @@
-add_subdirectory(pch)
 add_subdirectory(model)
 add_subdirectory(core)
 add_subdirectory(handlers)

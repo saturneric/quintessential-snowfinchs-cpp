@@ -3,6 +3,8 @@ project(L1Compiler LANGUAGES CXX)
 
 option(BUILD_TEST_CASES "Build Unit Test Cases" OFF)
 message(STATUS "BUILD_TEST_CASES is ${BUILD_TEST_CASES}")
+option(BUILD_UNITY "Unity Build" OFF)
+message(STATUS "BUILD_UNITY is ${BUILD_UNITY}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

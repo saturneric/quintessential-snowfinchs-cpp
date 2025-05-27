@@ -1,3 +1,5 @@
+#pragma once
+
 #include "core/ASMGenerator.h"
 
 class X86Translator : public Translator {

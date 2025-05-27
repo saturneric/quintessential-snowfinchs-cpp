@@ -12,7 +12,7 @@
 // std
 #include <ostream>
 
-namespace {
+namespace ST {
 
 struct ByIndex {};
 struct ByTypeName {};
@@ -57,14 +57,14 @@ using ScopeMultiIndexTable = multi_index::multi_index_container<
         multi_index::tag<ByScopeId>,
         multi_index::const_mem_fun<Scope, int, &Scope::Id>, std::less<>>>>;
 
-}  // namespace
+}  // namespace ST
 
 struct SymbolTable::Impl {
   int next_index_ = 1 << 8;
   int next_scope_index_ = 1 << 4;
 
-  SymbolMultiIndexTable symbols_;
-  ScopeMultiIndexTable scopes_;
+  ST::SymbolMultiIndexTable symbols_;
+  ST::ScopeMultiIndexTable scopes_;
   boost::object_pool<class Symbol> symbol_pool_{1 << 8};
 };
 
@@ -75,7 +75,7 @@ SymbolTable::~SymbolTable() = default;
 auto SymbolTable::AddSymbol(SymbolType type, const std::string &name,
                             const std::string &value, bool unique, int scope_id)
     -> SymbolPtr {
-  auto &by_typename = impl_->symbols_.get<ByTypeScopeName>();
+  auto &by_typename = impl_->symbols_.get<ST::ByTypeScopeName>();
   if (unique && by_typename.find(boost::make_tuple(type, scope_id, name)) !=
                     by_typename.end()) {
     return *by_typename.find(boost::make_tuple(type, scope_id, name));
@@ -102,14 +102,14 @@ auto SymbolTable::AddSymbol(SymbolType type, const std::string &name,
 }
 
 auto SymbolTable::Symbol(int index) const -> SymbolPtr {
-  const auto &by_index = impl_->symbols_.get<ByIndex>();
+  const auto &by_index = impl_->symbols_.get<ST::ByIndex>();
   auto it = by_index.find(index);
   return it != by_index.end() ? *it : nullptr;
 }
 
 auto SymbolTable::SearchSymbol(SymbolType type, int scope,
                                const std::string &name) const -> SymbolPtr {
-  const auto &by_scopename = impl_->symbols_.get<ByTypeScopeName>();
+  const auto &by_scopename = impl_->symbols_.get<ST::ByTypeScopeName>();
   auto it = by_scopename.find(boost::make_tuple(type, scope, name));
   return it != by_scopename.end() ? *it : nullptr;
 }
@@ -117,7 +117,7 @@ auto SymbolTable::SearchSymbol(SymbolType type, int scope,
 auto SymbolTable::SearchSymbols(SymbolType type, int scope,
                                 const std::string &name) const
     -> std::vector<SymbolPtr> {
-  const auto &by_typescopename = impl_->symbols_.get<ByTypeScopeName>();
+  const auto &by_typescopename = impl_->symbols_.get<ST::ByTypeScopeName>();
 
   auto range =
       by_typescopename.equal_range(boost::make_tuple(type, scope, name));
@@ -127,7 +127,7 @@ auto SymbolTable::SearchSymbols(SymbolType type, int scope,
 
 auto SymbolTable::SearchSymbols(SymbolType type, int scope) const
     -> std::vector<SymbolPtr> {
-  const auto &by_typescopename = impl_->symbols_.get<ByTypeScope>();
+  const auto &by_typescopename = impl_->symbols_.get<ST::ByTypeScope>();
 
   auto range = by_typescopename.equal_range(boost::make_tuple(type, scope));
   std::vector<SymbolPtr> ret(range.first, range.second);
@@ -144,13 +144,13 @@ auto SymbolTable::AddScope(ScopePtr parent) -> ScopePtr {
 auto SymbolTable::SearchScope(int scope_id) -> ScopePtr {
   if (scope_id == kNonScopeId) return nullptr;
 
-  const auto &by_index = impl_->scopes_.get<ByScopeId>();
+  const auto &by_index = impl_->scopes_.get<ST::ByScopeId>();
   auto it = by_index.find(scope_id);
   return it != by_index.end() ? *it : nullptr;
 }
 
 void SymbolTable::PrintByType(SymbolType type, std::ostream &os) const {
-  const auto &idx = impl_->symbols_.get<ByType>();
+  const auto &idx = impl_->symbols_.get<ST::ByType>();
   for (auto it = idx.lower_bound(type), end = idx.upper_bound(type); it != end;
        ++it) {
     if (*it) {
