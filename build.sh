@@ -37,5 +37,5 @@ else
     exit 1
 fi
 
-cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -S "$SOURCE_DIR" -B "$BUILD_DIR"
+cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_UNITY=On -S "$SOURCE_DIR" -B "$BUILD_DIR"
 cmake --build "$BUILD_DIR" -- -j$JOBS
