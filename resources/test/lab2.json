@@ -187,5 +187,15 @@
   {
     "source_file_path": "lab2/G2.txt",
     "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab2/G3.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 10
+  },
+  {
+    "source_file_path": "lab2/G4.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
   }
 ]

@@ -408,16 +408,16 @@ auto SMWhileHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
   MetaSet(node->Symbol(), SymbolMetaKey::kIN_LOOP, true);
 
-  // record init state of variables
-  auto visible = sa->VisibleDefineSymbols(node->Symbol()->Scope());
-  std::vector<bool> was_init;
-  was_init.reserve(visible.size());
-  for (auto& sym : visible) {
-    was_init.push_back(sym->MetaData(SymbolMetaKey::kHAS_INIT).has_value());
-  }
-
   // while
   if (children.size() < 3) {
+    // record init state of variables
+    auto visible = sa->VisibleDefineSymbols(node->Symbol()->Scope());
+    std::vector<bool> was_init;
+    was_init.reserve(visible.size());
+    for (auto& sym : visible) {
+      was_init.push_back(sym->MetaData(SymbolMetaKey::kHAS_INIT).has_value());
+    }
+
     auto exp = router(children.front());
     assert(exp != nullptr);
 
@@ -485,13 +485,6 @@ auto SMWhileHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     assert(step_exp != nullptr);
     if (step_exp->Type() == ASTNodeType::kDECLARE) {
       sa->Error(node, "No declaration in step statement.");
-    }
-  }
-
-  // unset init state of variables
-  for (size_t i = 0; i < visible.size(); ++i) {
-    if (!was_init[i]) {
-      visible[i]->RemoveMeta(SymbolMetaKey::kHAS_INIT);
     }
   }
 
