@@ -178,5 +178,10 @@
     "source_file_path": "lab2/F3.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 0
+  },
+  {
+    "source_file_path": "lab2/G1.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
   }
 ]

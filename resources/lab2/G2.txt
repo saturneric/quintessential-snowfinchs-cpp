@@ -1,0 +1,6 @@
+int main() {
+  int x;
+  while (false) { x = 10; } // doesn't initialize x
+  {{{x+=7;{x*=6;}}}} // without initialized x this is not semantically correct
+  return x;
+}

@@ -408,6 +408,14 @@ auto SMWhileHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
   MetaSet(node->Symbol(), SymbolMetaKey::kIN_LOOP, true);
 
+  // record init state of variables
+  auto visible = sa->VisibleDefineSymbols(node->Symbol()->Scope());
+  std::vector<bool> was_init;
+  was_init.reserve(visible.size());
+  for (auto& sym : visible) {
+    was_init.push_back(sym->MetaData(SymbolMetaKey::kHAS_INIT).has_value());
+  }
+
   // while
   if (children.size() < 3) {
     auto exp = router(children.front());
@@ -423,36 +431,68 @@ auto SMWhileHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     // handle body
     router(children.back());
 
+    // unset init state of variables
+    for (size_t i = 0; i < visible.size(); ++i) {
+      if (!was_init[i]) {
+        visible[i]->RemoveMeta(SymbolMetaKey::kHAS_INIT);
+      }
+    }
+
     return node;
   }
 
-  // for(declare; exp; simple_optional)
+  ASTNodePtr init_node = nullptr;
+  ASTNodePtr cond_node = nullptr;
+  ASTNodePtr step_node = nullptr;
+  ASTNodePtr body_node = nullptr;
 
   for (const auto& child : children) {
-    if (child->Tag() == ASTNodeTag::kCOND) {
-      auto exp = router(child);
-      assert(exp != nullptr);
-
-      // check exp type
-      auto sym = exp->Symbol();
-      auto sym_type = MetaGet<SymbolMetaType>(sym, SymbolMetaKey::kTYPE);
-      if (sym && sym_type != SymbolMetaType::kBOOL) {
-        sa->Error(node, "The condition of for-statement must be boolean type.");
-      }
-      continue;
+    switch (child->Tag()) {
+      case ASTNodeTag::kINIT:
+        init_node = child;
+        break;
+      case ASTNodeTag::kCOND:
+        cond_node = child;
+        break;
+      case ASTNodeTag::kSTEP:
+        step_node = child;
+        break;
+      default:
+        body_node = child;
+        break;
     }
+  }
 
-    if (child->Tag() == ASTNodeTag::kSTEP) {
-      auto exp = router(child);
-      assert(exp != nullptr);
+  if (init_node) {
+    auto init_exp = router(init_node);
+    assert(init_exp != nullptr);
+  }
 
-      if (exp->Type() == ASTNodeType::kDECLARE) {
-        sa->Error(node, "No declaration in step statement.");
-      }
-      continue;
+  if (cond_node) {
+    auto cond_exp = router(cond_node);
+    assert(cond_exp != nullptr);
+    auto sym = cond_exp->Symbol();
+    auto sym_type = MetaGet<SymbolMetaType>(sym, SymbolMetaKey::kTYPE);
+    if (!sym || sym_type != SymbolMetaType::kBOOL) {
+      sa->Error(node, "The condition of for-statement must be boolean type.");
     }
+  }
 
-    router(child);
+  if (body_node) router(body_node);
+
+  if (step_node) {
+    auto step_exp = router(step_node);
+    assert(step_exp != nullptr);
+    if (step_exp->Type() == ASTNodeType::kDECLARE) {
+      sa->Error(node, "No declaration in step statement.");
+    }
+  }
+
+  // unset init state of variables
+  for (size_t i = 0; i < visible.size(); ++i) {
+    if (!was_init[i]) {
+      visible[i]->RemoveMeta(SymbolMetaKey::kHAS_INIT);
+    }
   }
 
   return node;
