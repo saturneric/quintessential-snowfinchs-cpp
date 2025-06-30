@@ -718,7 +718,7 @@ namespace yy {
   case 5: // function: type VALUE_ID LEFT_BRACKET param_list RIGHT_BRACKET block
 #line 112 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kFUNCTION, yystack_[5].value.as < std::string > (), yystack_[4].value.as < std::string > (), drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kFUNCTION, yystack_[5].value.as < std::string > (), std::string("__func_") + yystack_[4].value.as < std::string > (), drv);
       if (yystack_[2].value.as < ASTNodePtr > ()) yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > (), ASTNodeTag::kPARAMS);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > (), ASTNodeTag::kBODY);
     }
