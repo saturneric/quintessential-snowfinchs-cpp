@@ -40,3 +40,4 @@ foo
 *.out
 cscope**
 .DS_Store
+*.output
