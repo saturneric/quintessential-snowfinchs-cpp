@@ -1255,7 +1255,7 @@ namespace yy {
   case 77: // call: PRINT LEFT_BRACKET expression RIGHT_BRACKET
 #line 392 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "print", "print", drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_print", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
     }
 #line 1262 "Parser.cpp"
@@ -1264,7 +1264,7 @@ namespace yy {
   case 78: // call: READ LEFT_BRACKET RIGHT_BRACKET
 #line 397 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "read", "read", drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_read", drv);
     }
 #line 1270 "Parser.cpp"
     break;
@@ -1272,7 +1272,7 @@ namespace yy {
   case 79: // call: FLUSH LEFT_BRACKET RIGHT_BRACKET
 #line 401 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "flush", "flush", drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_flush", drv);
     }
 #line 1278 "Parser.cpp"
     break;

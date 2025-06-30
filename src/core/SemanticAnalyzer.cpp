@@ -39,6 +39,12 @@ void SemanticAnalyzer::Error(const ASTNodePtr& /*node*/,
   succ_ = false;
 }
 
+auto SemanticAnalyzer::MapSymbol(int scope_id, const std::string& name,
+                                 const std::string& value) -> SymbolPtr {
+  return symbol_table_->AddSymbol(SymbolType::kDEFINE, name, value, true,
+                                  scope_id);
+}
+
 auto SemanticAnalyzer::RecordSymbol(const SymbolPtr& symbol)
     -> std::tuple<bool, SymbolPtr> {
   // we are not allow variable-shadowing

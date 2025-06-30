@@ -551,6 +551,19 @@ auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
 auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                       const ASTNodePtr& node) -> ASTNodePtr {
+  // predefined functions
+  auto [succ_0, def_p_sym] = sa->RecordRealSymbol(
+      sa->MapSymbol(node->Symbol()->ScopeId(), "__func_print", "__func_print"));
+  SetReturnType(sa, def_p_sym, "int", node);
+
+  auto [succ_1, def_r_sym] = sa->RecordRealSymbol(
+      sa->MapSymbol(node->Symbol()->ScopeId(), "__func_read", "__func_read"));
+  SetReturnType(sa, def_r_sym, "int", node);
+
+  auto [succ_2, def_f_sym] = sa->RecordRealSymbol(
+      sa->MapSymbol(node->Symbol()->ScopeId(), "__func_flush", "__func_flush"));
+  SetReturnType(sa, def_f_sym, "int", node);
+
   for (auto& fn : node->Children()) {
     auto sym = fn->Symbol();
     auto [succ, def_sym] = sa->RecordRealSymbol(sym);
@@ -589,6 +602,7 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 auto SMCallHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                    const ASTNodePtr& node) -> ASTNodePtr {
   auto sym = node->Symbol();
+
   auto def_sym = sa->LookupSymbol(sym);
   if (!def_sym) {
     sa->Error(node, "Undeclared function: " + sym->Name());

@@ -1,4 +1,28 @@
-int main(){
-  print(97);
+int main() {
+  int fnv_offset_basis = 0x811c9dc5;
+  int fnv_prime        = 0x01000193;
+
+  int hash = fnv_offset_basis;
+  for (int input = read(); input != -1; input = read()) {
+    // FNV-1
+    hash *= fnv_prime;
+    hash ^= input;
+  }
+
+  print_hex(hash);
   return 0;
+}
+
+int print_hex(int num) {
+    print(0x30); // `0`
+    print(0x78); // `x`
+    for (int i = 7; i >= 0; i -= 1) {
+        int nibble = (num >> (i * 4)) & 0xF;
+        if (nibble < 0xA) {
+            print(0x30 + nibble);
+        } else {
+            print(0x61 + nibble - 0xA);
+        }
+    }
+    return 0;
 }

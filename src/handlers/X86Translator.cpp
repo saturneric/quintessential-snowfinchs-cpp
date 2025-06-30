@@ -60,7 +60,7 @@ const std::array<const char*, 8> kCallerSavedReg = {
     "%rcx", "%rdx", "%rsi", "%rdi", "%r8", "%r9", "%r10", "%r11"};
 }  // namespace
 
-X86Translator::X86Translator(bool r32) : r32_(r32) {}
+X86Translator::X86Translator(bool r32) : r32_(r32), param_index_(0) {}
 
 auto X86Translator::Optimums(const std::vector<IRInstructionPtr>& irs)
     -> std::vector<IRInstructionPtr> {
@@ -555,6 +555,7 @@ auto X86Translator::AvailableRegisters() const -> std::vector<std::string> {
 void X86Translator::Reset() {
   vars_.clear();
   in_data_sec_vars_.clear();
+  param_index_ = 0;
 }
 
 void X86Translator::emit_func_op(std::vector<std::string>& out,
@@ -564,29 +565,58 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
     auto s_arg = i.SRC(0);
     auto arg = format_operand(s_arg);
 
-    auto param_index = MetaGet(s_arg, SymbolMetaKey::kPARAM_INDEX, -1);
-
-    if (param_index < 6) {
+    if (param_index_ < 6) {
       out.push_back(op_mov_ + " " + arg + ", " +
-                    (r32_ ? kFRegs32[param_index] : kFRegs64[param_index]));
+                    (r32_ ? kFRegs32[param_index_] : kFRegs64[param_index_]));
     } else {
       out.push_back("push " + arg);
     }
+    param_index_++;
   }
 
   else if (op == "call") {
+    param_index_ = 0;
     auto func = format_operand(i.SRC(0));
 
-    for (const auto& r : kCallerSavedReg) {
-      out.push_back("push " + std::string(r));
+    if (func == "__func_print") {
+      out.emplace_back("call putchar");
+      if (i.DST()) {
+        auto dst = format_operand(i.DST());
+        out.push_back(op_mov_ + " $0, " + dst);
+      }
+      return;
     }
+
+    if (func == "__func_read") {
+      out.emplace_back("call   getchar");
+      if (i.DST()) {
+        auto dst = format_operand(i.DST());
+        out.push_back(op_mov_ + " %eax, " + dst);
+      }
+      return;
+    }
+
+    if (func == "__func_flush") {
+      out.emplace_back("lea stdout(%rip), %rdi");
+      out.emplace_back("call fflush");
+      if (i.DST()) {
+        auto dst = format_operand(i.DST());
+        out.push_back(op_mov_ + " %eax, " + dst);
+      }
+      return;
+    }
+
+    // for (const auto& r : kCallerSavedReg) {
+    //   out.push_back("push " + std::string(r));
+    // }
 
     out.push_back("call " + DemangleFuncName(func));
 
-    for (auto it = kCallerSavedReg.rbegin(); it != kCallerSavedReg.rend();
-         ++it) {
-      out.push_back("pop " + std::string(*it));
-    }
+    // for (auto it = kCallerSavedReg.rbegin(); it != kCallerSavedReg.rend();
+    //      ++it) {
+    //   out.push_back("pop " + std::string(*it));
+    // }
+
     auto s_ret = i.DST();
     auto dst = format_operand(s_ret);
     if (dst != acc_reg_) {

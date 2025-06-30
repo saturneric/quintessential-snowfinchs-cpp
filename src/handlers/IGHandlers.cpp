@@ -455,7 +455,7 @@ auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   int index = 0;
   for (auto& a : args) {
     auto sym = ctx->MapSymbol(a);
-    MetaSet(sym, SymbolMetaKey::kPARAM_INDEX, index++);
+    MetaSet<int>(sym, SymbolMetaKey::kPARAM_INDEX, index++);
     ctx->AddIns("param", nullptr, sym);
   }
 
