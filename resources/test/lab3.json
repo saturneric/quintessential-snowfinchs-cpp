@@ -28,5 +28,10 @@
     "source_file_path": "lab3/A5.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 24
+  },
+  {
+    "source_file_path": "lab3/A6.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 22
   }
 ]

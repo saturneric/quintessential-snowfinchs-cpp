@@ -630,7 +630,8 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
 
   else if (op == "arg") {
     int idx = std::stoi(i.SRC(0)->Name());
-    auto dst = format_operand(i.DST());
+    auto s_dst = i.DST();
+    auto dst = format_operand(s_dst);
 
     if (idx < 6) {
       // load from the appropriate register
@@ -638,8 +639,15 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
                     ", " + dst);
     } else {
       int stack_offset = 8 * (idx - 6 + 1);
-      out.push_back(op_mov_ + " " + std::to_string(stack_offset) + "(%rbp), " +
-                    dst);
+      bool dst_mem = !IsReg(s_dst);
+      if (dst_mem) {
+        out.push_back(op_mov_ + " " + std::to_string(stack_offset) +
+                      "(%rbp), " + acc_reg_);
+        out.push_back(op_mov_ + " " + acc_reg_ + ", " + dst);
+      } else {
+        out.push_back(op_mov_ + " " + std::to_string(stack_offset) +
+                      "(%rbp), " + dst);
+      }
     }
   }
 }

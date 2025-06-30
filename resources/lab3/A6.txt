@@ -1,0 +1,14 @@
+int many_args(int a1, bool a2, int a3, int a4, bool a5, bool a6, int a7, int a8, int a9, bool a10) {
+int b1 = 0;
+if (((a2 && a5) || (a2 && a6) || (a2 && a10)) && !(a5 && a6 && a10)) {
+      b1 = a1 + a3 + a4;
+} else {
+      b1 = a1 - a7 + a8 - a9;
+}
+return b1;
+}
+
+
+int main() {
+return many_args(20, true, 1, 1, false, true, 19, 2, 19, true);
+}
