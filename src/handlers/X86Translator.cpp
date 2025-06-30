@@ -253,7 +253,7 @@ void X86Translator::emit_binary_op(std::vector<std::string>& fins,
   }
 
   // alloc stack for immediate and mov immediate to stack memory
-  if (IsImmediate(s_src) && SymLoc(s_src).empty()) {
+  if (IsImmediate(s_src)) {
     fins.push_back(op_mov_ + " " + src + ", " +
                    alloc_stack_for_immediate(s_src));
   }
@@ -603,6 +603,7 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
     else if (func == "__func_flush") {
       out.emplace_back("mov stdout(%rip), %rdi");
       out.emplace_back("call fflush");
+      out.push_back(op_mov_ + " $0," + acc_reg_);
     }
 
     else {
