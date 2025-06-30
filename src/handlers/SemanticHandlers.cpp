@@ -515,7 +515,6 @@ auto SMContinueBreakHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                        const ASTNodePtr& node) -> ASTNodePtr {
   auto sym = node->Symbol();
-  auto def_sym = sa->LookupSymbol(sym);
   auto return_type = sym->Value();
 
   MetaSet(node->Symbol(), SymbolMetaKey::kRETURN_TYPE,
@@ -523,29 +522,7 @@ auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
   auto children = node->Children();
 
-  std::vector<SymbolMetaType> param_types;
-
-  for (auto& child : children) {
-    if (child->Tag() != ASTNodeTag::kPARAMS) continue;
-
-    for (auto& param_node : child->Children()) {
-      auto p_sym = param_node->Symbol();
-      auto [pok, pdef] = sa->RecordSymbol(p_sym);
-      if (!pok) {
-        sa->Error(param_node, "Redefine parameter: " + p_sym->Name());
-      }
-
-      SetReturnType(sa, pdef, param_node->Symbol()->Value(), param_node);
-      pdef->SetMeta(SymbolMetaKey::kHAS_INIT, true);
-
-      auto p_type = MetaGet<SymbolMetaType>(pdef, SymbolMetaKey::kTYPE);
-      param_types.push_back(p_type);
-    }
-  }
-
-  MetaSet(def_sym, SymbolMetaKey::kPARAM_TYPES, param_types);
-
-  auto body = children.back();
+  const auto& body = children.back();
   if (body->Tag() == ASTNodeTag::kBODY) router(body);
 
   const auto will_return =
@@ -589,6 +566,27 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     }
     auto ret_type = sym->Value();
     SetReturnType(sa, def_sym, ret_type, node);
+
+    std::vector<SymbolMetaType> param_types;
+    for (auto& child : fn->Children()) {
+      if (child->Tag() != ASTNodeTag::kPARAMS) continue;
+
+      for (auto& param_node : child->Children()) {
+        auto p_sym = param_node->Symbol();
+        auto [pok, pdef] = sa->RecordSymbol(p_sym);
+        if (!pok) {
+          sa->Error(param_node, "Redefine parameter: " + p_sym->Name());
+        }
+
+        SetReturnType(sa, pdef, param_node->Symbol()->Value(), param_node);
+        pdef->SetMeta(SymbolMetaKey::kHAS_INIT, true);
+
+        auto p_type = MetaGet<SymbolMetaType>(pdef, SymbolMetaKey::kTYPE);
+        param_types.push_back(p_type);
+      }
+    }
+
+    MetaSet(def_sym, SymbolMetaKey::kPARAM_TYPES, param_types);
   }
 
   for (auto& fn : node->Children()) {
