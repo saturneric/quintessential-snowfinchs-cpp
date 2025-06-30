@@ -603,6 +603,13 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
       if (t != SymbolMetaType::kINT) {
         sa->Error(node, "main must return int");
       }
+      auto param_types = MetaGet<std::vector<SymbolMetaType>>(
+          g, SymbolMetaKey::kPARAM_TYPES, {});
+
+      if (!param_types.empty()) {
+        sa->Error(node, "main should not have any arg");
+      }
+
       break;
     }
   }
