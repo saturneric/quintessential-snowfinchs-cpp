@@ -42,13 +42,11 @@ inline auto IsInMemory(const SymbolPtr& s) -> bool {
 }
 
 const std::vector<std::string> kRegisters64 = {
-    "%rbx", "%rcx", "%rsi", "%rdi", "%r8",  "%r9",
-    "%r10", "%r11", "%r12", "%r13", "%r14", "%r15",
+    "%rbx", "%r12", "%r13", "%r14", "%r15",
 };
 
-const std::vector<std::string> kRegisters32 = {
-    "%ebx",  "%ecx",  "%esi",  "%edi",  "%r8d",  "%r9d",
-    "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d"};
+const std::vector<std::string> kRegisters32 = {"%ebx", "%r12d", "%r13d",
+                                               "%r14d", "%r15d"};
 
 const std::array<const char*, 6> kFRegs32 = {"%edi", "%esi", "%edx",
                                              "%ecx", "%r8d", "%r9d"};
