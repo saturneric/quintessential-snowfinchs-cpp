@@ -446,11 +446,9 @@ auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   std::vector<SymbolPtr> args;
 
   auto children = node->Children();
-  if (!children.empty()) {
-    for (auto& arg : children.front()->Children()) {
-      auto sym = ctx->ExpRoute(arg);
-      args.push_back(sym);
-    }
+  for (auto& arg : children) {
+    auto sym = ctx->ExpRoute(arg);
+    args.push_back(sym);
   }
 
   auto ret_tmp = ctx->NewTempVariable();

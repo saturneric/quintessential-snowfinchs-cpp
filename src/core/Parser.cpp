@@ -1262,61 +1262,72 @@ namespace yy {
   case 78: // call: PRINT LEFT_BRACKET arg_list RIGHT_BRACKET
 #line 393 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_print", drv);
-      yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "print", drv);
+      if (yystack_[1].value.as < ASTNodePtr > ()) {
+        for (auto child : yystack_[1].value.as < ASTNodePtr > ()->Children())
+          yylhs.value.as < ASTNodePtr > ()->AddChild(child);
+      }
     }
-#line 1269 "Parser.cpp"
+#line 1272 "Parser.cpp"
     break;
 
   case 79: // call: READ LEFT_BRACKET arg_list RIGHT_BRACKET
-#line 398 "Parser.y"
+#line 401 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_read", drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "read", drv);
+      if (yystack_[1].value.as < ASTNodePtr > ()) {
+        for (auto child : yystack_[1].value.as < ASTNodePtr > ()->Children())
+          yylhs.value.as < ASTNodePtr > ()->AddChild(child);
+      }
     }
-#line 1277 "Parser.cpp"
+#line 1284 "Parser.cpp"
     break;
 
   case 80: // call: FLUSH LEFT_BRACKET arg_list RIGHT_BRACKET
-#line 402 "Parser.y"
+#line 409 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_flush", drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "flush", drv);
+      if (yystack_[1].value.as < ASTNodePtr > ()) {
+        for (auto child : yystack_[1].value.as < ASTNodePtr > ()->Children())
+          yylhs.value.as < ASTNodePtr > ()->AddChild(child);
+      }
     }
-#line 1285 "Parser.cpp"
+#line 1296 "Parser.cpp"
     break;
 
   case 81: // arg_list: %empty
-#line 408 "Parser.y"
+#line 419 "Parser.y"
                              { yylhs.value.as < ASTNodePtr > () = nullptr; }
-#line 1291 "Parser.cpp"
+#line 1302 "Parser.cpp"
     break;
 
   case 82: // arg_list: expression arg_list_follow
-#line 410 "Parser.y"
+#line 421 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kARG_LIST, "arg_list", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
       for (auto& a : yystack_[0].value.as < std::vector<ASTNodePtr> > ()) yylhs.value.as < ASTNodePtr > ()->AddChild(a);
     }
-#line 1301 "Parser.cpp"
+#line 1312 "Parser.cpp"
     break;
 
   case 83: // arg_list_follow: %empty
-#line 418 "Parser.y"
+#line 429 "Parser.y"
                              { yylhs.value.as < std::vector<ASTNodePtr> > () = {}; }
-#line 1307 "Parser.cpp"
+#line 1318 "Parser.cpp"
     break;
 
   case 84: // arg_list_follow: COMMA expression arg_list_follow
-#line 420 "Parser.y"
+#line 431 "Parser.y"
     {
       yystack_[0].value.as < std::vector<ASTNodePtr> > ().insert(yystack_[0].value.as < std::vector<ASTNodePtr> > ().begin(), yystack_[1].value.as < ASTNodePtr > ());
       yylhs.value.as < std::vector<ASTNodePtr> > () = std::move(yystack_[0].value.as < std::vector<ASTNodePtr> > ());
     }
-#line 1316 "Parser.cpp"
+#line 1327 "Parser.cpp"
     break;
 
 
-#line 1320 "Parser.cpp"
+#line 1331 "Parser.cpp"
 
             default:
               break;
@@ -1935,8 +1946,8 @@ namespace yy {
      309,   311,   313,   315,   317,   319,   321,   323,   325,   327,
      329,   331,   333,   335,   337,   339,   341,   343,   347,   351,
      353,   355,   359,   361,   363,   365,   370,   371,   372,   373,
-     374,   375,   376,   377,   378,   379,   380,   384,   392,   397,
-     401,   408,   409,   418,   419
+     374,   375,   376,   377,   378,   379,   380,   384,   392,   400,
+     408,   419,   420,   429,   430
   };
 
   void
@@ -1968,7 +1979,7 @@ namespace yy {
 
 
 } // yy
-#line 1972 "Parser.cpp"
+#line 1983 "Parser.cpp"
 
-#line 426 "Parser.y"
+#line 437 "Parser.y"
 

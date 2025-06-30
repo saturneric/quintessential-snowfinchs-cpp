@@ -391,16 +391,27 @@ call:
     }
   | PRINT LEFT_BRACKET arg_list RIGHT_BRACKET
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_print", drv);
-      $$->AddChild($3);
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "print", drv);
+      if ($3) {
+        for (auto child : $3->Children())
+          $$->AddChild(child);
+      }
     }
   | READ LEFT_BRACKET arg_list RIGHT_BRACKET
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_read", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "read", drv);
+      if ($3) {
+        for (auto child : $3->Children())
+          $$->AddChild(child);
+      }
     }
   | FLUSH LEFT_BRACKET arg_list RIGHT_BRACKET
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_flush", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "flush", drv);
+      if ($3) {
+        for (auto child : $3->Children())
+          $$->AddChild(child);
+      }
     }
   ;
 

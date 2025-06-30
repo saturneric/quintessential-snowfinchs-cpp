@@ -634,12 +634,10 @@ auto SMCallHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   std::vector<SymbolMetaType> arg_types;
   auto children = node->Children();
 
-  if (!children.empty()) {
-    for (auto& arg : children.front()->Children()) {
-      router(arg);
-      arg_types.push_back(
-          MetaGet<SymbolMetaType>(arg->Symbol(), SymbolMetaKey::kTYPE));
-    }
+  for (auto& arg : children) {
+    auto node = router(arg);
+    arg_types.push_back(
+        MetaGet<SymbolMetaType>(node->Symbol(), SymbolMetaKey::kTYPE));
   }
 
   auto param_types = MetaGet<std::vector<SymbolMetaType>>(
@@ -684,6 +682,7 @@ const SMHandlerMapping kSMHandlerMapping = {
     {ASTNodeType::kCONTINUE, SMContinueBreakHandler},
     {ASTNodeType::kBREAK, SMContinueBreakHandler},
     {ASTNodeType::kCALL, SMCallHandler},
+    {ASTNodeType::kARG_LIST, SMMeaninglessHandler},
 };
 
 }  // namespace
