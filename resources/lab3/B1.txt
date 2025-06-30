@@ -1,0 +1,10 @@
+int main(){
+int in = read();
+in = in-48;
+while(in >0){
+int tmp = read(); 
+print(tmp);
+in = in - 1;
+}
+return 42;
+}

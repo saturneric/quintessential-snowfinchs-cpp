@@ -583,49 +583,51 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
     auto func = format_operand(i.SRC(0));
 
     if (func == "__func_print") {
+      out.emplace_back("SAVE_ALL");
       out.emplace_back("call putchar");
+      out.emplace_back("RESTORE_ALL");
+
       if (i.DST()) {
         auto dst = format_operand(i.DST());
         out.push_back(op_mov_ + " $0, " + dst);
       }
-      return;
+
     }
 
-    if (func == "__func_read") {
-      out.emplace_back("call   getchar");
+    else if (func == "__func_read") {
+      out.emplace_back("SAVE_ALL");
+      out.emplace_back("call getchar");
+      out.emplace_back("RESTORE_ALL");
+
       if (i.DST()) {
         auto dst = format_operand(i.DST());
         out.push_back(op_mov_ + " %eax, " + dst);
       }
-      return;
+
     }
 
-    if (func == "__func_flush") {
+    else if (func == "__func_flush") {
+      out.emplace_back("SAVE_ALL");
       out.emplace_back("mov stdout(%rip), %rdi");
       out.emplace_back("call fflush");
+      out.emplace_back("RESTORE_ALL");
+
       if (i.DST()) {
         auto dst = format_operand(i.DST());
         out.push_back(op_mov_ + " %eax, " + dst);
       }
-      return;
+    } else {
+      out.emplace_back("SAVE_ALL");
+      out.push_back("call " + DemangleFuncName(func));
+      out.emplace_back("RESTORE_ALL");
+
+      auto s_ret = i.DST();
+      auto dst = format_operand(s_ret);
+      if (dst != acc_reg_) {
+        out.push_back(op_mov_ + " " + acc_reg_ + ", " + dst);
+      }
     }
 
-    // for (const auto& r : kCallerSavedReg) {
-    //   out.push_back("push " + std::string(r));
-    // }
-
-    out.push_back("call " + DemangleFuncName(func));
-
-    // for (auto it = kCallerSavedReg.rbegin(); it != kCallerSavedReg.rend();
-    //      ++it) {
-    //   out.push_back("pop " + std::string(*it));
-    // }
-
-    auto s_ret = i.DST();
-    auto dst = format_operand(s_ret);
-    if (dst != acc_reg_) {
-      out.push_back(op_mov_ + " " + acc_reg_ + ", " + dst);
-    }
   }
 
   else if (op == "arg") {

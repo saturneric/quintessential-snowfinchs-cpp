@@ -135,6 +135,40 @@ void ASMGenerator::gen_final_asm_source(const std::string& path) {
   // .text
   lines.emplace_back("\n.text");
 
+  lines.emplace_back("\t.macro SAVE_ALL");
+  lines.emplace_back("\t\tpushfq");
+  lines.emplace_back("\t\tpush   %rbx");
+  lines.emplace_back("\t\tpush   %rcx");
+  lines.emplace_back("\t\tpush   %rdx");
+  lines.emplace_back("\t\tpush   %rsi");
+  lines.emplace_back("\t\tpush   %rdi");
+  lines.emplace_back("\t\tpush   %r8");
+  lines.emplace_back("\t\tpush   %r9");
+  lines.emplace_back("\t\tpush   %r10");
+  lines.emplace_back("\t\tpush   %r11");
+  lines.emplace_back("\t\tpush   %r12");
+  lines.emplace_back("\t\tpush   %r13");
+  lines.emplace_back("\t\tpush   %r14");
+  lines.emplace_back("\t\tpush   %r15");
+  lines.emplace_back("\t.endm");
+
+  lines.emplace_back("\t.macro RESTORE_ALL");
+  lines.emplace_back("\t\tpop    %r15");
+  lines.emplace_back("\t\tpop    %r14");
+  lines.emplace_back("\t\tpop    %r13");
+  lines.emplace_back("\t\tpop    %r12");
+  lines.emplace_back("\t\tpop    %r11");
+  lines.emplace_back("\t\tpop    %r10");
+  lines.emplace_back("\t\tpop    %r9");
+  lines.emplace_back("\t\tpop    %r8");
+  lines.emplace_back("\t\tpop    %rdi");
+  lines.emplace_back("\t\tpop    %rsi");
+  lines.emplace_back("\t\tpop    %rdx");
+  lines.emplace_back("\t\tpop    %rcx");
+  lines.emplace_back("\t\tpop    %rbx");
+  lines.emplace_back("\t\tpopfq");
+  lines.emplace_back("\t.endm");
+
   lines.emplace_back(".globl main");
 
   std::vector<IRInstructionPtr> ir_f;

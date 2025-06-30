@@ -23,7 +23,7 @@ class X86Translator : public Translator {
 
  private:
   bool r32_;
-  int stack_offset_dt_ = r32_ ? 4 : 8;
+  int stack_offset_dt_ = 16;
   int stack_offset_ = 0;
   std::string suffix_ = r32_ ? "l" : "q";
   std::string acc_reg_ = r32_ ? "%eax" : "%rax";
