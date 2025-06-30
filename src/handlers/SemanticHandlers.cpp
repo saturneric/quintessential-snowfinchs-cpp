@@ -504,6 +504,87 @@ auto SMContinueBreakHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
+namespace {
+void SetReturnType(SemanticAnalyzer* sa, const SymbolPtr& sym,
+                   const std::string& type_name, const ASTNodePtr& node) {
+  if (type_name == "int") {
+    MetaSet(sym, SymbolMetaKey::kTYPE, SymbolMetaType::kINT);
+  } else if (type_name == "bool") {
+    MetaSet(sym, SymbolMetaKey::kTYPE, SymbolMetaType::kBOOL);
+  } else {
+    sa->Error(node, "Unknown return type: " + type_name);
+  }
+}
+}  // namespace
+
+auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                       const ASTNodePtr& node) -> ASTNodePtr {
+  auto sym = node->Symbol();
+  auto return_type = sym->Value();
+
+  auto [ok, def_sym] = sa->RecordSymbol(sym);
+  if (!ok) {
+    sa->Error(node, "Redefine function: " + sym->Name());
+  }
+
+  SetReturnType(sa, def_sym, return_type, node);
+
+  auto children = node->Children();
+
+  for (auto& child : children) {
+    if (child->Tag() != ASTNodeTag::kPARAMS) continue;
+
+    for (auto& param_node : child->Children()) {
+      auto p_sym = param_node->Symbol();
+      auto [pok, pdef] = sa->RecordSymbol(p_sym);
+      if (!pok) {
+        sa->Error(param_node, "Redefine parameter: " + p_sym->Name());
+      }
+
+      SetReturnType(sa, pdef, param_node->Symbol()->Value(), param_node);
+      pdef->SetMeta(SymbolMetaKey::kHAS_INIT, true);
+    }
+  }
+
+  auto body = children.back();
+  if (body->Tag() == ASTNodeTag::kBODY) router(body);
+
+  const auto will_return =
+      MetaGet<bool>(body->Symbol(), SymbolMetaKey::kWILL_RETURN, false);
+  if (!will_return) {
+    sa->Error(node, "Return statement not found");
+  }
+
+  return node;
+}
+
+auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                      const ASTNodePtr& node) -> ASTNodePtr {
+  for (auto& fn : node->Children()) {
+    router(fn);
+  }
+
+  auto globals = sa->VisibleDefineSymbols(node->Symbol()->Scope());
+  bool found_main = false;
+  for (auto& g : globals) {
+    if (g->Name() == "__func_main") {
+      found_main = true;
+      // check main function
+      auto t = MetaGet<SymbolMetaType>(g, SymbolMetaKey::kTYPE);
+      if (t != SymbolMetaType::kINT) {
+        sa->Error(node, "main must return int");
+      }
+      break;
+    }
+  }
+
+  // check if main function is defined
+  if (!found_main) {
+    sa->Error(node, "undefined reference to main");
+  }
+  return node;
+}
+
 const SMHandlerMapping kSMHandlerMapping = {
     {ASTNodeType::kASSIGN, SMAssignHandler},
     {ASTNodeType::kDECLARE, SMDeclareHandler},
@@ -511,7 +592,8 @@ const SMHandlerMapping kSMHandlerMapping = {
     {ASTNodeType::kUN_OP, SMUnOpHandler},
     {ASTNodeType::kBIN_OP, SMBinOpHandler},
     {ASTNodeType::kVALUE, SMValueHandler},
-    {ASTNodeType::kPROGRAM, SMMeaninglessHandler},
+    {ASTNodeType::kFUNCTION, SMFunctionHandler},
+    {ASTNodeType::kPROGRAM, SMProgramHandler},
     {ASTNodeType::kIDENT, SMIdentHandler},
     {ASTNodeType::kBLOCK, SMMeaninglessHandler},
     {ASTNodeType::kIF, SMIfHandler},
