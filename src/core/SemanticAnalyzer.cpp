@@ -3,9 +3,7 @@
 #include <algorithm>
 #include <utility>
 
-#include "Utils.h"
 #include "model/SymbolDefs.h"
-#include "model/SymbolMetaTypedef.h"
 
 SemanticAnalyzer::SemanticAnalyzer(SymbolTablePtr symbol_table,
                                    SMHandlerMapping mapping)
@@ -66,10 +64,6 @@ auto SemanticAnalyzer::Analyze(const AST& ast) -> bool {
   }
 
   visit(root);
-
-  if (!MetaGet<bool>(root->Symbol(), SymbolMetaKey::kWILL_RETURN, false)) {
-    Error(ast.Root(), "Return statement not found");
-  }
 
   if (root && meta_data_.count("has_return") == 0) {
     Error(ast.Root(), "Return statement not found");
