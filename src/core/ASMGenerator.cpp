@@ -1,6 +1,7 @@
 #include "ASMGenerator.h"
 
 #include <boost/graph/sequential_vertex_coloring.hpp>
+#include <regex>
 
 #include "model/InterferenceGraphAlgos.h"
 #include "model/SymbolDefs.h"
@@ -121,10 +122,25 @@ void ASMGenerator::gen_final_asm_source(const std::string& path) {
   lines.emplace_back("\n.text");
 
   lines.emplace_back(".globl main");
-  lines.emplace_back("main:");
 
-  for (const auto& line : translator_->GenerateTextSection(ir2_final_)) {
-    lines.emplace_back("    " + line);
+  std::vector<IRInstructionPtr> ir_f;
+
+  for (const auto& ir : ir2_final_) {
+    if (ir->Op()->Name() == "label" && ir->SRC(0) &&
+        ir->SRC(0)->Value() == "function") {
+      if (!ir_f.empty()) {
+        auto l = generate_text_section(ir_f);
+        lines.insert(lines.end(), l.begin(), l.end());
+      }
+      ir_f.clear();
+    }
+    ir_f.push_back(ir);
+  }
+
+  // flush the last section
+  if (!ir_f.empty()) {
+    auto l = generate_text_section(ir_f);
+    lines.insert(lines.end(), l.begin(), l.end());
   }
 
   std::ofstream f(path);
@@ -164,4 +180,24 @@ void ASMGenerator::PrintFinalIR(const std::string& path) {
   std::ofstream f(path);
   PrintInstructions(f, ir2_final_);
   f.close();
+}
+
+auto ASMGenerator::generate_text_section(
+    const std::vector<IRInstructionPtr>& irs) -> std::vector<std::string> {
+  static const std::regex kLabelRe(R"(^[A-Za-z_]\w*:$)");
+
+  std::vector<std::string> lines;
+  for (const auto& l : translator_->GenerateTextSection(irs)) {
+    auto s = l;
+    s.erase(0, s.find_first_not_of(' '));
+    s.erase(s.find_last_not_of(' ') + 1);
+
+    if (std::regex_match(s, kLabelRe)) {
+      lines.emplace_back(s);
+    } else {
+      lines.emplace_back("    " + s);
+    }
+  }
+  translator_->Reset();
+  return lines;
 }

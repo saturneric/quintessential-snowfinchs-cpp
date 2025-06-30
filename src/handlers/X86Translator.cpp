@@ -6,6 +6,14 @@
 
 namespace {
 
+auto DemangleFuncName(const std::string& s) -> std::string {
+  const std::string prefix = "__func_";
+  if (s.rfind(prefix, 0) == 0) {  // s.startswith(prefix)
+    return s.substr(prefix.size());
+  }
+  return s;
+}
+
 template <typename... Args>
 auto MakeIRA2(Args&&... args) -> IRInstructionPtr {
   return std::make_shared<IRInstructionA2>(std::forward<Args>(args)...);
@@ -143,7 +151,8 @@ void X86Translator::emit_spz_op(std::vector<std::string>& fins,
   }
 
   if (op == "label") {
-    fins.push_back(src + ": ");
+    fins.push_back(s_src->Value() == "function" ? DemangleFuncName(src) + ": "
+                                                : src + ": ");
   }
 }
 
@@ -519,12 +528,18 @@ auto X86Translator::GenerateTextSection(const std::vector<IRInstructionPtr>& ir)
   auto stack_ins = alloc_stack_memory();
 
   std::vector<std::string> ins;
+  ins.push_back(main_ins.front());
   ins.insert(ins.end(), stack_ins.begin(), stack_ins.end());
-  ins.insert(ins.end(), main_ins.begin(), main_ins.end());
+  ins.insert(ins.end(), main_ins.begin() + 1, main_ins.end());
 
   return ins;
 }
 
 auto X86Translator::AvailableRegisters() const -> std::vector<std::string> {
   return r32_ ? kRegisters32 : kRegisters64;
+}
+
+void X86Translator::Reset() {
+  vars_.clear();
+  in_data_sec_vars_.clear();
 }

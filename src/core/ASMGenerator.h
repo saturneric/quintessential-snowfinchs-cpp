@@ -21,6 +21,8 @@ class Translator {
 
   virtual auto GenerateDataSegment() -> std::vector<std::string> = 0;
 
+  virtual void Reset() = 0;
+
   [[nodiscard]] virtual auto AvailableRegisters() const
       -> std::vector<std::string> = 0;
 
@@ -69,4 +71,7 @@ class ASMGenerator {
   void build_inf_graph();
 
   auto map_sym(const std::string& name, const std::string& type) -> SymbolPtr;
+
+  auto generate_text_section(const std::vector<IRInstructionPtr>& irs)
+      -> std::vector<std::string>;
 };

@@ -16,6 +16,8 @@ class X86Translator : public Translator {
 
   auto GenerateDataSegment() -> std::vector<std::string> override;
 
+  void Reset() override;
+
   [[nodiscard]] auto AvailableRegisters() const
       -> std::vector<std::string> override;
 
