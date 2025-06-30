@@ -30,5 +30,6 @@ enum class SymbolMetaKey : SymbolMetaKeySizeType {
   kWILL_BREAK,
   kPARAM_INDEX,
   kRETURN_TYPE,
+  kPARAM_TYPES,
   kCOUNT,
 };

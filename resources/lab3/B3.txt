@@ -1,0 +1,66 @@
+bool readHello() {
+  int h = 104;
+  int e = 101;
+  int l = 108;
+  int o = 111;
+
+  int newline = 10;
+  if (read() != h) return false;
+  if (read() != e) return false;
+  if (read() != l) return false;
+  if (read() != l) return false;
+  if (read() != o) return false;
+  if (read() != newline) return false;
+  return true;
+}
+
+int rude() {
+  int r = 114;
+  int u = 117;
+  int d = 100;
+  int e = 101;
+  int newline = 10;
+
+  print(r);
+  print(u);
+  print(d);
+  print(e);
+  print(newline);
+  flush();
+  return 1;
+}
+
+int greet_back() {
+  int h = 104;
+  int i = 105;
+  int space = 32;
+  int t = 116;
+  int e = 101;
+  int r = 114;
+  int colon = 58;
+  int rpar = 41;
+  int newline = 10;
+
+  print(h);
+  print(i);
+  print(space);
+  print(t);
+  print(h);
+  print(e);
+  print(r);
+  print(e);
+  print(space);
+  print(colon);
+  print(rpar);
+  print(newline);
+  flush();
+  return 0;
+}
+
+int main() {
+  if (!readHello()) {
+    return rude();
+  }
+
+  return greet_back();
+}

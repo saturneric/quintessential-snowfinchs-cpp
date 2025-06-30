@@ -1,0 +1,7 @@
+int requires_int(int n) {
+  return n + 1;
+}
+
+int main() {
+  return requires_int(true);
+}

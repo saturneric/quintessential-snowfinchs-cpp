@@ -515,12 +515,15 @@ auto SMContinueBreakHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                        const ASTNodePtr& node) -> ASTNodePtr {
   auto sym = node->Symbol();
+  auto def_sym = sa->LookupSymbol(sym);
   auto return_type = sym->Value();
 
   MetaSet(node->Symbol(), SymbolMetaKey::kRETURN_TYPE,
           return_type == "bool" ? SymbolMetaType::kBOOL : SymbolMetaType::kINT);
 
   auto children = node->Children();
+
+  std::vector<SymbolMetaType> param_types;
 
   for (auto& child : children) {
     if (child->Tag() != ASTNodeTag::kPARAMS) continue;
@@ -534,8 +537,13 @@ auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
       SetReturnType(sa, pdef, param_node->Symbol()->Value(), param_node);
       pdef->SetMeta(SymbolMetaKey::kHAS_INIT, true);
+
+      auto p_type = MetaGet<SymbolMetaType>(pdef, SymbolMetaKey::kTYPE);
+      param_types.push_back(p_type);
     }
   }
+
+  MetaSet(def_sym, SymbolMetaKey::kPARAM_TYPES, param_types);
 
   auto body = children.back();
   if (body->Tag() == ASTNodeTag::kBODY) router(body);
@@ -556,14 +564,20 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   auto [succ_0, def_p_sym] = sa->RecordRealSymbol(
       sa->MapFunction(root_scope_id, "__func_print", "__func_print"));
   SetReturnType(sa, def_p_sym, "int", node);
+  MetaSet<std::vector<SymbolMetaType>>(def_p_sym, SymbolMetaKey::kPARAM_TYPES,
+                                       {SymbolMetaType::kINT});
 
   auto [succ_1, def_r_sym] = sa->RecordRealSymbol(
       sa->MapFunction(root_scope_id, "__func_read", "__func_read"));
   SetReturnType(sa, def_r_sym, "int", node);
+  MetaSet<std::vector<SymbolMetaType>>(def_r_sym, SymbolMetaKey::kPARAM_TYPES,
+                                       {});
 
   auto [succ_2, def_f_sym] = sa->RecordRealSymbol(
       sa->MapFunction(root_scope_id, "__func_flush", "__func_flush"));
   SetReturnType(sa, def_f_sym, "int", node);
+  MetaSet<std::vector<SymbolMetaType>>(def_f_sym, SymbolMetaKey::kPARAM_TYPES,
+                                       {});
 
   for (auto& fn : node->Children()) {
     auto sym = fn->Symbol();
@@ -612,8 +626,30 @@ auto SMCallHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     return node;
   }
 
+  std::vector<SymbolMetaType> arg_types;
   for (auto& arg : node->Children()) {
     router(arg);
+    arg_types.push_back(
+        MetaGet<SymbolMetaType>(arg->Symbol(), SymbolMetaKey::kTYPE));
+  }
+
+  auto param_types = MetaGet<std::vector<SymbolMetaType>>(
+      def_sym, SymbolMetaKey::kPARAM_TYPES, {});
+
+  if (arg_types.size() != param_types.size()) {
+    sa->Error(node, "Function '" + sym->Name() + "' expects " +
+                        std::to_string(param_types.size()) +
+                        " argument(s), "
+                        "but " +
+                        std::to_string(arg_types.size()) + " provided.");
+  }
+
+  size_t n = std::min(arg_types.size(), param_types.size());
+  for (size_t i = 0; i < n; ++i) {
+    if (arg_types[i] != param_types[i]) {
+      sa->Error(node, "Type mismatch for argument " + std::to_string(i + 1) +
+                          " of function '" + sym->Name() + "'.");
+    }
   }
 
   auto ret_type = MetaGet<SymbolMetaType>(def_sym, SymbolMetaKey::kTYPE);

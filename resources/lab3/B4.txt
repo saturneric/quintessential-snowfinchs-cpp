@@ -1,0 +1,25 @@
+int main() {
+  return sum(a(), b(), c());
+}
+
+int sum(int first, int second, int third) {
+  return first + second + third;
+}
+
+int a() {
+  print(97);
+  flush();
+  return 1;
+}
+
+int b() {
+  print(98);
+  flush();
+  return 2;
+}
+
+int c() {
+  print(99);
+  flush();
+  return 3;
+}
