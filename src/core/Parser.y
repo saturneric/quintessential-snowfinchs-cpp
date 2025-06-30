@@ -389,16 +389,16 @@ call:
           $$->AddChild(child);
       }
     }
-  | PRINT LEFT_BRACKET expression RIGHT_BRACKET
+  | PRINT LEFT_BRACKET arg_list RIGHT_BRACKET
     {
       $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_print", drv);
       $$->AddChild($3);
     }
-  | READ LEFT_BRACKET RIGHT_BRACKET
+  | READ LEFT_BRACKET arg_list RIGHT_BRACKET
     {
       $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_read", drv);
     }
-  | FLUSH LEFT_BRACKET RIGHT_BRACKET
+  | FLUSH LEFT_BRACKET arg_list RIGHT_BRACKET
     {
       $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_flush", drv);
     }
