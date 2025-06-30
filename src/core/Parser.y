@@ -29,7 +29,8 @@
 %type <ASTNodePtr> simple_statement declarator left_value
 %type <ASTNodePtr> expression
 %type <ASTNodePtr> function
-%type <std::vector<ASTNodePtr>> program functions
+%type <ASTNodePtr> program
+%type <std::vector<ASTNodePtr>> functions
 %type <std::vector<ASTNodePtr>> param_list_follow
 %type <ASTNodePtr> param_list param
 %type <std::vector<ASTNodePtr>>  arg_list_follow
@@ -88,27 +89,32 @@
 
 %%
 program:
-  functions    { $$ = $1; }
-  ;
+  functions    
+  { 
+    $$ = MakeASTTreeNode(ASTNodeType::kPROGRAM, "program", {}, drv);
+    drv.SetSyntaxTreeRoot($$);
+    for (auto p : $1) $$->AddChild(p);
+  }
+;
 
 functions:
     /* empty */ 
-    { $$ = {}; }
+    { $$ = std::vector<ASTNodePtr>(); }
   | function functions
     {
       $2.insert($2.begin(), $1);
       $$ = $2;
     }
-  ;
+;
 
 function:
     type VALUE_ID LEFT_BRACKET param_list RIGHT_BRACKET block
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kFUNCTION, "function", $2, drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kFUNCTION, $1, $2, drv);
       if ($4) $$->AddChild($4, ASTNodeTag::kPARAMS);
       $$->AddChild($6, ASTNodeTag::kBODY);
     }
-  ;
+;
 
 param_list:
     /* empty */
@@ -120,7 +126,7 @@ param_list:
       for (auto p : $2) list->AddChild(p);
       $$ = list;
     }
-  ;
+;
 
 param_list_follow:
     /* empty */
@@ -131,14 +137,14 @@ param_list_follow:
       v.insert(v.begin(), $2);
       $$ = std::vector<ASTNodePtr>(v);
     }
-  ;
+;
 
 param:
     type VALUE_ID
     {
       $$ = MakeASTTreeNode(ASTNodeType::kPARAM, $1, $2, drv);
     }
-  ;
+;
 
 block:
     OPENING_BRACE { EnterScope(drv); } statements CLOSING_BRACE 

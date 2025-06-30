@@ -381,6 +381,7 @@ namespace yy {
     /// An auxiliary type to compute the largest semantic type.
     union union_type
     {
+      // program
       // function
       // param_list
       // param
@@ -402,7 +403,6 @@ namespace yy {
       // assign_operator
       char dummy2[sizeof (std::string)];
 
-      // program
       // functions
       // param_list_follow
       // statements
@@ -671,6 +671,7 @@ namespace yy {
       {
         switch (this->kind ())
     {
+      case symbol_kind::S_program: // program
       case symbol_kind::S_function: // function
       case symbol_kind::S_param_list: // param_list
       case symbol_kind::S_param: // param
@@ -694,7 +695,6 @@ namespace yy {
         value.move< std::string > (std::move (that.value));
         break;
 
-      case symbol_kind::S_program: // program
       case symbol_kind::S_functions: // functions
       case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
@@ -791,6 +791,7 @@ namespace yy {
         // Value type destructor.
 switch (yykind)
     {
+      case symbol_kind::S_program: // program
       case symbol_kind::S_function: // function
       case symbol_kind::S_param_list: // param_list
       case symbol_kind::S_param: // param
@@ -814,7 +815,6 @@ switch (yykind)
         value.template destroy< std::string > ();
         break;
 
-      case symbol_kind::S_program: // program
       case symbol_kind::S_functions: // functions
       case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
@@ -2429,6 +2429,7 @@ switch (yykind)
   {
     switch (this->kind ())
     {
+      case symbol_kind::S_program: // program
       case symbol_kind::S_function: // function
       case symbol_kind::S_param_list: // param_list
       case symbol_kind::S_param: // param
@@ -2452,7 +2453,6 @@ switch (yykind)
         value.copy< std::string > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_program: // program
       case symbol_kind::S_functions: // functions
       case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
@@ -2491,6 +2491,7 @@ switch (yykind)
     super_type::move (s);
     switch (this->kind ())
     {
+      case symbol_kind::S_program: // program
       case symbol_kind::S_function: // function
       case symbol_kind::S_param_list: // param_list
       case symbol_kind::S_param: // param
@@ -2514,7 +2515,6 @@ switch (yykind)
         value.move< std::string > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_program: // program
       case symbol_kind::S_functions: // functions
       case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
