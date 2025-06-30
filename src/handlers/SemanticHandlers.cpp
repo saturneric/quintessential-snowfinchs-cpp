@@ -551,22 +551,25 @@ auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
 auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                       const ASTNodePtr& node) -> ASTNodePtr {
+  const auto root_scope_id = node->Symbol()->ScopeId();
   // predefined functions
   auto [succ_0, def_p_sym] = sa->RecordRealSymbol(
-      sa->MapSymbol(node->Symbol()->ScopeId(), "__func_print", "__func_print"));
+      sa->MapFunction(root_scope_id, "__func_print", "__func_print"));
   SetReturnType(sa, def_p_sym, "int", node);
 
   auto [succ_1, def_r_sym] = sa->RecordRealSymbol(
-      sa->MapSymbol(node->Symbol()->ScopeId(), "__func_read", "__func_read"));
+      sa->MapFunction(root_scope_id, "__func_read", "__func_read"));
   SetReturnType(sa, def_r_sym, "int", node);
 
   auto [succ_2, def_f_sym] = sa->RecordRealSymbol(
-      sa->MapSymbol(node->Symbol()->ScopeId(), "__func_flush", "__func_flush"));
+      sa->MapFunction(root_scope_id, "__func_flush", "__func_flush"));
   SetReturnType(sa, def_f_sym, "int", node);
 
   for (auto& fn : node->Children()) {
     auto sym = fn->Symbol();
-    auto [succ, def_sym] = sa->RecordRealSymbol(sym);
+    auto [succ, def_sym] = sa->RecordRealSymbol(
+        sa->MapFunction(root_scope_id, sym->Name(), sym->Value()));
+    // auto [succ, def_sym] = sa->RecordRealSymbol(sym);
     if (!succ) {
       sa->Error(fn, "Redefine function: " + sym->Name());
     }

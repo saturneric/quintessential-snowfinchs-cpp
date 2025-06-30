@@ -715,65 +715,72 @@ namespace yy {
 #line 716 "Parser.cpp"
     break;
 
-  case 5: // function: type VALUE_ID LEFT_BRACKET param_list RIGHT_BRACKET block
+  case 5: // $@1: %empty
+#line 111 "Parser.y"
+                  { EnterScope(drv); }
+#line 722 "Parser.cpp"
+    break;
+
+  case 6: // function: type VALUE_ID $@1 LEFT_BRACKET param_list RIGHT_BRACKET block
 #line 112 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kFUNCTION, yystack_[5].value.as < std::string > (), std::string("__func_") + yystack_[4].value.as < std::string > (), drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kFUNCTION, yystack_[6].value.as < std::string > (), std::string("__func_") + yystack_[5].value.as < std::string > (), drv);
       if (yystack_[2].value.as < ASTNodePtr > ()) yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > (), ASTNodeTag::kPARAMS);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > (), ASTNodeTag::kBODY);
+      LeaveScope(drv);
     }
-#line 726 "Parser.cpp"
+#line 733 "Parser.cpp"
     break;
 
-  case 6: // param_list: %empty
-#line 121 "Parser.y"
+  case 7: // param_list: %empty
+#line 122 "Parser.y"
     { yylhs.value.as < ASTNodePtr > () = nullptr; }
-#line 732 "Parser.cpp"
+#line 739 "Parser.cpp"
     break;
 
-  case 7: // param_list: param param_list_follow
-#line 123 "Parser.y"
+  case 8: // param_list: param param_list_follow
+#line 124 "Parser.y"
     {
       auto list = MakeASTTreeNode(ASTNodeType::kPARAM_LIST, "param_list", {}, drv);
       list->AddChild(yystack_[1].value.as < ASTNodePtr > ());
       for (auto p : yystack_[0].value.as < std::vector<ASTNodePtr> > ()) list->AddChild(p);
       yylhs.value.as < ASTNodePtr > () = list;
     }
-#line 743 "Parser.cpp"
+#line 750 "Parser.cpp"
     break;
 
-  case 8: // param_list_follow: %empty
-#line 133 "Parser.y"
+  case 9: // param_list_follow: %empty
+#line 134 "Parser.y"
     { yylhs.value.as < std::vector<ASTNodePtr> > () = std::vector<ASTNodePtr>(); }
-#line 749 "Parser.cpp"
+#line 756 "Parser.cpp"
     break;
 
-  case 9: // param_list_follow: COMMA param param_list_follow
-#line 135 "Parser.y"
+  case 10: // param_list_follow: COMMA param param_list_follow
+#line 136 "Parser.y"
     {
       auto v = yystack_[0].value.as < std::vector<ASTNodePtr> > ();
       v.insert(v.begin(), yystack_[1].value.as < ASTNodePtr > ());
       yylhs.value.as < std::vector<ASTNodePtr> > () = std::vector<ASTNodePtr>(v);
     }
-#line 759 "Parser.cpp"
+#line 766 "Parser.cpp"
     break;
 
-  case 10: // param: type VALUE_ID
-#line 144 "Parser.y"
+  case 11: // param: type VALUE_ID
+#line 145 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kPARAM, yystack_[1].value.as < std::string > (), yystack_[0].value.as < std::string > (), drv);
     }
-#line 767 "Parser.cpp"
+#line 774 "Parser.cpp"
     break;
 
-  case 11: // $@1: %empty
-#line 150 "Parser.y"
-                  { EnterScope(drv); }
-#line 773 "Parser.cpp"
-    break;
-
-  case 12: // block: OPENING_BRACE $@1 statements CLOSING_BRACE
+  case 12: // $@2: %empty
 #line 151 "Parser.y"
+                  { EnterScope(drv); }
+#line 780 "Parser.cpp"
+    break;
+
+  case 13: // block: OPENING_BRACE $@2 statements CLOSING_BRACE
+#line 152 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBLOCK, "block", {}, drv);
       for (const auto& child : yystack_[1].value.as < std::vector<ASTNodePtr> > ()) {
@@ -781,64 +788,64 @@ namespace yy {
       }
       LeaveScope(drv);
     }
-#line 785 "Parser.cpp"
+#line 792 "Parser.cpp"
     break;
 
-  case 13: // type: INT
-#line 160 "Parser.y"
-              { yylhs.value.as < std::string > () = "int"; }
-#line 791 "Parser.cpp"
-    break;
-
-  case 14: // type: BOOLEAN
+  case 14: // type: INT
 #line 161 "Parser.y"
-              { yylhs.value.as < std::string > () = "bool"; }
-#line 797 "Parser.cpp"
+              { yylhs.value.as < std::string > () = "int"; }
+#line 798 "Parser.cpp"
     break;
 
-  case 15: // statements: %empty
-#line 166 "Parser.y"
+  case 15: // type: BOOLEAN
+#line 162 "Parser.y"
+              { yylhs.value.as < std::string > () = "bool"; }
+#line 804 "Parser.cpp"
+    break;
+
+  case 16: // statements: %empty
+#line 167 "Parser.y"
     {
       yylhs.value.as < std::vector<ASTNodePtr> > () = {};
     }
-#line 805 "Parser.cpp"
+#line 812 "Parser.cpp"
     break;
 
-  case 16: // statements: statement statements
-#line 170 "Parser.y"
+  case 17: // statements: statement statements
+#line 171 "Parser.y"
     {
       yystack_[0].value.as < std::vector<ASTNodePtr> > ().insert(yystack_[0].value.as < std::vector<ASTNodePtr> > ().begin(), yystack_[1].value.as < ASTNodePtr > ());
       yylhs.value.as < std::vector<ASTNodePtr> > () = yystack_[0].value.as < std::vector<ASTNodePtr> > ();
     }
-#line 814 "Parser.cpp"
+#line 821 "Parser.cpp"
     break;
 
-  case 17: // statement: simple_statement SEMICOLON
-#line 178 "Parser.y"
+  case 18: // statement: simple_statement SEMICOLON
+#line 179 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 822 "Parser.cpp"
+#line 829 "Parser.cpp"
     break;
 
-  case 18: // statement: control
-#line 182 "Parser.y"
+  case 19: // statement: control
+#line 183 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > ();
     }
-#line 830 "Parser.cpp"
+#line 837 "Parser.cpp"
     break;
 
-  case 19: // statement: block
-#line 186 "Parser.y"
+  case 20: // statement: block
+#line 187 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > ();
     }
-#line 838 "Parser.cpp"
+#line 845 "Parser.cpp"
     break;
 
-  case 20: // simple_statement: left_value assign_operator expression
-#line 193 "Parser.y"
+  case 21: // simple_statement: left_value assign_operator expression
+#line 194 "Parser.y"
     {
       if (yystack_[1].value.as < std::string > () == "=") {
         yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kASSIGN, "simple_statement", yystack_[1].value.as < std::string > (), drv);
@@ -860,47 +867,47 @@ namespace yy {
         yylhs.value.as < ASTNodePtr > ()->AddChild(bin_op);
       }
     }
-#line 864 "Parser.cpp"
+#line 871 "Parser.cpp"
     break;
 
-  case 21: // simple_statement: declarator
-#line 215 "Parser.y"
+  case 22: // simple_statement: declarator
+#line 216 "Parser.y"
     { yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > (); }
-#line 870 "Parser.cpp"
+#line 877 "Parser.cpp"
     break;
 
-  case 22: // simple_statement: call
-#line 217 "Parser.y"
+  case 23: // simple_statement: call
+#line 218 "Parser.y"
     { yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > (); }
-#line 876 "Parser.cpp"
+#line 883 "Parser.cpp"
     break;
 
-  case 23: // simple_optional: %empty
-#line 222 "Parser.y"
+  case 24: // simple_optional: %empty
+#line 223 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = {};
     }
-#line 884 "Parser.cpp"
+#line 891 "Parser.cpp"
     break;
 
-  case 24: // simple_optional: simple_statement
-#line 226 "Parser.y"
+  case 25: // simple_optional: simple_statement
+#line 227 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > ();
     }
-#line 892 "Parser.cpp"
+#line 899 "Parser.cpp"
     break;
 
-  case 25: // declarator: type VALUE_ID
-#line 233 "Parser.y"
+  case 26: // declarator: type VALUE_ID
+#line 234 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kDECLARE, yystack_[1].value.as < std::string > (), yystack_[0].value.as < std::string > (), drv);
     }
-#line 900 "Parser.cpp"
+#line 907 "Parser.cpp"
     break;
 
-  case 26: // declarator: type VALUE_ID ASSIGN expression
-#line 237 "Parser.y"
+  case 27: // declarator: type VALUE_ID ASSIGN expression
+#line 238 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kDECLARE, yystack_[3].value.as < std::string > (), yystack_[2].value.as < std::string > (), drv);
       auto assign_node = MakeASTTreeNode(ASTNodeType::kASSIGN, yystack_[3].value.as < std::string > (), "=", drv);
@@ -911,64 +918,64 @@ namespace yy {
 
       yylhs.value.as < ASTNodePtr > ()->AddChild(assign_node);
     }
-#line 915 "Parser.cpp"
+#line 922 "Parser.cpp"
     break;
 
-  case 27: // left_value: VALUE_ID
-#line 251 "Parser.y"
+  case 28: // left_value: VALUE_ID
+#line 252 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIDENT, "left_value", yystack_[0].value.as < std::string > (), drv);
     }
-#line 923 "Parser.cpp"
+#line 930 "Parser.cpp"
     break;
 
-  case 28: // left_value: LEFT_BRACKET left_value RIGHT_BRACKET
-#line 255 "Parser.y"
+  case 29: // left_value: LEFT_BRACKET left_value RIGHT_BRACKET
+#line 256 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 931 "Parser.cpp"
+#line 938 "Parser.cpp"
     break;
 
-  case 29: // control: IF LEFT_BRACKET expression RIGHT_BRACKET statement ELSE statement
-#line 262 "Parser.y"
+  case 30: // control: IF LEFT_BRACKET expression RIGHT_BRACKET statement ELSE statement
+#line 263 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIF, "control", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[4].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 942 "Parser.cpp"
+#line 949 "Parser.cpp"
     break;
 
-  case 30: // control: IF LEFT_BRACKET expression RIGHT_BRACKET statement
-#line 269 "Parser.y"
+  case 31: // control: IF LEFT_BRACKET expression RIGHT_BRACKET statement
+#line 270 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIF, "control", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 952 "Parser.cpp"
+#line 959 "Parser.cpp"
     break;
 
-  case 31: // control: WHILE LEFT_BRACKET expression RIGHT_BRACKET statement
-#line 275 "Parser.y"
+  case 32: // control: WHILE LEFT_BRACKET expression RIGHT_BRACKET statement
+#line 276 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kWHILE, "while", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > (), ASTNodeTag::kCOND);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > (), ASTNodeTag::kBODY);
     }
-#line 962 "Parser.cpp"
+#line 969 "Parser.cpp"
     break;
 
-  case 32: // $@2: %empty
-#line 280 "Parser.y"
-                       { EnterScope(drv); }
-#line 968 "Parser.cpp"
-    break;
-
-  case 33: // control: FOR LEFT_BRACKET $@2 simple_optional SEMICOLON expression SEMICOLON simple_optional RIGHT_BRACKET statement
+  case 33: // $@3: %empty
 #line 281 "Parser.y"
+                       { EnterScope(drv); }
+#line 975 "Parser.cpp"
+    break;
+
+  case 34: // control: FOR LEFT_BRACKET $@3 simple_optional SEMICOLON expression SEMICOLON simple_optional RIGHT_BRACKET statement
+#line 282 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kWHILE, "for", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[6].value.as < ASTNodePtr > (), ASTNodeTag::kINIT);
@@ -978,270 +985,270 @@ namespace yy {
 
       LeaveScope(drv);
     }
-#line 982 "Parser.cpp"
+#line 989 "Parser.cpp"
     break;
 
-  case 34: // control: CONTINUE SEMICOLON
-#line 291 "Parser.y"
+  case 35: // control: CONTINUE SEMICOLON
+#line 292 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCONTINUE, "continue", {}, drv);
     }
-#line 990 "Parser.cpp"
+#line 997 "Parser.cpp"
     break;
 
-  case 35: // control: BREAK SEMICOLON
-#line 295 "Parser.y"
+  case 36: // control: BREAK SEMICOLON
+#line 296 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBREAK, "break", {}, drv);
     }
-#line 998 "Parser.cpp"
+#line 1005 "Parser.cpp"
     break;
 
-  case 36: // control: RETURN expression SEMICOLON
-#line 299 "Parser.y"
+  case 37: // control: RETURN expression SEMICOLON
+#line 300 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kRETURN, "return_statement", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
     }
-#line 1007 "Parser.cpp"
+#line 1014 "Parser.cpp"
     break;
 
-  case 37: // expression: LEFT_BRACKET expression RIGHT_BRACKET
-#line 306 "Parser.y"
-                                            { yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > (); }
-#line 1013 "Parser.cpp"
-    break;
-
-  case 38: // expression: call
+  case 38: // expression: LEFT_BRACKET expression RIGHT_BRACKET
 #line 307 "Parser.y"
+                                            { yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > (); }
+#line 1020 "Parser.cpp"
+    break;
+
+  case 39: // expression: call
+#line 308 "Parser.y"
            { yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > (); }
-#line 1019 "Parser.cpp"
+#line 1026 "Parser.cpp"
     break;
 
-  case 39: // expression: expression PLUS expression
-#line 309 "Parser.y"
+  case 40: // expression: expression PLUS expression
+#line 310 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PLUS", "+", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1025 "Parser.cpp"
+#line 1032 "Parser.cpp"
     break;
 
-  case 40: // expression: expression SUB expression
-#line 311 "Parser.y"
+  case 41: // expression: expression SUB expression
+#line 312 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "SUB", "-", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1031 "Parser.cpp"
+#line 1038 "Parser.cpp"
     break;
 
-  case 41: // expression: expression MULT expression
-#line 313 "Parser.y"
+  case 42: // expression: expression MULT expression
+#line 314 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "MULT", "*", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1037 "Parser.cpp"
+#line 1044 "Parser.cpp"
     break;
 
-  case 42: // expression: expression SLASH expression
-#line 315 "Parser.y"
+  case 43: // expression: expression SLASH expression
+#line 316 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "SLASH", "/", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1043 "Parser.cpp"
+#line 1050 "Parser.cpp"
     break;
 
-  case 43: // expression: expression PERCENT expression
-#line 317 "Parser.y"
+  case 44: // expression: expression PERCENT expression
+#line 318 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PERCENT", "%", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1049 "Parser.cpp"
+#line 1056 "Parser.cpp"
     break;
 
-  case 44: // expression: expression LT expression
-#line 319 "Parser.y"
+  case 45: // expression: expression LT expression
+#line 320 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LT", "<", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1055 "Parser.cpp"
+#line 1062 "Parser.cpp"
     break;
 
-  case 45: // expression: expression LT_EQ expression
-#line 321 "Parser.y"
+  case 46: // expression: expression LT_EQ expression
+#line 322 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LT_EQ", "<=", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1061 "Parser.cpp"
+#line 1068 "Parser.cpp"
     break;
 
-  case 46: // expression: expression GT expression
-#line 323 "Parser.y"
+  case 47: // expression: expression GT expression
+#line 324 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "GT", ">", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1067 "Parser.cpp"
+#line 1074 "Parser.cpp"
     break;
 
-  case 47: // expression: expression GT_EQ expression
-#line 325 "Parser.y"
+  case 48: // expression: expression GT_EQ expression
+#line 326 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "GT_EQ", ">=", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1073 "Parser.cpp"
+#line 1080 "Parser.cpp"
     break;
 
-  case 48: // expression: expression EQ expression
-#line 327 "Parser.y"
+  case 49: // expression: expression EQ expression
+#line 328 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "EQ", "==", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1079 "Parser.cpp"
+#line 1086 "Parser.cpp"
     break;
 
-  case 49: // expression: expression NOT_EQ expression
-#line 329 "Parser.y"
+  case 50: // expression: expression NOT_EQ expression
+#line 330 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "NOT_EQ", "!=", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1085 "Parser.cpp"
+#line 1092 "Parser.cpp"
     break;
 
-  case 50: // expression: expression LOGIC_AND expression
-#line 331 "Parser.y"
+  case 51: // expression: expression LOGIC_AND expression
+#line 332 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LOGIC_AND", "&&", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1091 "Parser.cpp"
+#line 1098 "Parser.cpp"
     break;
 
-  case 51: // expression: expression LOGIC_OR expression
-#line 333 "Parser.y"
+  case 52: // expression: expression LOGIC_OR expression
+#line 334 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LOGIC_OR", "||", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1097 "Parser.cpp"
+#line 1104 "Parser.cpp"
     break;
 
-  case 52: // expression: expression BIT_AND expression
-#line 335 "Parser.y"
+  case 53: // expression: expression BIT_AND expression
+#line 336 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_AND", "&", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1103 "Parser.cpp"
+#line 1110 "Parser.cpp"
     break;
 
-  case 53: // expression: expression BIT_EX_OR expression
-#line 337 "Parser.y"
+  case 54: // expression: expression BIT_EX_OR expression
+#line 338 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_EX_OR", "^", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1109 "Parser.cpp"
+#line 1116 "Parser.cpp"
     break;
 
-  case 54: // expression: expression BIT_OR expression
-#line 339 "Parser.y"
+  case 55: // expression: expression BIT_OR expression
+#line 340 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_OR", "|", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1115 "Parser.cpp"
+#line 1122 "Parser.cpp"
     break;
 
-  case 55: // expression: expression LEFT_SHIFT expression
-#line 341 "Parser.y"
+  case 56: // expression: expression LEFT_SHIFT expression
+#line 342 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LEFT_SHIFT", "<<", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1121 "Parser.cpp"
+#line 1128 "Parser.cpp"
     break;
 
-  case 56: // expression: expression RIGHT_SHIFT expression
-#line 343 "Parser.y"
+  case 57: // expression: expression RIGHT_SHIFT expression
+#line 344 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "RIGHT_SHIFT", ">>", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1127 "Parser.cpp"
+#line 1134 "Parser.cpp"
     break;
 
-  case 57: // expression: expression QUESTION expression COLON expression
-#line 347 "Parser.y"
+  case 58: // expression: expression QUESTION expression COLON expression
+#line 348 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCOND_EXP, "conditional_expression", {}, drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[4].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1133 "Parser.cpp"
+#line 1140 "Parser.cpp"
     break;
 
-  case 58: // expression: LOGIC_NOT expression
-#line 351 "Parser.y"
+  case 59: // expression: LOGIC_NOT expression
+#line 352 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "LOGIC_NOT", "!", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1139 "Parser.cpp"
+#line 1146 "Parser.cpp"
     break;
 
-  case 59: // expression: BIT_NOT expression
-#line 353 "Parser.y"
+  case 60: // expression: BIT_NOT expression
+#line 354 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "BIT_NOT", "~", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1145 "Parser.cpp"
+#line 1152 "Parser.cpp"
     break;
 
-  case 60: // expression: SUB expression
-#line 355 "Parser.y"
+  case 61: // expression: SUB expression
+#line 356 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "SUB", "-", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
-#line 1151 "Parser.cpp"
+#line 1158 "Parser.cpp"
     break;
 
-  case 61: // expression: VALUE_INTEGER
-#line 359 "Parser.y"
+  case 62: // expression: VALUE_INTEGER
+#line 360 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "int", yystack_[0].value.as < std::string > (), drv); }
-#line 1157 "Parser.cpp"
+#line 1164 "Parser.cpp"
     break;
 
-  case 62: // expression: VALUE_ID
-#line 361 "Parser.y"
+  case 63: // expression: VALUE_ID
+#line 362 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIDENT, "reference", yystack_[0].value.as < std::string > (), drv); }
-#line 1163 "Parser.cpp"
+#line 1170 "Parser.cpp"
     break;
 
-  case 63: // expression: TRUE
-#line 363 "Parser.y"
+  case 64: // expression: TRUE
+#line 364 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "bool", "true", drv); }
-#line 1169 "Parser.cpp"
+#line 1176 "Parser.cpp"
     break;
 
-  case 64: // expression: FALSE
-#line 365 "Parser.y"
+  case 65: // expression: FALSE
+#line 366 "Parser.y"
         { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "bool", "false", drv); }
-#line 1175 "Parser.cpp"
+#line 1182 "Parser.cpp"
     break;
 
-  case 65: // assign_operator: ASSIGN
-#line 369 "Parser.y"
-                          { yylhs.value.as < std::string > () = "="; }
-#line 1181 "Parser.cpp"
-    break;
-
-  case 66: // assign_operator: PLUS_ASSIGN
+  case 66: // assign_operator: ASSIGN
 #line 370 "Parser.y"
-                          { yylhs.value.as < std::string > () = "+="; }
-#line 1187 "Parser.cpp"
+                          { yylhs.value.as < std::string > () = "="; }
+#line 1188 "Parser.cpp"
     break;
 
-  case 67: // assign_operator: SUB_ASSIGN
+  case 67: // assign_operator: PLUS_ASSIGN
 #line 371 "Parser.y"
-                          { yylhs.value.as < std::string > () = "-="; }
-#line 1193 "Parser.cpp"
+                          { yylhs.value.as < std::string > () = "+="; }
+#line 1194 "Parser.cpp"
     break;
 
-  case 68: // assign_operator: MULT_ASSIGN
+  case 68: // assign_operator: SUB_ASSIGN
 #line 372 "Parser.y"
-                          { yylhs.value.as < std::string > () = "*="; }
-#line 1199 "Parser.cpp"
+                          { yylhs.value.as < std::string > () = "-="; }
+#line 1200 "Parser.cpp"
     break;
 
-  case 69: // assign_operator: SLASH_ASSIGN
+  case 69: // assign_operator: MULT_ASSIGN
 #line 373 "Parser.y"
-                          { yylhs.value.as < std::string > () = "/="; }
-#line 1205 "Parser.cpp"
+                          { yylhs.value.as < std::string > () = "*="; }
+#line 1206 "Parser.cpp"
     break;
 
-  case 70: // assign_operator: PERCENT_ASSIGN
+  case 70: // assign_operator: SLASH_ASSIGN
 #line 374 "Parser.y"
-                          { yylhs.value.as < std::string > () = "%="; }
-#line 1211 "Parser.cpp"
+                          { yylhs.value.as < std::string > () = "/="; }
+#line 1212 "Parser.cpp"
     break;
 
-  case 71: // assign_operator: BIT_AND_ASSIGN
+  case 71: // assign_operator: PERCENT_ASSIGN
 #line 375 "Parser.y"
-                          { yylhs.value.as < std::string > () = "&="; }
-#line 1217 "Parser.cpp"
+                          { yylhs.value.as < std::string > () = "%="; }
+#line 1218 "Parser.cpp"
     break;
 
-  case 72: // assign_operator: BIT_EX_OR_ASSIGN
+  case 72: // assign_operator: BIT_AND_ASSIGN
 #line 376 "Parser.y"
-                          { yylhs.value.as < std::string > () = "^="; }
-#line 1223 "Parser.cpp"
+                          { yylhs.value.as < std::string > () = "&="; }
+#line 1224 "Parser.cpp"
     break;
 
-  case 73: // assign_operator: BIT_OR_ASSIGN
+  case 73: // assign_operator: BIT_EX_OR_ASSIGN
 #line 377 "Parser.y"
-                          { yylhs.value.as < std::string > () = "|="; }
-#line 1229 "Parser.cpp"
+                          { yylhs.value.as < std::string > () = "^="; }
+#line 1230 "Parser.cpp"
     break;
 
-  case 74: // assign_operator: LEFT_SHIFT_ASSIGN
+  case 74: // assign_operator: BIT_OR_ASSIGN
 #line 378 "Parser.y"
-                          { yylhs.value.as < std::string > () = "<<="; }
-#line 1235 "Parser.cpp"
+                          { yylhs.value.as < std::string > () = "|="; }
+#line 1236 "Parser.cpp"
     break;
 
-  case 75: // assign_operator: RIGHT_SHIFT_ASSIGN
+  case 75: // assign_operator: LEFT_SHIFT_ASSIGN
 #line 379 "Parser.y"
-                          { yylhs.value.as < std::string > () = ">>="; }
-#line 1241 "Parser.cpp"
+                          { yylhs.value.as < std::string > () = "<<="; }
+#line 1242 "Parser.cpp"
     break;
 
-  case 76: // call: VALUE_ID LEFT_BRACKET arg_list RIGHT_BRACKET
-#line 384 "Parser.y"
+  case 76: // assign_operator: RIGHT_SHIFT_ASSIGN
+#line 380 "Parser.y"
+                          { yylhs.value.as < std::string > () = ">>="; }
+#line 1248 "Parser.cpp"
+    break;
+
+  case 77: // call: VALUE_ID LEFT_BRACKET arg_list RIGHT_BRACKET
+#line 385 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + yystack_[3].value.as < std::string > (), drv);
       if (yystack_[1].value.as < ASTNodePtr > ()) {
@@ -1249,67 +1256,67 @@ namespace yy {
           yylhs.value.as < ASTNodePtr > ()->AddChild(child);
       }
     }
-#line 1253 "Parser.cpp"
+#line 1260 "Parser.cpp"
     break;
 
-  case 77: // call: PRINT LEFT_BRACKET expression RIGHT_BRACKET
-#line 392 "Parser.y"
+  case 78: // call: PRINT LEFT_BRACKET expression RIGHT_BRACKET
+#line 393 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_print", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
     }
-#line 1262 "Parser.cpp"
+#line 1269 "Parser.cpp"
     break;
 
-  case 78: // call: READ LEFT_BRACKET RIGHT_BRACKET
-#line 397 "Parser.y"
+  case 79: // call: READ LEFT_BRACKET RIGHT_BRACKET
+#line 398 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_read", drv);
     }
-#line 1270 "Parser.cpp"
+#line 1277 "Parser.cpp"
     break;
 
-  case 79: // call: FLUSH LEFT_BRACKET RIGHT_BRACKET
-#line 401 "Parser.y"
+  case 80: // call: FLUSH LEFT_BRACKET RIGHT_BRACKET
+#line 402 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", "__func_flush", drv);
     }
-#line 1278 "Parser.cpp"
+#line 1285 "Parser.cpp"
     break;
 
-  case 80: // arg_list: %empty
-#line 407 "Parser.y"
+  case 81: // arg_list: %empty
+#line 408 "Parser.y"
                              { yylhs.value.as < ASTNodePtr > () = nullptr; }
-#line 1284 "Parser.cpp"
+#line 1291 "Parser.cpp"
     break;
 
-  case 81: // arg_list: expression arg_list_follow
-#line 409 "Parser.y"
+  case 82: // arg_list: expression arg_list_follow
+#line 410 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kARG_LIST, "arg_list", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
       for (auto& a : yystack_[0].value.as < std::vector<ASTNodePtr> > ()) yylhs.value.as < ASTNodePtr > ()->AddChild(a);
     }
-#line 1294 "Parser.cpp"
+#line 1301 "Parser.cpp"
     break;
 
-  case 82: // arg_list_follow: %empty
-#line 417 "Parser.y"
+  case 83: // arg_list_follow: %empty
+#line 418 "Parser.y"
                              { yylhs.value.as < std::vector<ASTNodePtr> > () = {}; }
-#line 1300 "Parser.cpp"
+#line 1307 "Parser.cpp"
     break;
 
-  case 83: // arg_list_follow: COMMA expression arg_list_follow
-#line 419 "Parser.y"
+  case 84: // arg_list_follow: COMMA expression arg_list_follow
+#line 420 "Parser.y"
     {
       yystack_[0].value.as < std::vector<ASTNodePtr> > ().insert(yystack_[0].value.as < std::vector<ASTNodePtr> > ().begin(), yystack_[1].value.as < ASTNodePtr > ());
       yylhs.value.as < std::vector<ASTNodePtr> > () = std::move(yystack_[0].value.as < std::vector<ASTNodePtr> > ());
     }
-#line 1309 "Parser.cpp"
+#line 1316 "Parser.cpp"
     break;
 
 
-#line 1313 "Parser.cpp"
+#line 1320 "Parser.cpp"
 
             default:
               break;
@@ -1661,144 +1668,144 @@ namespace yy {
   }
 
 
-  const signed char parser::yypact_ninf_ = -119;
+  const signed char parser::yypact_ninf_ = -120;
 
   const signed char parser::yytable_ninf_ = -1;
 
   const short
   parser::yypact_[] =
   {
-     -52,  -119,  -119,     9,  -119,   -52,     8,  -119,  -119,   -10,
-     -52,     6,     2,    57,    35,   -52,  -119,  -119,  -119,  -119,
-       2,    86,  -119,    62,     5,    64,    66,    67,    69,    70,
-      71,    73,    80,    97,  -119,   101,    78,    86,    84,  -119,
-      44,  -119,  -119,    97,  -119,    83,    97,    88,    90,    97,
-      97,  -119,  -119,  -119,    62,  -119,    97,    97,    97,    97,
-    -119,  -119,   141,  -119,   104,  -119,  -119,  -119,  -119,  -119,
-    -119,  -119,  -119,  -119,  -119,  -119,  -119,  -119,  -119,    97,
-     169,    95,  -119,   197,  -119,  -119,   225,   253,    82,  -119,
-    -119,  -119,   281,    97,    97,    97,    97,    97,  -119,    97,
+     -52,  -120,  -120,     9,  -120,   -52,     8,  -120,  -120,  -120,
+     -10,   -52,     6,     2,    57,    35,   -52,  -120,  -120,  -120,
+    -120,     2,    86,  -120,    62,     5,    63,    64,    66,    68,
+      69,    70,    72,    74,    97,  -120,   100,    77,    86,    85,
+    -120,    44,  -120,  -120,    97,  -120,    80,    97,    84,    88,
+      97,    97,  -120,  -120,  -120,    62,  -120,    97,    97,    97,
+      97,  -120,  -120,   141,  -120,   106,  -120,  -120,  -120,  -120,
+    -120,  -120,  -120,  -120,  -120,  -120,  -120,  -120,  -120,  -120,
+      97,   169,    90,  -120,   197,  -120,  -120,   225,   253,    82,
+    -120,  -120,  -120,   281,    97,    97,    97,    97,    97,  -120,
       97,    97,    97,    97,    97,    97,    97,    97,    97,    97,
-      97,    97,    97,    97,   365,    97,  -119,  -119,  -119,    86,
-      86,  -119,    99,  -119,    21,    21,  -119,  -119,  -119,   -13,
-     -13,   455,   427,   421,     4,   393,   309,   399,   399,   399,
-     399,   461,   461,   365,   169,    74,  -119,    97,    97,  -119,
-      86,   337,   365,  -119,    82,   100,    86,  -119
+      97,    97,    97,    97,    97,   365,    97,  -120,  -120,  -120,
+      86,    86,  -120,    99,  -120,    21,    21,  -120,  -120,  -120,
+     -13,   -13,   455,   427,   421,     4,   393,   309,   399,   399,
+     399,   399,   461,   461,   365,   169,    71,  -120,    97,    97,
+    -120,    86,   337,   365,  -120,    82,    98,    86,  -120
   };
 
   const signed char
   parser::yydefact_[] =
   {
-       3,    14,    13,     0,     2,     3,     0,     1,     4,     0,
-       6,     0,     8,     0,     0,     0,     7,    10,    11,     5,
-       8,    15,     9,    27,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,    19,     0,     0,    15,     0,    21,
-       0,    18,    22,    80,    27,     0,     0,     0,     0,     0,
-       0,    32,    34,    35,    62,    61,     0,     0,     0,     0,
-      63,    64,     0,    38,    25,    12,    16,    17,    65,    66,
-      67,    68,    69,    70,    71,    72,    73,    74,    75,     0,
-      82,     0,    28,     0,    78,    79,     0,     0,    23,    60,
-      58,    59,     0,     0,     0,     0,     0,     0,    36,     0,
+       3,    15,    14,     0,     2,     3,     0,     1,     4,     5,
+       0,     7,     0,     9,     0,     0,     0,     8,    11,    12,
+       6,     9,    16,    10,    28,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,    20,     0,     0,    16,     0,
+      22,     0,    19,    23,    81,    28,     0,     0,     0,     0,
+       0,     0,    33,    35,    36,    63,    62,     0,     0,     0,
+       0,    64,    65,     0,    39,    26,    13,    17,    18,    66,
+      67,    68,    69,    70,    71,    72,    73,    74,    75,    76,
+       0,    83,     0,    29,     0,    79,    80,     0,     0,    24,
+      61,    59,    60,     0,     0,     0,     0,     0,     0,    37,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,    20,     0,    81,    76,    77,     0,
-       0,    24,     0,    37,    39,    40,    41,    42,    43,    55,
-      56,    52,    53,    54,    50,    51,     0,    44,    45,    46,
-      47,    48,    49,    26,    82,    30,    31,     0,     0,    83,
-       0,     0,    57,    29,    23,     0,     0,    33
+       0,     0,     0,     0,     0,    21,     0,    82,    77,    78,
+       0,     0,    25,     0,    38,    40,    41,    42,    43,    44,
+      56,    57,    53,    54,    55,    51,    52,     0,    45,    46,
+      47,    48,    49,    50,    27,    83,    31,    32,     0,     0,
+      84,     0,     0,    58,    30,    24,     0,     0,    34
   };
 
   const short
   parser::yypgoto_[] =
   {
-    -119,  -119,   106,  -119,  -119,   125,   109,   132,  -119,    87,
-     112,  -118,   -71,    -4,  -119,   128,  -119,  -119,   -31,  -119,
-     -21,  -119,    10
+    -120,  -120,   119,  -120,  -120,  -120,   104,   129,   131,  -120,
+      91,   111,  -119,   -72,    -5,  -120,   127,  -120,  -120,   -32,
+    -120,   -22,  -120,    17
   };
 
   const signed char
   parser::yydefgoto_[] =
   {
-       0,     3,     4,     5,    11,    16,    12,    34,    21,    35,
-      36,    37,    38,   122,    39,    40,    41,    88,    62,    79,
-      63,    81,   116
+       0,     3,     4,     5,    10,    12,    17,    13,    35,    22,
+      36,    37,    38,    39,   123,    40,    41,    42,    89,    63,
+      80,    64,    82,   117
   };
 
   const unsigned char
   parser::yytable_[] =
   {
-      42,   145,   146,    93,    94,    95,    96,    97,    44,     7,
-       1,     9,    80,     2,    10,    83,    42,   121,    86,    87,
-      93,    94,    95,    96,    97,    89,    90,    91,    92,    24,
-      15,    14,   153,    99,   100,   101,   102,   103,   157,    95,
-      96,    97,   107,   108,   109,   110,   111,   112,   114,    68,
-      69,    70,    71,    72,    73,    74,    75,    76,    77,    78,
-      17,    18,   124,   125,   126,   127,   128,    42,   129,   130,
-     131,   132,   133,   134,   135,   136,   137,   138,   139,   140,
-     141,   142,   143,   121,   144,    23,    43,     6,    46,    23,
-      47,    48,     6,    49,    50,    51,    52,    13,    42,    42,
-      54,    55,    13,    53,    64,    65,    24,    67,    82,   113,
-      24,     8,    18,    84,    56,    85,   151,   152,    57,    58,
-     117,    59,   147,   150,    20,   156,    25,    26,    27,    42,
-      25,    26,    27,    42,    28,    42,    29,    30,    31,    32,
-      33,    25,    26,    27,     1,    22,    19,     2,     1,    66,
-     155,     2,    45,     0,   149,    60,    61,    93,    94,    95,
-      96,    97,     0,     0,    98,     0,     0,     0,     0,     0,
-      99,   100,   101,   102,   103,   104,   105,   106,     0,   107,
-     108,   109,   110,   111,   112,    93,    94,    95,    96,    97,
-       0,     0,     0,     0,     0,     0,     0,   115,    99,   100,
-     101,   102,   103,   104,   105,   106,     0,   107,   108,   109,
-     110,   111,   112,    93,    94,    95,    96,    97,     0,     0,
-       0,     0,   118,     0,     0,     0,    99,   100,   101,   102,
-     103,   104,   105,   106,     0,   107,   108,   109,   110,   111,
-     112,    93,    94,    95,    96,    97,     0,     0,     0,     0,
-     119,     0,     0,     0,    99,   100,   101,   102,   103,   104,
-     105,   106,     0,   107,   108,   109,   110,   111,   112,    93,
-      94,    95,    96,    97,     0,     0,     0,     0,   120,     0,
-       0,     0,    99,   100,   101,   102,   103,   104,   105,   106,
-       0,   107,   108,   109,   110,   111,   112,    93,    94,    95,
-      96,    97,     0,     0,     0,     0,   123,     0,     0,     0,
-      99,   100,   101,   102,   103,   104,   105,   106,     0,   107,
-     108,   109,   110,   111,   112,    93,    94,    95,    96,    97,
-       0,     0,     0,     0,     0,     0,     0,     0,    99,   100,
-     101,   102,   103,   104,   105,   106,   148,   107,   108,   109,
-     110,   111,   112,    93,    94,    95,    96,    97,     0,     0,
-     154,     0,     0,     0,     0,     0,    99,   100,   101,   102,
-     103,   104,   105,   106,     0,   107,   108,   109,   110,   111,
-     112,    93,    94,    95,    96,    97,     0,     0,     0,     0,
-       0,     0,     0,     0,    99,   100,   101,   102,   103,   104,
-     105,   106,     0,   107,   108,   109,   110,   111,   112,    93,
-      94,    95,    96,    97,     0,    93,    94,    95,    96,    97,
-       0,     0,    99,   100,   101,   102,   103,   104,    99,   100,
-       0,   107,   108,   109,   110,   111,   112,    93,    94,    95,
-      96,    97,     0,    93,    94,    95,    96,    97,     0,     0,
-      99,   100,   101,   102,     0,     0,    99,   100,   101,   107,
-     108,   109,   110,   111,   112,   107,   108,   109,   110,   111,
-     112,    93,    94,    95,    96,    97,     0,    93,    94,    95,
-      96,    97,     0,     0,    99,   100,     0,     0,     0,     0,
-      99,   100,     0,   107,   108,   109,   110,   111,   112,   107,
-     108,   109,   110
+      43,   146,   147,    94,    95,    96,    97,    98,    45,     7,
+       1,     9,    81,     2,    11,    84,    43,   122,    87,    88,
+      94,    95,    96,    97,    98,    90,    91,    92,    93,    25,
+      16,    15,   154,   100,   101,   102,   103,   104,   158,    96,
+      97,    98,   108,   109,   110,   111,   112,   113,   115,    69,
+      70,    71,    72,    73,    74,    75,    76,    77,    78,    79,
+      18,    19,   125,   126,   127,   128,   129,    43,   130,   131,
+     132,   133,   134,   135,   136,   137,   138,   139,   140,   141,
+     142,   143,   144,   122,   145,    24,    44,    47,    48,    24,
+      49,     6,    50,    51,    52,    53,     6,    54,    43,    43,
+      55,    56,    14,    65,    66,    83,    25,    14,    68,    85,
+      25,   114,    19,    86,    57,   118,   152,   153,    58,    59,
+     151,    60,   148,   157,     8,    23,    26,    27,    28,    43,
+      26,    27,    28,    43,    29,    43,    30,    31,    32,    33,
+      34,    26,    27,    28,     1,    21,    20,     2,     1,    67,
+     156,     2,    46,     0,     0,    61,    62,    94,    95,    96,
+      97,    98,   150,     0,    99,     0,     0,     0,     0,     0,
+     100,   101,   102,   103,   104,   105,   106,   107,     0,   108,
+     109,   110,   111,   112,   113,    94,    95,    96,    97,    98,
+       0,     0,     0,     0,     0,     0,     0,   116,   100,   101,
+     102,   103,   104,   105,   106,   107,     0,   108,   109,   110,
+     111,   112,   113,    94,    95,    96,    97,    98,     0,     0,
+       0,     0,   119,     0,     0,     0,   100,   101,   102,   103,
+     104,   105,   106,   107,     0,   108,   109,   110,   111,   112,
+     113,    94,    95,    96,    97,    98,     0,     0,     0,     0,
+     120,     0,     0,     0,   100,   101,   102,   103,   104,   105,
+     106,   107,     0,   108,   109,   110,   111,   112,   113,    94,
+      95,    96,    97,    98,     0,     0,     0,     0,   121,     0,
+       0,     0,   100,   101,   102,   103,   104,   105,   106,   107,
+       0,   108,   109,   110,   111,   112,   113,    94,    95,    96,
+      97,    98,     0,     0,     0,     0,   124,     0,     0,     0,
+     100,   101,   102,   103,   104,   105,   106,   107,     0,   108,
+     109,   110,   111,   112,   113,    94,    95,    96,    97,    98,
+       0,     0,     0,     0,     0,     0,     0,     0,   100,   101,
+     102,   103,   104,   105,   106,   107,   149,   108,   109,   110,
+     111,   112,   113,    94,    95,    96,    97,    98,     0,     0,
+     155,     0,     0,     0,     0,     0,   100,   101,   102,   103,
+     104,   105,   106,   107,     0,   108,   109,   110,   111,   112,
+     113,    94,    95,    96,    97,    98,     0,     0,     0,     0,
+       0,     0,     0,     0,   100,   101,   102,   103,   104,   105,
+     106,   107,     0,   108,   109,   110,   111,   112,   113,    94,
+      95,    96,    97,    98,     0,    94,    95,    96,    97,    98,
+       0,     0,   100,   101,   102,   103,   104,   105,   100,   101,
+       0,   108,   109,   110,   111,   112,   113,    94,    95,    96,
+      97,    98,     0,    94,    95,    96,    97,    98,     0,     0,
+     100,   101,   102,   103,     0,     0,   100,   101,   102,   108,
+     109,   110,   111,   112,   113,   108,   109,   110,   111,   112,
+     113,    94,    95,    96,    97,    98,     0,    94,    95,    96,
+      97,    98,     0,     0,   100,   101,     0,     0,     0,     0,
+     100,   101,     0,   108,   109,   110,   111,   112,   113,   108,
+     109,   110,   111
   };
 
   const short
   parser::yycheck_[] =
   {
-      21,   119,   120,    16,    17,    18,    19,    20,     3,     0,
-      62,     3,    43,    65,    24,    46,    37,    88,    49,    50,
-      16,    17,    18,    19,    20,    56,    57,    58,    59,    24,
-      28,    25,   150,    29,    30,    31,    32,    33,   156,    18,
-      19,    20,    38,    39,    40,    41,    42,    43,    79,     5,
+      22,   120,   121,    16,    17,    18,    19,    20,     3,     0,
+      62,     3,    44,    65,    24,    47,    38,    89,    50,    51,
+      16,    17,    18,    19,    20,    57,    58,    59,    60,    24,
+      28,    25,   151,    29,    30,    31,    32,    33,   157,    18,
+      19,    20,    38,    39,    40,    41,    42,    43,    80,     5,
        6,     7,     8,     9,    10,    11,    12,    13,    14,    15,
-       3,    26,    93,    94,    95,    96,    97,    88,    99,   100,
-     101,   102,   103,   104,   105,   106,   107,   108,   109,   110,
-     111,   112,   113,   154,   115,     3,    24,     0,    24,     3,
-      24,    24,     5,    24,    24,    24,    23,    10,   119,   120,
-       3,     4,    15,    23,     3,    27,    24,    23,    25,     5,
-      24,     5,    26,    25,    17,    25,   147,   148,    21,    22,
-      25,    24,    23,    49,    15,    25,    44,    45,    46,   150,
-      44,    45,    46,   154,    48,   156,    50,    51,    52,    53,
-      54,    44,    45,    46,    62,    20,    14,    65,    62,    37,
-     154,    65,    24,    -1,   144,    58,    59,    16,    17,    18,
-      19,    20,    -1,    -1,    23,    -1,    -1,    -1,    -1,    -1,
+       3,    26,    94,    95,    96,    97,    98,    89,   100,   101,
+     102,   103,   104,   105,   106,   107,   108,   109,   110,   111,
+     112,   113,   114,   155,   116,     3,    24,    24,    24,     3,
+      24,     0,    24,    24,    24,    23,     5,    23,   120,   121,
+       3,     4,    11,     3,    27,    25,    24,    16,    23,    25,
+      24,     5,    26,    25,    17,    25,   148,   149,    21,    22,
+      49,    24,    23,    25,     5,    21,    44,    45,    46,   151,
+      44,    45,    46,   155,    48,   157,    50,    51,    52,    53,
+      54,    44,    45,    46,    62,    16,    15,    65,    62,    38,
+     155,    65,    25,    -1,    -1,    58,    59,    16,    17,    18,
+      19,    20,   145,    -1,    23,    -1,    -1,    -1,    -1,    -1,
       29,    30,    31,    32,    33,    34,    35,    36,    -1,    38,
       39,    40,    41,    42,    43,    16,    17,    18,    19,    20,
       -1,    -1,    -1,    -1,    -1,    -1,    -1,    28,    29,    30,
@@ -1838,50 +1845,50 @@ namespace yy {
   const signed char
   parser::yystos_[] =
   {
-       0,    62,    65,    71,    72,    73,    79,     0,    72,     3,
-      24,    74,    76,    79,    25,    28,    75,     3,    26,    77,
-      76,    78,    75,     3,    24,    44,    45,    46,    48,    50,
-      51,    52,    53,    54,    77,    79,    80,    81,    82,    84,
-      85,    86,    90,    24,     3,    85,    24,    24,    24,    24,
-      24,    24,    23,    23,     3,     4,    17,    21,    22,    24,
-      58,    59,    88,    90,     3,    27,    80,    23,     5,     6,
-       7,     8,     9,    10,    11,    12,    13,    14,    15,    89,
-      88,    91,    25,    88,    25,    25,    88,    88,    87,    88,
-      88,    88,    88,    16,    17,    18,    19,    20,    23,    29,
-      30,    31,    32,    33,    34,    35,    36,    38,    39,    40,
-      41,    42,    43,     5,    88,    28,    92,    25,    25,    25,
-      25,    82,    83,    25,    88,    88,    88,    88,    88,    88,
-      88,    88,    88,    88,    88,    88,    88,    88,    88,    88,
-      88,    88,    88,    88,    88,    81,    81,    23,    37,    92,
-      49,    88,    88,    81,    23,    83,    25,    81
+       0,    62,    65,    71,    72,    73,    80,     0,    72,     3,
+      74,    24,    75,    77,    80,    25,    28,    76,     3,    26,
+      78,    77,    79,    76,     3,    24,    44,    45,    46,    48,
+      50,    51,    52,    53,    54,    78,    80,    81,    82,    83,
+      85,    86,    87,    91,    24,     3,    86,    24,    24,    24,
+      24,    24,    24,    23,    23,     3,     4,    17,    21,    22,
+      24,    58,    59,    89,    91,     3,    27,    81,    23,     5,
+       6,     7,     8,     9,    10,    11,    12,    13,    14,    15,
+      90,    89,    92,    25,    89,    25,    25,    89,    89,    88,
+      89,    89,    89,    89,    16,    17,    18,    19,    20,    23,
+      29,    30,    31,    32,    33,    34,    35,    36,    38,    39,
+      40,    41,    42,    43,     5,    89,    28,    93,    25,    25,
+      25,    25,    83,    84,    25,    89,    89,    89,    89,    89,
+      89,    89,    89,    89,    89,    89,    89,    89,    89,    89,
+      89,    89,    89,    89,    89,    89,    82,    82,    23,    37,
+      93,    49,    89,    89,    82,    23,    84,    25,    82
   };
 
   const signed char
   parser::yyr1_[] =
   {
-       0,    70,    71,    72,    72,    73,    74,    74,    75,    75,
-      76,    78,    77,    79,    79,    80,    80,    81,    81,    81,
-      82,    82,    82,    83,    83,    84,    84,    85,    85,    86,
-      86,    86,    87,    86,    86,    86,    86,    88,    88,    88,
-      88,    88,    88,    88,    88,    88,    88,    88,    88,    88,
-      88,    88,    88,    88,    88,    88,    88,    88,    88,    88,
-      88,    88,    88,    88,    88,    89,    89,    89,    89,    89,
+       0,    70,    71,    72,    72,    74,    73,    75,    75,    76,
+      76,    77,    79,    78,    80,    80,    81,    81,    82,    82,
+      82,    83,    83,    83,    84,    84,    85,    85,    86,    86,
+      87,    87,    87,    88,    87,    87,    87,    87,    89,    89,
+      89,    89,    89,    89,    89,    89,    89,    89,    89,    89,
+      89,    89,    89,    89,    89,    89,    89,    89,    89,    89,
       89,    89,    89,    89,    89,    89,    90,    90,    90,    90,
-      91,    91,    92,    92
+      90,    90,    90,    90,    90,    90,    90,    91,    91,    91,
+      91,    92,    92,    93,    93
   };
 
   const signed char
   parser::yyr2_[] =
   {
-       0,     2,     1,     0,     2,     6,     0,     2,     0,     3,
-       2,     0,     4,     1,     1,     0,     2,     2,     1,     1,
-       3,     1,     1,     0,     1,     2,     4,     1,     3,     7,
-       5,     5,     0,    10,     2,     2,     3,     3,     1,     3,
+       0,     2,     1,     0,     2,     0,     7,     0,     2,     0,
+       3,     2,     0,     4,     1,     1,     0,     2,     2,     1,
+       1,     3,     1,     1,     0,     1,     2,     4,     1,     3,
+       7,     5,     5,     0,    10,     2,     2,     3,     3,     1,
        3,     3,     3,     3,     3,     3,     3,     3,     3,     3,
-       3,     3,     3,     3,     3,     3,     3,     5,     2,     2,
-       2,     1,     1,     1,     1,     1,     1,     1,     1,     1,
-       1,     1,     1,     1,     1,     1,     4,     4,     3,     3,
-       0,     2,     0,     3
+       3,     3,     3,     3,     3,     3,     3,     3,     5,     2,
+       2,     2,     1,     1,     1,     1,     1,     1,     1,     1,
+       1,     1,     1,     1,     1,     1,     1,     4,     4,     3,
+       3,     0,     2,     0,     3
   };
 
 
@@ -1903,10 +1910,11 @@ namespace yy {
   "ELSE", "WHILE", "FOR", "CONTINUE", "BREAK", "RETURN", "ASSERT", "ALLOC",
   "ALLOC_ARRAY", "TRUE", "FALSE", "KW_NULL", "STRING", "BOOLEAN", "VOID",
   "CHAR", "INT", "NONE", "IFX", "CON_EXP", "UMINUS", "$accept", "program",
-  "functions", "function", "param_list", "param_list_follow", "param",
-  "block", "$@1", "type", "statements", "statement", "simple_statement",
-  "simple_optional", "declarator", "left_value", "control", "$@2",
-  "expression", "assign_operator", "call", "arg_list", "arg_list_follow", YY_NULLPTR
+  "functions", "function", "$@1", "param_list", "param_list_follow",
+  "param", "block", "$@2", "type", "statements", "statement",
+  "simple_statement", "simple_optional", "declarator", "left_value",
+  "control", "$@3", "expression", "assign_operator", "call", "arg_list",
+  "arg_list_follow", YY_NULLPTR
   };
 #endif
 
@@ -1915,15 +1923,15 @@ namespace yy {
   const short
   parser::yyrline_[] =
   {
-       0,    92,    92,   102,   103,   111,   121,   122,   133,   134,
-     143,   150,   150,   160,   161,   166,   169,   177,   181,   185,
-     192,   214,   216,   222,   225,   232,   236,   250,   254,   261,
-     268,   274,   280,   280,   290,   294,   298,   306,   307,   308,
-     310,   312,   314,   316,   318,   320,   322,   324,   326,   328,
-     330,   332,   334,   336,   338,   340,   342,   346,   350,   352,
-     354,   358,   360,   362,   364,   369,   370,   371,   372,   373,
-     374,   375,   376,   377,   378,   379,   383,   391,   396,   400,
-     407,   408,   417,   418
+       0,    92,    92,   102,   103,   111,   111,   122,   123,   134,
+     135,   144,   151,   151,   161,   162,   167,   170,   178,   182,
+     186,   193,   215,   217,   223,   226,   233,   237,   251,   255,
+     262,   269,   275,   281,   281,   291,   295,   299,   307,   308,
+     309,   311,   313,   315,   317,   319,   321,   323,   325,   327,
+     329,   331,   333,   335,   337,   339,   341,   343,   347,   351,
+     353,   355,   359,   361,   363,   365,   370,   371,   372,   373,
+     374,   375,   376,   377,   378,   379,   380,   384,   392,   397,
+     401,   408,   409,   418,   419
   };
 
   void
@@ -1955,7 +1963,7 @@ namespace yy {
 
 
 } // yy
-#line 1959 "Parser.cpp"
+#line 1967 "Parser.cpp"
 
-#line 425 "Parser.y"
+#line 426 "Parser.y"
 

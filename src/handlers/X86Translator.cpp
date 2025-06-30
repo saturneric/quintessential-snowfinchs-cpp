@@ -520,6 +520,10 @@ auto X86Translator::alloc_stack_memory() -> std::vector<std::string> {
 
 auto X86Translator::GenerateDataSegment() -> std::vector<std::string> {
   std::vector<std::string> ret;
+  ret.emplace_back(".extern fflush");
+  ret.emplace_back(".extern getchar");
+  ret.emplace_back(".extern putchar");
+  ret.emplace_back(".extern stdout");
 
   for (const auto& c : in_data_sec_vars_) {
     if (IsImmediate(c)) {
@@ -597,7 +601,7 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
     }
 
     if (func == "__func_flush") {
-      out.emplace_back("lea stdout(%rip), %rdi");
+      out.emplace_back("mov stdout(%rip), %rdi");
       out.emplace_back("call fflush");
       if (i.DST()) {
         auto dst = format_operand(i.DST());

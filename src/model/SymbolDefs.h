@@ -5,6 +5,7 @@ enum class SymbolType : uint8_t {
   kAST,
   kDEFINE,
   kIR,
+  kFUNCTION,
 };
 
 using SymbolMetaKeySizeType = uint8_t;

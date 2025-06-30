@@ -36,6 +36,9 @@ class SemanticAnalyzer {
   auto MapSymbol(int scope_id, const std::string& name,
                  const std::string& value) -> SymbolPtr;
 
+  auto MapFunction(int scope_id, const std::string& name,
+                   const std::string& value) -> SymbolPtr;
+
  private:
   SMHandlerMapping node_handler_register_;
   SymbolTablePtr symbol_table_;

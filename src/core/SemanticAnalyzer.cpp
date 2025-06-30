@@ -45,6 +45,12 @@ auto SemanticAnalyzer::MapSymbol(int scope_id, const std::string& name,
                                   scope_id);
 }
 
+auto SemanticAnalyzer::MapFunction(int scope_id, const std::string& name,
+                                   const std::string& value) -> SymbolPtr {
+  return symbol_table_->AddSymbol(SymbolType::kFUNCTION, name, value, true,
+                                  scope_id);
+}
+
 auto SemanticAnalyzer::RecordSymbol(const SymbolPtr& symbol)
     -> std::tuple<bool, SymbolPtr> {
   // we are not allow variable-shadowing

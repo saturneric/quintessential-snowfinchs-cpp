@@ -616,25 +616,26 @@ namespace yy {
         S_program = 71,                          // program
         S_functions = 72,                        // functions
         S_function = 73,                         // function
-        S_param_list = 74,                       // param_list
-        S_param_list_follow = 75,                // param_list_follow
-        S_param = 76,                            // param
-        S_block = 77,                            // block
-        S_78_1 = 78,                             // $@1
-        S_type = 79,                             // type
-        S_statements = 80,                       // statements
-        S_statement = 81,                        // statement
-        S_simple_statement = 82,                 // simple_statement
-        S_simple_optional = 83,                  // simple_optional
-        S_declarator = 84,                       // declarator
-        S_left_value = 85,                       // left_value
-        S_control = 86,                          // control
-        S_87_2 = 87,                             // $@2
-        S_expression = 88,                       // expression
-        S_assign_operator = 89,                  // assign_operator
-        S_call = 90,                             // call
-        S_arg_list = 91,                         // arg_list
-        S_arg_list_follow = 92                   // arg_list_follow
+        S_74_1 = 74,                             // $@1
+        S_param_list = 75,                       // param_list
+        S_param_list_follow = 76,                // param_list_follow
+        S_param = 77,                            // param
+        S_block = 78,                            // block
+        S_79_2 = 79,                             // $@2
+        S_type = 80,                             // type
+        S_statements = 81,                       // statements
+        S_statement = 82,                        // statement
+        S_simple_statement = 83,                 // simple_statement
+        S_simple_optional = 84,                  // simple_optional
+        S_declarator = 85,                       // declarator
+        S_left_value = 86,                       // left_value
+        S_control = 87,                          // control
+        S_88_3 = 88,                             // $@3
+        S_expression = 89,                       // expression
+        S_assign_operator = 90,                  // assign_operator
+        S_call = 91,                             // call
+        S_arg_list = 92,                         // arg_list
+        S_arg_list_follow = 93                   // arg_list_follow
       };
     };
 
@@ -2355,7 +2356,7 @@ switch (yykind)
     enum
     {
       yylast_ = 502,     ///< Last index in yytable_.
-      yynnts_ = 23,  ///< Number of nonterminal symbols.
+      yynnts_ = 24,  ///< Number of nonterminal symbols.
       yyfinal_ = 7 ///< Termination state number.
     };
 
@@ -2588,7 +2589,7 @@ switch (yykind)
 
 
 } // yy
-#line 2592 "Parser.hpp"
+#line 2593 "Parser.hpp"
 
 
 

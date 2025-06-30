@@ -108,11 +108,12 @@ functions:
 ;
 
 function:
-    type VALUE_ID LEFT_BRACKET param_list RIGHT_BRACKET block
+    type VALUE_ID { EnterScope(drv); } LEFT_BRACKET param_list RIGHT_BRACKET block
     {
       $$ = MakeASTTreeNode(ASTNodeType::kFUNCTION, $1, std::string("__func_") + $2, drv);
-      if ($4) $$->AddChild($4, ASTNodeTag::kPARAMS);
-      $$->AddChild($6, ASTNodeTag::kBODY);
+      if ($5) $$->AddChild($5, ASTNodeTag::kPARAMS);
+      $$->AddChild($7, ASTNodeTag::kBODY);
+      LeaveScope(drv);
     }
 ;
 
