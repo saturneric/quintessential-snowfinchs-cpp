@@ -44,7 +44,9 @@ class X86Translator : public Translator {
 
   std::vector<SymbolPtr> in_data_sec_vars_;
   std::set<SymbolPtr> vars_;
+
   int param_index_;
+  std::vector<SymbolPtr> stack_args_;
 
   auto translate(const std::vector<IRInstructionPtr>& ir)
       -> std::vector<std::string>;

@@ -571,61 +571,58 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
       out.push_back(op_mov_ + " " + arg + ", " +
                     (r32_ ? kFRegs32[param_index_] : kFRegs64[param_index_]));
     } else {
-      out.push_back("push " + arg);
+      stack_args_.push_back(s_arg);
     }
     param_index_++;
   }
 
   else if (op == "call") {
-    param_index_ = 0;
     auto func = format_operand(i.SRC(0));
 
+    out.emplace_back("SAVE_ALL");
+
+    bool need_pad = (stack_args_.size() % 2 == 0);
+    if (need_pad) {
+      out.emplace_back("sub $8, %rsp");
+    }
+
+    for (auto it = stack_args_.rbegin(); it != stack_args_.rend(); ++it) {
+      auto arg = format_operand(*it);
+      out.push_back("push " + arg);
+    }
+
     if (func == "__func_print") {
-      out.emplace_back("SAVE_ALL");
       out.emplace_back("call putchar");
-      out.emplace_back("RESTORE_ALL");
-
-      if (i.DST()) {
-        auto dst = format_operand(i.DST());
-        out.push_back(op_mov_ + " $0, " + dst);
-      }
-
     }
 
     else if (func == "__func_read") {
-      out.emplace_back("SAVE_ALL");
       out.emplace_back("call getchar");
-      out.emplace_back("RESTORE_ALL");
-
-      if (i.DST()) {
-        auto dst = format_operand(i.DST());
-        out.push_back(op_mov_ + " %eax, " + dst);
-      }
-
     }
 
     else if (func == "__func_flush") {
-      out.emplace_back("SAVE_ALL");
       out.emplace_back("mov stdout(%rip), %rdi");
       out.emplace_back("call fflush");
-      out.emplace_back("RESTORE_ALL");
-
-      if (i.DST()) {
-        auto dst = format_operand(i.DST());
-        out.push_back(op_mov_ + " %eax, " + dst);
-      }
-    } else {
-      out.emplace_back("SAVE_ALL");
-      out.push_back("call " + DemangleFuncName(func));
-      out.emplace_back("RESTORE_ALL");
-
-      auto s_ret = i.DST();
-      auto dst = format_operand(s_ret);
-      if (dst != acc_reg_) {
-        out.push_back(op_mov_ + " " + acc_reg_ + ", " + dst);
-      }
     }
 
+    else {
+      out.push_back("call " + DemangleFuncName(func));
+    }
+
+    std::size_t bytes_to_pop = (stack_args_.size() * 8) + (need_pad ? 8 : 0);
+    if (bytes_to_pop != 0U) {
+      out.emplace_back("add $" + std::to_string(bytes_to_pop) + ", %rsp");
+    }
+
+    out.emplace_back("RESTORE_ALL");
+
+    auto s_ret = i.DST();
+    auto dst = format_operand(s_ret);
+    if (dst != acc_reg_) {
+      out.push_back(op_mov_ + " " + acc_reg_ + ", " + dst);
+    }
+
+    param_index_ = 0;
+    stack_args_.clear();
   }
 
   else if (op == "arg") {
@@ -638,7 +635,7 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
       out.push_back(op_mov_ + " " + (r32_ ? kFRegs32[idx] : kFRegs64[idx]) +
                     ", " + dst);
     } else {
-      int stack_offset = 8 * (idx - 6 + 1);
+      int stack_offset = 16 + (8 * (idx - 6));
       bool dst_mem = !IsReg(s_dst);
       if (dst_mem) {
         out.push_back(op_mov_ + " " + std::to_string(stack_offset) +
