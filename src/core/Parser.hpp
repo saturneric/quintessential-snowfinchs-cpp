@@ -381,7 +381,9 @@ namespace yy {
     /// An auxiliary type to compute the largest semantic type.
     union union_type
     {
-      // program
+      // function
+      // param_list
+      // param
       // block
       // statement
       // simple_statement
@@ -390,6 +392,8 @@ namespace yy {
       // left_value
       // control
       // expression
+      // call
+      // arg_list
       char dummy1[sizeof (ASTNodePtr)];
 
       // VALUE_ID
@@ -398,7 +402,11 @@ namespace yy {
       // assign_operator
       char dummy2[sizeof (std::string)];
 
+      // program
+      // functions
+      // param_list_follow
       // statements
+      // arg_list_follow
       char dummy3[sizeof (std::vector<ASTNodePtr>)];
     };
 
@@ -474,46 +482,48 @@ namespace yy {
     TOKEN_RIGHT_BRACKET = 280,     // RIGHT_BRACKET
     TOKEN_OPENING_BRACE = 281,     // OPENING_BRACE
     TOKEN_CLOSING_BRACE = 282,     // CLOSING_BRACE
-    TOKEN_LEFT_SHIFT = 283,        // LEFT_SHIFT
-    TOKEN_RIGHT_SHIFT = 284,       // RIGHT_SHIFT
-    TOKEN_BIT_AND = 285,           // BIT_AND
-    TOKEN_BIT_EX_OR = 286,         // BIT_EX_OR
-    TOKEN_BIT_OR = 287,            // BIT_OR
-    TOKEN_LOGIC_AND = 288,         // LOGIC_AND
-    TOKEN_LOGIC_OR = 289,          // LOGIC_OR
-    TOKEN_QUESTION = 290,          // QUESTION
-    TOKEN_COLON = 291,             // COLON
-    TOKEN_LT = 292,                // LT
-    TOKEN_LT_EQ = 293,             // LT_EQ
-    TOKEN_GT = 294,                // GT
-    TOKEN_GT_EQ = 295,             // GT_EQ
-    TOKEN_EQ = 296,                // EQ
-    TOKEN_NOT_EQ = 297,            // NOT_EQ
-    TOKEN_STRUCT = 298,            // STRUCT
-    TOKEN_IF = 299,                // IF
-    TOKEN_ELSE = 300,              // ELSE
-    TOKEN_WHILE = 301,             // WHILE
-    TOKEN_FOR = 302,               // FOR
-    TOKEN_CONTINUE = 303,          // CONTINUE
-    TOKEN_BREAK = 304,             // BREAK
-    TOKEN_RETURN = 305,            // RETURN
-    TOKEN_ASSERT = 306,            // ASSERT
-    TOKEN_PRINT = 307,             // PRINT
-    TOKEN_READ = 308,              // READ
-    TOKEN_ALLOC = 309,             // ALLOC
-    TOKEN_ALLOC_ARRAY = 310,       // ALLOC_ARRAY
-    TOKEN_TRUE = 311,              // TRUE
-    TOKEN_FALSE = 312,             // FALSE
-    TOKEN_KW_NULL = 313,           // KW_NULL
-    TOKEN_STRING = 314,            // STRING
-    TOKEN_BOOLEAN = 315,           // BOOLEAN
-    TOKEN_VOID = 316,              // VOID
-    TOKEN_CHAR = 317,              // CHAR
-    TOKEN_INT = 318,               // INT
-    TOKEN_NONE = 319,              // NONE
-    TOKEN_IFX = 320,               // IFX
-    TOKEN_CON_EXP = 321,           // CON_EXP
-    TOKEN_UMINUS = 322             // UMINUS
+    TOKEN_COMMA = 283,             // COMMA
+    TOKEN_LEFT_SHIFT = 284,        // LEFT_SHIFT
+    TOKEN_RIGHT_SHIFT = 285,       // RIGHT_SHIFT
+    TOKEN_BIT_AND = 286,           // BIT_AND
+    TOKEN_BIT_EX_OR = 287,         // BIT_EX_OR
+    TOKEN_BIT_OR = 288,            // BIT_OR
+    TOKEN_LOGIC_AND = 289,         // LOGIC_AND
+    TOKEN_LOGIC_OR = 290,          // LOGIC_OR
+    TOKEN_QUESTION = 291,          // QUESTION
+    TOKEN_COLON = 292,             // COLON
+    TOKEN_LT = 293,                // LT
+    TOKEN_LT_EQ = 294,             // LT_EQ
+    TOKEN_GT = 295,                // GT
+    TOKEN_GT_EQ = 296,             // GT_EQ
+    TOKEN_EQ = 297,                // EQ
+    TOKEN_NOT_EQ = 298,            // NOT_EQ
+    TOKEN_PRINT = 299,             // PRINT
+    TOKEN_READ = 300,              // READ
+    TOKEN_FLUSH = 301,             // FLUSH
+    TOKEN_STRUCT = 302,            // STRUCT
+    TOKEN_IF = 303,                // IF
+    TOKEN_ELSE = 304,              // ELSE
+    TOKEN_WHILE = 305,             // WHILE
+    TOKEN_FOR = 306,               // FOR
+    TOKEN_CONTINUE = 307,          // CONTINUE
+    TOKEN_BREAK = 308,             // BREAK
+    TOKEN_RETURN = 309,            // RETURN
+    TOKEN_ASSERT = 310,            // ASSERT
+    TOKEN_ALLOC = 311,             // ALLOC
+    TOKEN_ALLOC_ARRAY = 312,       // ALLOC_ARRAY
+    TOKEN_TRUE = 313,              // TRUE
+    TOKEN_FALSE = 314,             // FALSE
+    TOKEN_KW_NULL = 315,           // KW_NULL
+    TOKEN_STRING = 316,            // STRING
+    TOKEN_BOOLEAN = 317,           // BOOLEAN
+    TOKEN_VOID = 318,              // VOID
+    TOKEN_CHAR = 319,              // CHAR
+    TOKEN_INT = 320,               // INT
+    TOKEN_NONE = 321,              // NONE
+    TOKEN_IFX = 322,               // IFX
+    TOKEN_CON_EXP = 323,           // CON_EXP
+    TOKEN_UMINUS = 324             // UMINUS
       };
       /// Backward compatibility alias (Bison 3.6).
       typedef token_kind_type yytokentype;
@@ -530,7 +540,7 @@ namespace yy {
     {
       enum symbol_kind_type
       {
-        YYNTOKENS = 68, ///< Number of tokens.
+        YYNTOKENS = 70, ///< Number of tokens.
         S_YYEMPTY = -2,
         S_YYEOF = 0,                             // "end of file"
         S_YYerror = 1,                           // error
@@ -560,61 +570,71 @@ namespace yy {
         S_RIGHT_BRACKET = 25,                    // RIGHT_BRACKET
         S_OPENING_BRACE = 26,                    // OPENING_BRACE
         S_CLOSING_BRACE = 27,                    // CLOSING_BRACE
-        S_LEFT_SHIFT = 28,                       // LEFT_SHIFT
-        S_RIGHT_SHIFT = 29,                      // RIGHT_SHIFT
-        S_BIT_AND = 30,                          // BIT_AND
-        S_BIT_EX_OR = 31,                        // BIT_EX_OR
-        S_BIT_OR = 32,                           // BIT_OR
-        S_LOGIC_AND = 33,                        // LOGIC_AND
-        S_LOGIC_OR = 34,                         // LOGIC_OR
-        S_QUESTION = 35,                         // QUESTION
-        S_COLON = 36,                            // COLON
-        S_LT = 37,                               // LT
-        S_LT_EQ = 38,                            // LT_EQ
-        S_GT = 39,                               // GT
-        S_GT_EQ = 40,                            // GT_EQ
-        S_EQ = 41,                               // EQ
-        S_NOT_EQ = 42,                           // NOT_EQ
-        S_STRUCT = 43,                           // STRUCT
-        S_IF = 44,                               // IF
-        S_ELSE = 45,                             // ELSE
-        S_WHILE = 46,                            // WHILE
-        S_FOR = 47,                              // FOR
-        S_CONTINUE = 48,                         // CONTINUE
-        S_BREAK = 49,                            // BREAK
-        S_RETURN = 50,                           // RETURN
-        S_ASSERT = 51,                           // ASSERT
-        S_PRINT = 52,                            // PRINT
-        S_READ = 53,                             // READ
-        S_ALLOC = 54,                            // ALLOC
-        S_ALLOC_ARRAY = 55,                      // ALLOC_ARRAY
-        S_TRUE = 56,                             // TRUE
-        S_FALSE = 57,                            // FALSE
-        S_KW_NULL = 58,                          // KW_NULL
-        S_STRING = 59,                           // STRING
-        S_BOOLEAN = 60,                          // BOOLEAN
-        S_VOID = 61,                             // VOID
-        S_CHAR = 62,                             // CHAR
-        S_INT = 63,                              // INT
-        S_NONE = 64,                             // NONE
-        S_IFX = 65,                              // IFX
-        S_CON_EXP = 66,                          // CON_EXP
-        S_UMINUS = 67,                           // UMINUS
-        S_YYACCEPT = 68,                         // $accept
-        S_program = 69,                          // program
-        S_block = 70,                            // block
-        S_71_1 = 71,                             // $@1
-        S_type = 72,                             // type
-        S_statements = 73,                       // statements
-        S_statement = 74,                        // statement
-        S_simple_statement = 75,                 // simple_statement
-        S_simple_optional = 76,                  // simple_optional
-        S_declarator = 77,                       // declarator
-        S_left_value = 78,                       // left_value
-        S_control = 79,                          // control
-        S_80_2 = 80,                             // $@2
-        S_expression = 81,                       // expression
-        S_assign_operator = 82                   // assign_operator
+        S_COMMA = 28,                            // COMMA
+        S_LEFT_SHIFT = 29,                       // LEFT_SHIFT
+        S_RIGHT_SHIFT = 30,                      // RIGHT_SHIFT
+        S_BIT_AND = 31,                          // BIT_AND
+        S_BIT_EX_OR = 32,                        // BIT_EX_OR
+        S_BIT_OR = 33,                           // BIT_OR
+        S_LOGIC_AND = 34,                        // LOGIC_AND
+        S_LOGIC_OR = 35,                         // LOGIC_OR
+        S_QUESTION = 36,                         // QUESTION
+        S_COLON = 37,                            // COLON
+        S_LT = 38,                               // LT
+        S_LT_EQ = 39,                            // LT_EQ
+        S_GT = 40,                               // GT
+        S_GT_EQ = 41,                            // GT_EQ
+        S_EQ = 42,                               // EQ
+        S_NOT_EQ = 43,                           // NOT_EQ
+        S_PRINT = 44,                            // PRINT
+        S_READ = 45,                             // READ
+        S_FLUSH = 46,                            // FLUSH
+        S_STRUCT = 47,                           // STRUCT
+        S_IF = 48,                               // IF
+        S_ELSE = 49,                             // ELSE
+        S_WHILE = 50,                            // WHILE
+        S_FOR = 51,                              // FOR
+        S_CONTINUE = 52,                         // CONTINUE
+        S_BREAK = 53,                            // BREAK
+        S_RETURN = 54,                           // RETURN
+        S_ASSERT = 55,                           // ASSERT
+        S_ALLOC = 56,                            // ALLOC
+        S_ALLOC_ARRAY = 57,                      // ALLOC_ARRAY
+        S_TRUE = 58,                             // TRUE
+        S_FALSE = 59,                            // FALSE
+        S_KW_NULL = 60,                          // KW_NULL
+        S_STRING = 61,                           // STRING
+        S_BOOLEAN = 62,                          // BOOLEAN
+        S_VOID = 63,                             // VOID
+        S_CHAR = 64,                             // CHAR
+        S_INT = 65,                              // INT
+        S_NONE = 66,                             // NONE
+        S_IFX = 67,                              // IFX
+        S_CON_EXP = 68,                          // CON_EXP
+        S_UMINUS = 69,                           // UMINUS
+        S_YYACCEPT = 70,                         // $accept
+        S_program = 71,                          // program
+        S_functions = 72,                        // functions
+        S_function = 73,                         // function
+        S_param_list = 74,                       // param_list
+        S_param_list_follow = 75,                // param_list_follow
+        S_param = 76,                            // param
+        S_block = 77,                            // block
+        S_78_1 = 78,                             // $@1
+        S_type = 79,                             // type
+        S_statements = 80,                       // statements
+        S_statement = 81,                        // statement
+        S_simple_statement = 82,                 // simple_statement
+        S_simple_optional = 83,                  // simple_optional
+        S_declarator = 84,                       // declarator
+        S_left_value = 85,                       // left_value
+        S_control = 86,                          // control
+        S_87_2 = 87,                             // $@2
+        S_expression = 88,                       // expression
+        S_assign_operator = 89,                  // assign_operator
+        S_call = 90,                             // call
+        S_arg_list = 91,                         // arg_list
+        S_arg_list_follow = 92                   // arg_list_follow
       };
     };
 
@@ -651,7 +671,9 @@ namespace yy {
       {
         switch (this->kind ())
     {
-      case symbol_kind::S_program: // program
+      case symbol_kind::S_function: // function
+      case symbol_kind::S_param_list: // param_list
+      case symbol_kind::S_param: // param
       case symbol_kind::S_block: // block
       case symbol_kind::S_statement: // statement
       case symbol_kind::S_simple_statement: // simple_statement
@@ -660,6 +682,8 @@ namespace yy {
       case symbol_kind::S_left_value: // left_value
       case symbol_kind::S_control: // control
       case symbol_kind::S_expression: // expression
+      case symbol_kind::S_call: // call
+      case symbol_kind::S_arg_list: // arg_list
         value.move< ASTNodePtr > (std::move (that.value));
         break;
 
@@ -670,7 +694,11 @@ namespace yy {
         value.move< std::string > (std::move (that.value));
         break;
 
+      case symbol_kind::S_program: // program
+      case symbol_kind::S_functions: // functions
+      case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
+      case symbol_kind::S_arg_list_follow: // arg_list_follow
         value.move< std::vector<ASTNodePtr> > (std::move (that.value));
         break;
 
@@ -763,7 +791,9 @@ namespace yy {
         // Value type destructor.
 switch (yykind)
     {
-      case symbol_kind::S_program: // program
+      case symbol_kind::S_function: // function
+      case symbol_kind::S_param_list: // param_list
+      case symbol_kind::S_param: // param
       case symbol_kind::S_block: // block
       case symbol_kind::S_statement: // statement
       case symbol_kind::S_simple_statement: // simple_statement
@@ -772,6 +802,8 @@ switch (yykind)
       case symbol_kind::S_left_value: // left_value
       case symbol_kind::S_control: // control
       case symbol_kind::S_expression: // expression
+      case symbol_kind::S_call: // call
+      case symbol_kind::S_arg_list: // arg_list
         value.template destroy< ASTNodePtr > ();
         break;
 
@@ -782,7 +814,11 @@ switch (yykind)
         value.template destroy< std::string > ();
         break;
 
+      case symbol_kind::S_program: // program
+      case symbol_kind::S_functions: // functions
+      case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
+      case symbol_kind::S_arg_list_follow: // arg_list_follow
         value.template destroy< std::vector<ASTNodePtr> > ();
         break;
 
@@ -1361,6 +1397,21 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_COMMA (location_type l)
+      {
+        return symbol_type (token::TOKEN_COMMA, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_COMMA (const location_type& l)
+      {
+        return symbol_type (token::TOKEN_COMMA, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_LEFT_SHIFT (location_type l)
       {
         return symbol_type (token::TOKEN_LEFT_SHIFT, std::move (l));
@@ -1586,6 +1637,51 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_PRINT (location_type l)
+      {
+        return symbol_type (token::TOKEN_PRINT, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_PRINT (const location_type& l)
+      {
+        return symbol_type (token::TOKEN_PRINT, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_READ (location_type l)
+      {
+        return symbol_type (token::TOKEN_READ, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_READ (const location_type& l)
+      {
+        return symbol_type (token::TOKEN_READ, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_FLUSH (location_type l)
+      {
+        return symbol_type (token::TOKEN_FLUSH, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_FLUSH (const location_type& l)
+      {
+        return symbol_type (token::TOKEN_FLUSH, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_STRUCT (location_type l)
       {
         return symbol_type (token::TOKEN_STRUCT, std::move (l));
@@ -1716,36 +1812,6 @@ switch (yykind)
       make_ASSERT (const location_type& l)
       {
         return symbol_type (token::TOKEN_ASSERT, l);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_PRINT (location_type l)
-      {
-        return symbol_type (token::TOKEN_PRINT, std::move (l));
-      }
-#else
-      static
-      symbol_type
-      make_PRINT (const location_type& l)
-      {
-        return symbol_type (token::TOKEN_PRINT, l);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_READ (location_type l)
-      {
-        return symbol_type (token::TOKEN_READ, std::move (l));
-      }
-#else
-      static
-      symbol_type
-      make_READ (const location_type& l)
-      {
-        return symbol_type (token::TOKEN_READ, l);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -1988,7 +2054,7 @@ switch (yykind)
 
 
     /// Stored state numbers (used for stacks).
-    typedef signed char state_type;
+    typedef unsigned char state_type;
 
     /// The arguments of the error message.
     int yy_syntax_error_arguments_ (const context& yyctx,
@@ -2036,7 +2102,7 @@ switch (yykind)
     static const signed char yydefact_[];
 
     // YYPGOTO[NTERM-NUM].
-    static const signed char yypgoto_[];
+    static const short yypgoto_[];
 
     // YYDEFGOTO[NTERM-NUM].
     static const signed char yydefgoto_[];
@@ -2044,9 +2110,9 @@ switch (yykind)
     // YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
     // positive, shift that token.  If negative, reduce the rule whose
     // number is the opposite.  If YYTABLE_NINF, syntax error.
-    static const signed char yytable_[];
+    static const unsigned char yytable_[];
 
-    static const signed char yycheck_[];
+    static const short yycheck_[];
 
     // YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
     // state STATE-NUM.
@@ -2288,9 +2354,9 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 398,     ///< Last index in yytable_.
-      yynnts_ = 15,  ///< Number of nonterminal symbols.
-      yyfinal_ = 4 ///< Termination state number.
+      yylast_ = 487,     ///< Last index in yytable_.
+      yynnts_ = 23,  ///< Number of nonterminal symbols.
+      yyfinal_ = 7 ///< Termination state number.
     };
 
 
@@ -2341,10 +2407,10 @@ switch (yykind)
       35,    36,    37,    38,    39,    40,    41,    42,    43,    44,
       45,    46,    47,    48,    49,    50,    51,    52,    53,    54,
       55,    56,    57,    58,    59,    60,    61,    62,    63,    64,
-      65,    66,    67
+      65,    66,    67,    68,    69
     };
     // Last valid token kind.
-    const int code_max = 322;
+    const int code_max = 324;
 
     if (t <= 0)
       return symbol_kind::S_YYEOF;
@@ -2363,7 +2429,9 @@ switch (yykind)
   {
     switch (this->kind ())
     {
-      case symbol_kind::S_program: // program
+      case symbol_kind::S_function: // function
+      case symbol_kind::S_param_list: // param_list
+      case symbol_kind::S_param: // param
       case symbol_kind::S_block: // block
       case symbol_kind::S_statement: // statement
       case symbol_kind::S_simple_statement: // simple_statement
@@ -2372,6 +2440,8 @@ switch (yykind)
       case symbol_kind::S_left_value: // left_value
       case symbol_kind::S_control: // control
       case symbol_kind::S_expression: // expression
+      case symbol_kind::S_call: // call
+      case symbol_kind::S_arg_list: // arg_list
         value.copy< ASTNodePtr > (YY_MOVE (that.value));
         break;
 
@@ -2382,7 +2452,11 @@ switch (yykind)
         value.copy< std::string > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_program: // program
+      case symbol_kind::S_functions: // functions
+      case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
+      case symbol_kind::S_arg_list_follow: // arg_list_follow
         value.copy< std::vector<ASTNodePtr> > (YY_MOVE (that.value));
         break;
 
@@ -2417,7 +2491,9 @@ switch (yykind)
     super_type::move (s);
     switch (this->kind ())
     {
-      case symbol_kind::S_program: // program
+      case symbol_kind::S_function: // function
+      case symbol_kind::S_param_list: // param_list
+      case symbol_kind::S_param: // param
       case symbol_kind::S_block: // block
       case symbol_kind::S_statement: // statement
       case symbol_kind::S_simple_statement: // simple_statement
@@ -2426,6 +2502,8 @@ switch (yykind)
       case symbol_kind::S_left_value: // left_value
       case symbol_kind::S_control: // control
       case symbol_kind::S_expression: // expression
+      case symbol_kind::S_call: // call
+      case symbol_kind::S_arg_list: // arg_list
         value.move< ASTNodePtr > (YY_MOVE (s.value));
         break;
 
@@ -2436,7 +2514,11 @@ switch (yykind)
         value.move< std::string > (YY_MOVE (s.value));
         break;
 
+      case symbol_kind::S_program: // program
+      case symbol_kind::S_functions: // functions
+      case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
+      case symbol_kind::S_arg_list_follow: // arg_list_follow
         value.move< std::vector<ASTNodePtr> > (YY_MOVE (s.value));
         break;
 
@@ -2506,7 +2588,7 @@ switch (yykind)
 
 
 } // yy
-#line 2510 "Parser.hpp"
+#line 2592 "Parser.hpp"
 
 
 

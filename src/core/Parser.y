@@ -25,9 +25,15 @@
 
 %type <std::string> type assign_operator
 %type <std::vector<ASTNodePtr>> statements
-%type <ASTNodePtr> program simple_optional statement control block
+%type <ASTNodePtr> simple_optional statement control block
 %type <ASTNodePtr> simple_statement declarator left_value
 %type <ASTNodePtr> expression
+%type <ASTNodePtr> function
+%type <std::vector<ASTNodePtr>> program functions
+%type <std::vector<ASTNodePtr>> param_list_follow
+%type <ASTNodePtr> param_list param
+%type <std::vector<ASTNodePtr>>  arg_list_follow
+%type <ASTNodePtr> arg_list call
 
 // id 123
 %token <std::string> VALUE_ID VALUE_INTEGER
@@ -39,8 +45,8 @@
 %token PLUS SUB MULT SLASH PERCENT
 // ! ~
 %token LOGIC_NOT BIT_NOT
-// ; ( ) { }
-%token SEMICOLON LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE CLOSING_BRACE
+// ; ( ) { } ,
+%token SEMICOLON LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE CLOSING_BRACE COMMA
 // << >> & ^ |
 %token LEFT_SHIFT RIGHT_SHIFT BIT_AND BIT_EX_OR BIT_OR
 // && ||
@@ -49,9 +55,11 @@
 %token QUESTION COLON
 // < <= > >= == !=
 %token LT LT_EQ GT GT_EQ EQ NOT_EQ
+// function
+%token PRINT READ FLUSH
 
 %token STRUCT IF ELSE WHILE FOR CONTINUE BREAK RETURN 
-%token ASSERT PRINT READ ALLOC ALLOC_ARRAY
+%token ASSERT ALLOC ALLOC_ARRAY
 %token TRUE FALSE KW_NULL
 %token STRING BOOLEAN VOID CHAR INT
 %token NONE 
@@ -80,16 +88,57 @@
 
 %%
 program:
-    INT VALUE_ID LEFT_BRACKET RIGHT_BRACKET block
+  functions    { $$ = $1; }
+  ;
+
+functions:
+    /* empty */ 
+    { $$ = {}; }
+  | function functions
     {
-      if ($2 != "main") {
-        YYERROR;
-      }
-      $$ = MakeASTTreeNode(ASTNodeType::kPROGRAM, "program", $2, drv);
-      drv.SetSyntaxTreeRoot($$);
-      $$->AddChild($5);
+      $2.insert($2.begin(), $1);
+      $$ = $2;
     }
-;
+  ;
+
+function:
+    type VALUE_ID LEFT_BRACKET param_list RIGHT_BRACKET block
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kFUNCTION, "function", $2, drv);
+      if ($4) $$->AddChild($4, ASTNodeTag::kPARAMS);
+      $$->AddChild($6, ASTNodeTag::kBODY);
+    }
+  ;
+
+param_list:
+    /* empty */
+    { $$ = nullptr; }
+  | param param_list_follow
+    {
+      auto list = MakeASTTreeNode(ASTNodeType::kPARAM_LIST, "param_list", {}, drv);
+      list->AddChild($1);
+      for (auto p : $2) list->AddChild(p);
+      $$ = list;
+    }
+  ;
+
+param_list_follow:
+    /* empty */
+    { $$ = std::vector<ASTNodePtr>(); }
+  | COMMA param param_list_follow
+    {
+      auto v = $3;
+      v.insert(v.begin(), $2);
+      $$ = std::vector<ASTNodePtr>(v);
+    }
+  ;
+
+param:
+    type VALUE_ID
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kPARAM, $1, $2, drv);
+    }
+  ;
 
 block:
     OPENING_BRACE { EnterScope(drv); } statements CLOSING_BRACE 
@@ -157,9 +206,9 @@ simple_statement:
       }
     }
     | declarator 
-    {
-      $$ = $1;
-    }
+    { $$ = $1; }
+    | call
+    { $$ = $1; }
 ;
 
 simple_optional:
@@ -323,5 +372,48 @@ assign_operator:
     | LEFT_SHIFT_ASSIGN   { $$ = "<<="; }
     | RIGHT_SHIFT_ASSIGN  { $$ = ">>="; }
 ;
+
+call:
+    VALUE_ID LEFT_BRACKET arg_list RIGHT_BRACKET
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", $1, drv);
+      if ($3) {
+        for (auto child : $3->Children())
+          $$->AddChild(child);
+      }
+    }
+  | PRINT LEFT_BRACKET expression RIGHT_BRACKET
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "print", "print", drv);
+      $$->AddChild($3);
+    }
+  | READ LEFT_BRACKET RIGHT_BRACKET
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "read", "read", drv);
+    }
+  | FLUSH LEFT_BRACKET RIGHT_BRACKET
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "flush", "flush", drv);
+    }
+  ;
+
+arg_list:
+    /* empty */              { $$ = nullptr; }
+  | expression arg_list_follow
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kARG_LIST, "arg_list", {}, drv);
+      $$->AddChild($1);
+      for (auto& a : $2) $$->AddChild(a);
+    }
+  ;
+
+arg_list_follow:
+    /* empty */              { $$ = {}; }
+  | COMMA expression arg_list_follow
+    {
+      $3.insert($3.begin(), $2);
+      $$ = std::move($3);
+    }
+  ;
 
 %%

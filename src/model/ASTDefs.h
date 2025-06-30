@@ -16,6 +16,11 @@ enum class ASTNodeType : uint8_t {
   kWHILE,
   kBREAK,
   kCONTINUE,
+  kFUNCTION,
+  kPARAM_LIST,
+  kPARAM,
+  kCALL,
+  kARG_LIST,
 };
 
 enum class ASTNodeTag : uint8_t {
@@ -24,4 +29,5 @@ enum class ASTNodeTag : uint8_t {
   kCOND,
   kSTEP,
   kBODY,
+  kPARAMS,
 };

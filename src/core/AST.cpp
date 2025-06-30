@@ -16,8 +16,12 @@ const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
     {ASTNodeType::kIF, "If"},
     {ASTNodeType::kCOND_EXP, "Conditional Expression"},
     {ASTNodeType::kBLOCK, "Block"},
-    {ASTNodeType::kBREAK, "Break"},
-    {ASTNodeType::kCONTINUE, "Continue"},
+    {ASTNodeType::kFUNCTION, "Function"},
+    {ASTNodeType::kCALL, "Function Call"},
+    {ASTNodeType::kPARAM_LIST, "Parameter List"},
+    {ASTNodeType::kPARAM_LIST, "Parameter List"},
+    {ASTNodeType::kPARAM, "Parameter"},
+    {ASTNodeType::kARG_LIST, "Argument List"},
 };
 
 struct AST::Impl {

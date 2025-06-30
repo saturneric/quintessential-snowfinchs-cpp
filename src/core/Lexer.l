@@ -57,6 +57,7 @@
 ";"                 { return yy::parser::make_SEMICOLON(loc); }
 "("                 { return yy::parser::make_LEFT_BRACKET(loc); }
 ")"                 { return yy::parser::make_RIGHT_BRACKET(loc); }
+","                 { return yy::parser::make_COMMA(loc); }
 
 "!"                 { return yy::parser::make_LOGIC_NOT(loc); }
 "~"                 { return yy::parser::make_BIT_NOT(loc); }
@@ -106,8 +107,6 @@
 "break"             { return yy::parser::make_BREAK(loc); }
 "return"            { return yy::parser::make_RETURN(loc); }
 "assert"            { return yy::parser::make_ASSERT(loc); }
-"print"             { return yy::parser::make_PRINT(loc); }
-"read"              { return yy::parser::make_READ(loc); }
 "alloc"             { return yy::parser::make_ALLOC(loc); }
 "alloc_array"       { return yy::parser::make_ALLOC_ARRAY(loc); }
 
@@ -119,6 +118,10 @@
 "void"              { return yy::parser::make_VOID(loc); }
 "char"              { return yy::parser::make_CHAR(loc); }
 "int"               { return yy::parser::make_INT(loc); }
+
+"read"             { return yy::parser::make_READ(loc); }
+"print"             { return yy::parser::make_PRINT(loc); }
+"flush"             { return yy::parser::make_FLUSH(loc); }
 
 0[xX][A-Fa-f0-9]+       {
                           return yy::parser::make_VALUE_INTEGER(YYText(), loc);
