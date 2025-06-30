@@ -399,6 +399,35 @@ auto IRContinueBreakHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return nullptr;
 }
 
+auto IRProgramHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+    -> SymbolPtr {
+  for (auto& fn : node->Children()) {
+    ctx->ExpRoute(fn);
+  }
+  return {};
+}
+
+auto IRFunctionHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+    -> SymbolPtr {
+  auto func_name = node->Symbol()->Name();
+  ctx->AddIns("label", nullptr, ctx->MapSymbol(func_name, "function"));
+
+  auto children = node->Children();
+
+  for (auto& param_list_node : children) {
+    if (param_list_node->Tag() != ASTNodeTag::kPARAMS) continue;
+    for (auto& p : param_list_node->Children()) {
+      auto p_sym = ctx->MapSymbol(p->Symbol());
+      ctx->AddIns("dcl", p_sym);
+    }
+  }
+
+  auto body = children.back();
+  if (body->Tag() == ASTNodeTag::kBODY) ctx->ExpRoute(body);
+
+  return {};
+}
+
 const IRHandlerMapping kIRHandlerMapping = {
     {ASTNodeType::kASSIGN, IRAssignExpHandler},
     {ASTNodeType::kDECLARE, IRMeaninglessNodeHandler},
@@ -406,7 +435,8 @@ const IRHandlerMapping kIRHandlerMapping = {
     {ASTNodeType::kUN_OP, IRUnOpExpHandler},
     {ASTNodeType::kBIN_OP, IRBinOpExpHandler},
     {ASTNodeType::kVALUE, IRValueExpHandler},
-    {ASTNodeType::kPROGRAM, IRMeaninglessNodeHandler},
+    {ASTNodeType::kPROGRAM, IRProgramHandler},
+    {ASTNodeType::kFUNCTION, IRFunctionHandler},
     {ASTNodeType::kIDENT, IRValueExpHandler},
     {ASTNodeType::kBLOCK, IRMeaninglessNodeHandler},
     {ASTNodeType::kIF, IRIfHandler},
