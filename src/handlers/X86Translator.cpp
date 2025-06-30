@@ -581,7 +581,7 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
 
     out.emplace_back("SAVE_ALL");
 
-    bool need_pad = (stack_args_.size() % 2 == 0);
+    bool need_pad = (!stack_args_.empty() && stack_args_.size() % 2 == 0);
     if (need_pad) {
       out.emplace_back("sub $8, %rsp");
     }
@@ -593,6 +593,7 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
 
     if (func == "__func_print") {
       out.emplace_back("call putchar");
+      out.push_back(op_mov_ + " $0," + acc_reg_);
     }
 
     else if (func == "__func_read") {
