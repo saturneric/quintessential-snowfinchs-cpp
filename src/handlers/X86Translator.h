@@ -72,6 +72,9 @@ class X86Translator : public Translator {
   void emit_jmp_op(std::vector<std::string>& fins, const std::string& op,
                    const IRInstruction& i);
 
+  void emit_func_op(std::vector<std::string>& out, const std::string& op,
+                    const IRInstruction& i);
+
   auto alloc_stack_for_immediate(const SymbolPtr& val) -> std::string;
 
   static auto gen_data_var_immediate_label(const SymbolPtr& val) -> std::string;

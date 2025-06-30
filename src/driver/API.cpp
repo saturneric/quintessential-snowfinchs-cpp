@@ -107,28 +107,40 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
     return true;
   });
 
-  CFSemanticAnalyzer cf_semantic(irg.ControlFlowGraph());
+  auto fcs = irg.ControlFlowGraph();
 
-  ret = RunOperation("CF Semantic Analyzer", [&]() {
-    auto ret = cf_semantic.Analyse();
-    if (debug) irg.PrintCFG(runtime_dir / "PrintCFG(SEMANTIC).txt");
-    return ret;
-  });
+  for (const auto& fc : fcs) {
+    CFSemanticAnalyzer cf_semantic(fc.cfg);
 
-  if (!ret) return 7;
+    ret = RunOperation("CF Semantic Analyzer", [&]() {
+      auto ret = cf_semantic.Analyse();
+      if (debug) irg.PrintCFG(runtime_dir / "PrintCFG(SEMANTIC).txt");
+      return ret;
+    });
 
-  IRVariableOptimizer irv_opt(symbol_table, irg.ControlFlowGraph());
+    if (!ret) return 7;
 
-  ret = RunOperation("IRVariableOptimizer", [&]() {
-    irv_opt.AnalyzeLiveRanges();
-    irv_opt.AllocateSlots();
-    irv_opt.RewriteInstructions();
-    if (debug) irv_opt.PrintLiveRanges(runtime_dir / "PrintVarLiveRanges.txt");
-    if (debug) irv_opt.PrintSlotMap(runtime_dir / "PrintVar2Slot.txt");
-    return true;
-  });
+    IRVariableOptimizer irv_opt(symbol_table, fc.cfg);
 
-  IR2Generator ir2g(symbol_table, irg.ControlFlowGraph()->Instructions());
+    ret = RunOperation("IRVariableOptimizer", [&]() {
+      irv_opt.AnalyzeLiveRanges();
+      irv_opt.AllocateSlots();
+      irv_opt.RewriteInstructions();
+      if (debug) {
+        irv_opt.PrintLiveRanges(runtime_dir / "PrintVarLiveRanges.txt");
+      }
+      if (debug) irv_opt.PrintSlotMap(runtime_dir / "PrintVar2Slot.txt");
+      return true;
+    });
+  }
+
+  std::vector<FuncInstructions> fis;
+  fis.reserve(fcs.size());
+  for (const auto& fc : fcs) {
+    fis.push_back({fc.func, fc.cfg->Instructions()});
+  }
+
+  IR2Generator ir2g(symbol_table, fis);
 
   ret = RunOperation("IR2 Generator", [&]() {
     ir2g.Generate();
@@ -137,9 +149,14 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
     return true;
   });
 
+  fis.clear();
+  fcs = ir2g.ControlFlowGraph();
+  for (const auto& fc : fcs) {
+    fis.push_back({fc.func, fc.cfg->Instructions()});
+  }
+
   auto translator = GetX86Translator(!r64);
-  ASMGenerator asm_gen(symbol_table, translator,
-                       ir2g.ControlFlowGraph()->Instructions());
+  ASMGenerator asm_gen(symbol_table, translator, fis);
 
   ret = RunOperation("ASM Generator", [&]() {
     asm_gen.Generate(runtime_dir / "ASM.S");

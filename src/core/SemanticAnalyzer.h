@@ -19,6 +19,8 @@ class SemanticAnalyzer {
 
   auto RecordSymbol(const SymbolPtr& symbol) -> std::tuple<bool, SymbolPtr>;
 
+  auto RecordRealSymbol(const SymbolPtr& symbol) -> std::tuple<bool, SymbolPtr>;
+
   auto LookupSymbol(const SymbolPtr& symbol) -> SymbolPtr;
 
   auto VisibleDefineSymbols(const ScopePtr& scope) -> std::vector<SymbolPtr>;

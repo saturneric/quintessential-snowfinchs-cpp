@@ -9,7 +9,7 @@
 
 ASMGenerator::ASMGenerator(SymbolTablePtr symbol_table,
                            TranslatorPtr translator,
-                           const std::vector<IRInstructionPtr>& ir2)
+                           const std::vector<FuncInstructions>& ir2)
     : symbol_table_(std::move(symbol_table)),
       helper_(SymbolType::kIR, symbol_table_),
       translator_(std::move(translator)),
@@ -30,24 +30,33 @@ ASMGenerator::ASMGenerator(SymbolTablePtr symbol_table,
 void ASMGenerator::Generate(const std::string& path) {
   spdlog::stopwatch sw;
 
-  build_inf_graph();
+  for (const auto& fi : ir2_) {
+    inf_graphs_.push_back(InterferenceGraph{});
 
-  spdlog::debug("Built Inf Graph: {:.3}s", sw);
+    build_inf_graph(inf_graphs_.back(), fi);
 
-  alloc_register();
+    spdlog::debug("Built Inf Graph: {:.3}s", sw);
 
-  spdlog::debug("Allocated Register: {:.3}s", sw);
+    alloc_register(inf_graphs_.back());
 
-  ir2_final_ = translator_->Optimums(ir2_);
+    spdlog::debug("Allocated Register: {:.3}s", sw);
+  }
+
+  std::vector<IRInstructionPtr> ir2;
+  for (const auto& fi : ir2_) {
+    ir2.insert(ir2.end(), fi.ins.begin(), fi.ins.end());
+  }
+
+  ir2_final_ = translator_->Optimums(ir2);
 
   gen_final_asm_source(path);
 
   spdlog::debug("Generated ASM Source Code: {:.3}s", sw);
 }
 
-void ASMGenerator::alloc_register() {
+void ASMGenerator::alloc_register(InterferenceGraph& inf_graph) {
   auto registers = translator_->AvailableRegisters();
-  auto result = GraphColorRegisterAlloc(inf_graph_, registers);
+  auto result = GraphColorRegisterAlloc(inf_graph, registers);
 
   for (const auto& [var, reg] : result.reg_assignment) {
     var->MetaRef(SymbolMetaKey::kIN_REGISTER) = true;
@@ -63,10 +72,11 @@ void ASMGenerator::alloc_register() {
   translator_->HandleVariables(vars_);
 }
 
-void ASMGenerator::build_inf_graph() {
+void ASMGenerator::build_inf_graph(InterferenceGraph& inf_graph,
+                                   const FuncInstructions& fi) {
   vars_.clear();
 
-  for (const auto& instr : ir2_) {
+  for (const auto& instr : fi.ins) {
     for (const auto& sym : instr->Use()) {
       // no reg name yet
       // but have label
@@ -76,15 +86,15 @@ void ASMGenerator::build_inf_graph() {
 
   // insert all vars in to graph
   for (const auto& v : vars_) {
-    inf_graph_.AddVariable(v);
+    inf_graph.AddVariable(v);
   }
 
   // build inf graph
-  for (const auto& i : ir2_) {
+  for (const auto& i : fi.ins) {
     if (i->DST() && IsVariable(i->DST())) {
       for (const auto& live_var : i->LiveOut()) {
         if (live_var != i->DST()) {
-          inf_graph_.AddEdge(i->DST(), live_var);
+          inf_graph.AddEdge(i->DST(), live_var);
         }
       }
     }
@@ -98,7 +108,11 @@ auto ASMGenerator::map_sym(const std::string& name, const std::string& type)
 
 void ASMGenerator::PrintIFG(const std::string& path) {
   std::ofstream f(path);
-  inf_graph_.Print(f);
+
+  for (const auto& g : inf_graphs_) {
+    g.Print(f);
+  }
+
   f.close();
 }
 

@@ -7,7 +7,7 @@
 class IR2Generator {
  public:
   explicit IR2Generator(SymbolTablePtr symbol_table,
-                        std::vector<IRInstructionPtr> ir3);
+                        std::vector<FuncInstructions> ir3);
 
   void Generate();
 
@@ -15,14 +15,14 @@ class IR2Generator {
 
   void PrintCFG(const std::string& path);
 
-  auto ControlFlowGraph() -> ControlFlowGraphPtr;
+  auto ControlFlowGraph() -> std::vector<FuncCFG>;
 
  private:
   SymbolTablePtr symbol_table_;
   ScopedSymbolLookUpHelper helper_;
-  ControlFlowGraphPtr cfg_;
-  std::vector<IRInstructionPtr> ir3_;
-  std::vector<IRInstructionPtr> ir2_;
+  std::vector<FuncCFG> cfgs_;
+  std::vector<FuncInstructions> ir3_;
+  std::vector<FuncInstructions> ir2_;
 
   auto map_op(const std::string& name) -> SymbolPtr;
 

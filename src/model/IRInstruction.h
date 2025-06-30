@@ -102,6 +102,11 @@ class IRInstructionA3 : public IRInstruction {
 
 using IRInstructionA3Ptr = std::shared_ptr<IRInstructionA3>;
 
+struct FuncInstructions {
+  std::string func;
+  std::vector<IRInstructionPtr> ins;
+};
+
 const std::string kBinOpType = "binop";
 const std::string kUnOpType = "unop";
 const std::string kCmpOpType = "cmpop";

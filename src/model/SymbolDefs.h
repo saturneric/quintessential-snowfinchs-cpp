@@ -27,5 +27,7 @@ enum class SymbolMetaKey : SymbolMetaKeySizeType {
   kDEF_SYMBOL,
   kWILL_RETURN,
   kWILL_BREAK,
+  kPARAM_INDEX,
+  kRETURN_TYPE,
   kCOUNT,
 };

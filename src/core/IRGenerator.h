@@ -30,7 +30,9 @@ class IRGeneratorContext {
 
   static auto SelectInstruction(const std::string& operation) -> std::string;
 
-  [[nodiscard]] auto Instructions() const -> std::vector<IRInstructionPtr>;
+  [[nodiscard]] auto Instructions() const -> std::vector<FuncInstructions>;
+
+  void EnterInsGroup(const std::string& func);
 
   void EnterScope();
 
@@ -50,7 +52,7 @@ class IRGeneratorContext {
   IRGenerator* ig_;
   IRExpHandler handler_;
 
-  std::vector<IRInstructionPtr> ins_;
+  std::vector<FuncInstructions> ins_;
 };
 
 using IRHandlerMapping = std::unordered_map<ASTNodeType, IRExpHandler>;
@@ -67,7 +69,7 @@ class IRGenerator {
 
   void PrintCFG(const std::string& path);
 
-  auto ControlFlowGraph() -> ControlFlowGraphPtr;
+  auto ControlFlowGraph() -> std::vector<FuncCFG>&;
 
  private:
   IRHandlerMapping ir_handler_mapping_;
@@ -77,7 +79,7 @@ class IRGenerator {
   ScopedSymbolLookUpHelper ir_symbol_helper_;
   int tmp_var_idx_ = 1;
 
-  ControlFlowGraphPtr cfg_;
+  std::vector<FuncCFG> cfgs_;
   std::unordered_map<std::string, SymbolPtr> op_ins_;
 
   static auto select_instruction(const std::string& operation) -> std::string;

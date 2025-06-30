@@ -72,7 +72,8 @@ void CFSemanticAnalyzer::check_definite_assignment() {
     for (const auto& var : bb->use) {
       // var used not in IN collection and not def as well
       if (in_vars.find(var) == in_vars.end() &&
-          local_def.find(var) == local_def.end()) {
+          local_def.find(var) == local_def.end() &&
+          var->Name().rfind("__func_", 0) == std::string::npos) {
         fail();
 
         auto sym = MetaGet<SymbolPtr>(var, SymbolMetaKey::kDEF_SYMBOL, nullptr);

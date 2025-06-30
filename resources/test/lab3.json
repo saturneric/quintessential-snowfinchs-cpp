@@ -1,0 +1,12 @@
+[
+  {
+    "source_file_path": "lab3/A1.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 12
+  },  
+  {
+    "source_file_path": "lab3/A2.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 1
+  }
+]

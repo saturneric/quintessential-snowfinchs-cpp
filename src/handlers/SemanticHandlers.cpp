@@ -68,6 +68,11 @@ auto TypeName2SymbolMetaType(SemanticAnalyzer* sa, const SymbolPtr& sym,
   }
 }
 
+void SetReturnType(SemanticAnalyzer* sa, const SymbolPtr& sym,
+                   const std::string& type_name, const ASTNodePtr& node) {
+  TypeName2SymbolMetaType(sa, sym, type_name, node);
+}
+
 auto SMDeclareHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                       const ASTNodePtr& node) -> ASTNodePtr {
   auto symbol = node->Symbol();
@@ -140,8 +145,11 @@ auto SMReturnHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   auto exp_type =
       MetaGet(value->Symbol(), SymbolMetaKey::kTYPE, SymbolMetaType::kNONE);
 
-  if (exp_type != SymbolMetaType::kINT) {
-    sa->Error(node, "The return type must be int");
+  auto rtn_type = MetaGet(node->Symbol(), SymbolMetaKey::kRETURN_TYPE,
+                          SymbolMetaType::kINT);
+
+  if (exp_type != rtn_type) {
+    sa->Error(node, "The return type mismatch");
   }
 
   sa->SetMeta("has_return", true);
@@ -504,30 +512,13 @@ auto SMContinueBreakHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
-namespace {
-void SetReturnType(SemanticAnalyzer* sa, const SymbolPtr& sym,
-                   const std::string& type_name, const ASTNodePtr& node) {
-  if (type_name == "int") {
-    MetaSet(sym, SymbolMetaKey::kTYPE, SymbolMetaType::kINT);
-  } else if (type_name == "bool") {
-    MetaSet(sym, SymbolMetaKey::kTYPE, SymbolMetaType::kBOOL);
-  } else {
-    sa->Error(node, "Unknown return type: " + type_name);
-  }
-}
-}  // namespace
-
 auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                        const ASTNodePtr& node) -> ASTNodePtr {
   auto sym = node->Symbol();
   auto return_type = sym->Value();
 
-  auto [ok, def_sym] = sa->RecordSymbol(sym);
-  if (!ok) {
-    sa->Error(node, "Redefine function: " + sym->Name());
-  }
-
-  SetReturnType(sa, def_sym, return_type, node);
+  MetaSet(node->Symbol(), SymbolMetaKey::kRETURN_TYPE,
+          return_type == "bool" ? SymbolMetaType::kBOOL : SymbolMetaType::kINT);
 
   auto children = node->Children();
 
@@ -561,6 +552,16 @@ auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                       const ASTNodePtr& node) -> ASTNodePtr {
   for (auto& fn : node->Children()) {
+    auto sym = fn->Symbol();
+    auto [succ, def_sym] = sa->RecordRealSymbol(sym);
+    if (!succ) {
+      sa->Error(fn, "Redefine function: " + sym->Name());
+    }
+    auto ret_type = sym->Value();
+    SetReturnType(sa, def_sym, ret_type, node);
+  }
+
+  for (auto& fn : node->Children()) {
     router(fn);
   }
 
@@ -585,6 +586,25 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
+auto SMCallHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                   const ASTNodePtr& node) -> ASTNodePtr {
+  auto sym = node->Symbol();
+  auto def_sym = sa->LookupSymbol(sym);
+  if (!def_sym) {
+    sa->Error(node, "Undeclared function: " + sym->Name());
+    return node;
+  }
+
+  for (auto& arg : node->Children()) {
+    router(arg);
+  }
+
+  auto ret_type = MetaGet<SymbolMetaType>(def_sym, SymbolMetaKey::kTYPE);
+  MetaSet(sym, SymbolMetaKey::kTYPE, ret_type);
+
+  return node;
+}
+
 const SMHandlerMapping kSMHandlerMapping = {
     {ASTNodeType::kASSIGN, SMAssignHandler},
     {ASTNodeType::kDECLARE, SMDeclareHandler},
@@ -601,6 +621,7 @@ const SMHandlerMapping kSMHandlerMapping = {
     {ASTNodeType::kCOND_EXP, SMCondExpHandler},
     {ASTNodeType::kCONTINUE, SMContinueBreakHandler},
     {ASTNodeType::kBREAK, SMContinueBreakHandler},
+    {ASTNodeType::kCALL, SMCallHandler},
 };
 
 }  // namespace

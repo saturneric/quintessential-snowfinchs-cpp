@@ -4,6 +4,8 @@
 #include "model/SymbolDefs.h"
 #include "model/Utils.h"
 
+using std::array;
+
 namespace {
 
 auto DemangleFuncName(const std::string& s) -> std::string {
@@ -48,6 +50,14 @@ const std::vector<std::string> kRegisters32 = {
     "%ebx",  "%ecx",  "%esi",  "%edi",  "%r8d",  "%r9d",
     "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d"};
 
+const std::array<const char*, 6> kFRegs32 = {"%edi", "%esi", "%edx",
+                                             "%ecx", "%r8d", "%r9d"};
+
+const std::array<const char*, 6> kFRegs64 = {"%rdi", "%rsi", "%rdx",
+                                             "%rcx", "%r8",  "%r9"};
+
+const std::array<const char*, 8> kCallerSavedReg = {
+    "%rcx", "%rdx", "%rsi", "%rdi", "%r8", "%r9", "%r10", "%r11"};
 }  // namespace
 
 X86Translator::X86Translator(bool r32) : r32_(r32) {}
@@ -426,6 +436,7 @@ auto X86Translator::translate(const std::vector<IRInstructionPtr>& ir)
     const auto& i = *p_i;
 
     auto op = i.Op()->Name();
+
     if (op == "mov") {
       emit_mov_op(ret, op, i);
     } else if (op == "add" || op == "sub" || op == "mul" || op == "div" ||
@@ -445,6 +456,8 @@ auto X86Translator::translate(const std::vector<IRInstructionPtr>& ir)
       emit_jmp_op(ret, op, i);
     } else if (op == "label" || op == "rtn") {
       emit_spz_op(ret, op, i);
+    } else if (op == "call" || op == "param" || op == "arg") {
+      emit_func_op(ret, op, i);
     } else {
       ret.push_back("# unsupported op: " + op);
     }
@@ -542,4 +555,57 @@ auto X86Translator::AvailableRegisters() const -> std::vector<std::string> {
 void X86Translator::Reset() {
   vars_.clear();
   in_data_sec_vars_.clear();
+}
+
+void X86Translator::emit_func_op(std::vector<std::string>& out,
+                                 const std::string& op,
+                                 const IRInstruction& i) {
+  if (op == "param") {
+    auto s_arg = i.SRC(0);
+    auto arg = format_operand(s_arg);
+
+    auto param_index = MetaGet(s_arg, SymbolMetaKey::kPARAM_INDEX, -1);
+
+    if (param_index < 6) {
+      out.push_back(op_mov_ + " " + arg + ", " +
+                    (r32_ ? kFRegs32[param_index] : kFRegs64[param_index]));
+    } else {
+      out.push_back("push " + arg);
+    }
+  }
+
+  else if (op == "call") {
+    auto func = format_operand(i.SRC(0));
+
+    for (const auto& r : kCallerSavedReg) {
+      out.push_back("push " + std::string(r));
+    }
+
+    out.push_back("call " + DemangleFuncName(func));
+
+    for (auto it = kCallerSavedReg.rbegin(); it != kCallerSavedReg.rend();
+         ++it) {
+      out.push_back("pop " + std::string(*it));
+    }
+    auto s_ret = i.DST();
+    auto dst = format_operand(s_ret);
+    if (dst != acc_reg_) {
+      out.push_back(op_mov_ + " " + acc_reg_ + ", " + dst);
+    }
+  }
+
+  else if (op == "arg") {
+    int idx = std::stoi(i.SRC(0)->Name());
+    auto dst = format_operand(i.DST());
+
+    if (idx < 6) {
+      // load from the appropriate register
+      out.push_back(op_mov_ + " " + (r32_ ? kFRegs32[idx] : kFRegs64[idx]) +
+                    ", " + dst);
+    } else {
+      int stack_offset = 8 * (idx - 6 + 1);
+      out.push_back(op_mov_ + " " + std::to_string(stack_offset) + "(%rbp), " +
+                    dst);
+    }
+  }
 }

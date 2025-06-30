@@ -47,7 +47,7 @@ using TranslatorPtr = std::shared_ptr<Translator>;
 class ASMGenerator {
  public:
   explicit ASMGenerator(SymbolTablePtr symbol_table, TranslatorPtr translator,
-                        const std::vector<IRInstructionPtr>& ir2);
+                        const std::vector<FuncInstructions>& ir2);
 
   void Generate(const std::string& path);
 
@@ -59,16 +59,17 @@ class ASMGenerator {
   TranslatorPtr translator_;
   SymbolTablePtr symbol_table_;
   ScopedSymbolLookUpHelper helper_;
-  InterferenceGraph inf_graph_;
-  std::vector<IRInstructionPtr> ir2_;
+  std::vector<InterferenceGraph> inf_graphs_;
+  std::vector<FuncInstructions> ir2_;
   std::vector<IRInstructionPtr> ir2_final_;
   std::set<SymbolPtr> vars_;
 
   void gen_final_asm_source(const std::string& path);
 
-  void alloc_register();
+  void alloc_register(InterferenceGraph& inf_graph);
 
-  void build_inf_graph();
+  void build_inf_graph(InterferenceGraph& inf_graph,
+                       const FuncInstructions& fi);
 
   auto map_sym(const std::string& name, const std::string& type) -> SymbolPtr;
 

@@ -55,6 +55,19 @@ auto SemanticAnalyzer::RecordSymbol(const SymbolPtr& symbol)
   return {true, sym};
 }
 
+auto SemanticAnalyzer::RecordRealSymbol(const SymbolPtr& symbol)
+    -> std::tuple<bool, SymbolPtr> {
+  // we are not allow variable-shadowing
+  auto sym = def_sym_helper_.LookupSymbol(symbol->Scope(), symbol->Name());
+
+  // should not check twice
+  if (sym != nullptr) return {false, sym};
+
+  sym = symbol_table_->AddSymbol(SymbolType::kDEFINE, symbol->Name(),
+                                 symbol->Name(), true, symbol->ScopeId());
+  return {true, sym};
+}
+
 auto SemanticAnalyzer::Analyze(const AST& ast) -> bool {
   succ_ = true;
 

@@ -402,30 +402,67 @@ auto IRContinueBreakHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
 auto IRProgramHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
   for (auto& fn : node->Children()) {
+    if (fn->Symbol()->Name() == "__func_main") {
+      ctx->ExpRoute(fn);
+      break;
+    }
+  }
+  for (auto& fn : node->Children()) {
+    if (fn->Symbol()->Name() == "__func_main") continue;
     ctx->ExpRoute(fn);
   }
-  return {};
+  return nullptr;
 }
 
 auto IRFunctionHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     -> SymbolPtr {
-  auto func_name = node->Symbol()->Name();
+  const auto func_name = node->Symbol()->Name();
+  ctx->EnterInsGroup(func_name);
+
   ctx->AddIns("label", nullptr, ctx->MapSymbol(func_name, "function"));
 
   auto children = node->Children();
 
+  int param_index = 0;
   for (auto& param_list_node : children) {
     if (param_list_node->Tag() != ASTNodeTag::kPARAMS) continue;
     for (auto& p : param_list_node->Children()) {
       auto p_sym = ctx->MapSymbol(p->Symbol());
+
       ctx->AddIns("dcl", p_sym);
+      ctx->AddIns("arg", p_sym,
+                  ctx->MapSymbol(std::to_string(param_index++), "immediate"));
     }
   }
 
   auto body = children.back();
   if (body->Tag() == ASTNodeTag::kBODY) ctx->ExpRoute(body);
 
-  return {};
+  return nullptr;
+}
+
+auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+    -> SymbolPtr {
+  std::vector<SymbolPtr> args;
+  for (auto& arg : node->Children()) {
+    auto sym = ctx->ExpRoute(arg);
+    args.push_back(sym);
+  }
+
+  auto ret_tmp = ctx->NewTempVariable();
+  auto ret_sym = ctx->MapSymbol(ret_tmp);
+
+  int index = 0;
+  for (auto& a : args) {
+    auto sym = ctx->MapSymbol(a);
+    MetaSet(sym, SymbolMetaKey::kPARAM_INDEX, index++);
+    ctx->AddIns("param", nullptr, sym);
+  }
+
+  auto func_sym = ctx->MapSymbol(node->Symbol());
+  ctx->AddIns("call", ret_sym, func_sym);
+
+  return ret_sym;
 }
 
 const IRHandlerMapping kIRHandlerMapping = {
@@ -444,6 +481,7 @@ const IRHandlerMapping kIRHandlerMapping = {
     {ASTNodeType::kWHILE, IRWhileHandler},
     {ASTNodeType::kCONTINUE, IRContinueBreakHandler},
     {ASTNodeType::kBREAK, IRContinueBreakHandler},
+    {ASTNodeType::kCALL, IRCallHandler},
 };
 
 }  // namespace

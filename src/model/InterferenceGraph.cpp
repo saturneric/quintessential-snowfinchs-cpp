@@ -19,7 +19,7 @@ struct InterferenceGraph::Impl {
 };
 
 InterferenceGraph::InterferenceGraph()
-    : impl_(std::make_unique<InterferenceGraph::Impl>()) {}
+    : impl_(std::make_shared<InterferenceGraph::Impl>()) {}
 
 InterferenceGraph::~InterferenceGraph() = default;
 

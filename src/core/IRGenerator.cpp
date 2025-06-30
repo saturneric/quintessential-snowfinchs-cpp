@@ -43,16 +43,18 @@ auto IRGeneratorContext::NewTempVariable() -> SymbolPtr {
   return ig_->new_temp_variable();
 }
 
-auto IRGeneratorContext::Instructions() const -> std::vector<IRInstructionPtr> {
+auto IRGeneratorContext::Instructions() const -> std::vector<FuncInstructions> {
   return ins_;
 }
 
 void IRGenerator::PrintAddr(const std::string& path) {
   if (ctx_->Instructions().empty()) return;
 
-  std::ofstream f(path);
-  PrintInstructions(f, cfg_->Instructions());
-  f.close();
+  for (const auto& fc : cfgs_) {
+    std::ofstream f(path);
+    PrintInstructions(f, fc.cfg->Instructions());
+    f.close();
+  }
 }
 
 auto IRGeneratorContext::ExpRoute(const ASTNodePtr& node) -> SymbolPtr {
@@ -94,7 +96,6 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table, IRHandlerMapping mapping)
       symbol_table_(std::move(symbol_table)),
       def_symbol_helper_(SymbolType::kDEFINE, symbol_table_),
       ir_symbol_helper_(SymbolType::kIR, symbol_table_),
-      cfg_(std::make_shared<class ControlFlowGraph>()),
       ir_handler_mapping_(std::move(mapping)) {
   // register op
   // TODO(eric): use dymatic handler approach
@@ -145,6 +146,11 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table, IRHandlerMapping mapping)
   // live control
   reg_op("dcl");
   reg_op("phi");
+
+  // function
+  reg_op("call");
+  reg_op("param");
+  reg_op("arg");
 }
 
 void IRGenerator::convert2_ssa() {
@@ -277,7 +283,13 @@ auto IRGeneratorContext::MapSymbol(const SymbolPtr& symbol) -> SymbolPtr {
   if (sym->Type() == SymbolType::kDEFINE) {
     const auto type = sym->MetaData(SymbolMetaKey::kTYPE);
     auto o_sym = sym;
-    sym = MapSymbol(sym->Value(), "variable");
+
+    if (sym->Value().rfind("__func_", 0) != std::string::npos) {
+      sym = MapSymbol(sym->Value(), "function");
+    } else {
+      sym = MapSymbol(sym->Value(), "variable");
+    }
+
     MetaSet(sym, SymbolMetaKey::kDEF_SYMBOL, o_sym);
   }
 
@@ -310,8 +322,11 @@ void IRGeneratorContext::AddIns(const std::string& op, SymbolPtr dst,
     return;
   }
 
-  ins_.emplace_back(
-      std::make_shared<IRInstructionA3>(sym_op, dst, src_1, src_2));
+  assert(!ins_.empty());
+  if (!ins_.empty()) {
+    ins_.back().ins.emplace_back(
+        std::make_shared<IRInstructionA3>(sym_op, dst, src_1, src_2));
+  }
 }
 
 auto IRGenerator::reg_op(const std::string& name, const std::string& type)
@@ -343,18 +358,30 @@ auto IRInstructionA2::Use() const -> std::vector<SymbolPtr> {
 }
 
 void IRGenerator::build_cfg() {
-  // do optimums before build cfg
-  auto res = SplitToBasicBlocks(optimums(ctx_->Instructions()), *cfg_);
-  BuildControlFlowEdges(*cfg_, res.blocks, res.label2block);
-  AnalyzeUseDefForBlocks(res.blocks);
-  MarkReachableBlocks(*cfg_);
+  for (const auto& ig : ctx_->Instructions()) {
+    FuncCFG fc{ig.func, std::make_shared<class ControlFlowGraph>()};
+
+    // do optimums before build cfg
+    auto res = SplitToBasicBlocks(optimums(ig.ins), *fc.cfg);
+    BuildControlFlowEdges(*fc.cfg, res.blocks, res.label2block);
+    AnalyzeUseDefForBlocks(res.blocks);
+    MarkReachableBlocks(*fc.cfg);
+
+    cfgs_.push_back(fc);
+  }
 }
 
 void IRGenerator::block_level_liveness_analyse() {
-  BlockLevelLivenessAnalyse(*cfg_);
+  for (const auto& fc : cfgs_) {
+    BlockLevelLivenessAnalyse(*fc.cfg);
+  }
 }
 
-void IRGenerator::block_level_def_analyse() { BlockLevelDefAnalyse(*cfg_); }
+void IRGenerator::block_level_def_analyse() {
+  for (const auto& fc : cfgs_) {
+    BlockLevelDefAnalyse(*fc.cfg);
+  }
+}
 
 void IRGenerator::insert_phi() {
   // for (const auto& block : cfg_->Blocks()) {
@@ -395,16 +422,20 @@ void IRGenerator::insert_phi() {
   // }
 }
 
-auto IRGenerator::ControlFlowGraph() -> ControlFlowGraphPtr { return cfg_; }
+auto IRGenerator::ControlFlowGraph() -> std::vector<FuncCFG>& { return cfgs_; }
 
 void IRGenerator::PrintCFG(const std::string& path) {
   std::ofstream f(path);
-  cfg_->Print(f);
+  for (const auto& fc : cfgs_) {
+    fc.cfg->Print(f);
+  }
   f.close();
 }
 
 void IRGenerator::instruction_level_liveness_analyse() {
-  InstructionLevelLivenessAnalyse(*cfg_);
+  for (const auto& fc : cfgs_) {
+    InstructionLevelLivenessAnalyse(*fc.cfg);
+  }
 }
 
 auto IRGenerator::optimums(const std::vector<IRInstructionPtr>& irs)
@@ -430,4 +461,8 @@ auto IRGenerator::optimums(const std::vector<IRInstructionPtr>& irs)
   }
 
   return ret;
+}
+
+void IRGeneratorContext::EnterInsGroup(const std::string& func) {
+  ins_.push_back({func, {}});
 }

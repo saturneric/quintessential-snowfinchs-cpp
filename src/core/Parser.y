@@ -304,7 +304,7 @@ control:
 
 expression:
     LEFT_BRACKET expression RIGHT_BRACKET   { $$ = $2; }
-    
+    | call { $$ = $1; }
     | expression PLUS expression
         { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PLUS", "+", drv); $$->AddChild($1); $$->AddChild($3); }
     | expression SUB expression
@@ -382,7 +382,7 @@ assign_operator:
 call:
     VALUE_ID LEFT_BRACKET arg_list RIGHT_BRACKET
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", $1, drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + $1, drv);
       if ($3) {
         for (auto child : $3->Children())
           $$->AddChild(child);

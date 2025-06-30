@@ -47,3 +47,8 @@ class ControlFlowGraph {
 };
 
 using ControlFlowGraphPtr = std::shared_ptr<ControlFlowGraph>;
+
+struct FuncCFG {
+  std::string func;
+  ControlFlowGraphPtr cfg;
+};
