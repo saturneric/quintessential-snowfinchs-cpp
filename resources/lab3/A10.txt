@@ -1,0 +1,11 @@
+int main() {
+echo(5); 
+return 0;
+}  
+
+int echo(int num) { 
+for(int i = 0; i < num; i+=1) {
+print(read());
+}
+return 0;
+}

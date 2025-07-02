@@ -1,0 +1,67 @@
+
+// the first digit we get is the last digit we should print
+// => store them on the stack to reverse the order
+int printDecHelper(int lastDigit, int rest) {
+    int zeroAscii = 48;
+    if (rest != 0) {
+        printDecHelper(rest % 10, rest / 10);
+    }
+    print(lastDigit + zeroAscii);
+    return 0;
+}
+
+int printDec(int n) {
+    if (n < 0) {
+        print(45);
+        n = -n;
+    }
+    printDecHelper(n % 10, n / 10);
+    print(32);
+    return 0;
+}
+
+int simulate(int a, int b, int c, int d, int e) {
+
+    printDec(a);
+    printDec(b);
+    printDec(c);
+    printDec(d);
+    printDec(e);
+    print(10);
+
+    for (int i = 0; i < 3; i += 1) {
+        printDec(a);
+        printDec(b);
+        printDec(c);
+        printDec(d);
+        printDec(e);
+        print(10);
+    }
+
+    printDec(a);
+    printDec(b);
+    printDec(c);
+    printDec(d);
+    printDec(e);
+    print(10);
+    return 0;
+}
+
+int main() {
+    int a = 1;
+    int b = 2;
+    int c = 3;
+    int d = 4;
+    int e = 5;
+
+    printDec(a);
+    printDec(b);
+    printDec(c);
+    printDec(d);
+    printDec(e);
+    print(10);
+
+    simulate(a,b,c,d,e);
+    return 0;
+}
+

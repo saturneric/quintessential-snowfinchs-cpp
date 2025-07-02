@@ -1,0 +1,3 @@
+int main() {
+    return print( 0xC2 ) + print( 0xA0 );
+}

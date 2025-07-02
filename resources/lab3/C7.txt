@@ -1,0 +1,13 @@
+bool f(int x) {
+  if (x < 0) {
+    return true; 
+  }
+  int y = 42 / x;
+  return f(x - 1);
+}
+
+int main() {
+  f(42);
+  print(72);
+  return 0;
+}

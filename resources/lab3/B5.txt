@@ -1,0 +1,41 @@
+int col(int n) {
+    if (n % 2 == 0) { 
+        return n/2;
+    } else {
+        return 3 * n + 1;
+    }
+}
+
+// the first digit we get tis the last digit we should print 
+// => store them on the stack to reverse the order
+int printDecHelper(int lastDigit, int rest) {
+    int zeroAscii = 48;
+    if (rest != 0) {
+        printDecHelper(rest % 10, rest / 10);
+    }
+    print(lastDigit + zeroAscii);
+    return 0;
+}
+int printDecLn(int n) {
+    if (n < 0) {
+        print(45);
+        n = -n;
+    }
+    printDecHelper(n % 10, n / 10); 
+    print(10); // newline
+    return 0;
+}
+
+int main() {
+    int n = 6171;
+    int iterations = 1;
+    while (n != 1) {
+        printDecLn(n);
+        n = col(n);
+        iterations += 1;
+    }
+    printDecLn(n);
+    print(10); // newline
+    printDecLn(iterations);
+    return 0;
+}

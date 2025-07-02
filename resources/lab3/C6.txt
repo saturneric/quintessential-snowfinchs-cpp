@@ -1,0 +1,5 @@
+int main() {
+  print(72);
+  print(1, 2);
+  return 0;
+}

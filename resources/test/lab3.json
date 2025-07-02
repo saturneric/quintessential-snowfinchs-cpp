@@ -33,5 +33,102 @@
     "source_file_path": "lab3/A6.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 22
+  },  
+  {
+    "source_file_path": "lab3/A7.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab3/A8.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab3/A9.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab3/A9.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab3/A10.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0,
+    "input": "abcde",
+    "output": "abcde"
+  },
+  {
+    "source_file_path": "lab3/B1.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 42,
+    "input": "3abc",
+    "output": "abc"
+  },
+  {
+    "source_file_path": "lab3/B2.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0,
+    "input": "",
+    "output": "                 *                 \n                ***                \n               *****               \n              *******              \n             *********             \n            ***********            \n           *************           \n          ***************          \n         *****************         \n        *******************        \n       *********************       \n      ***********************      \n     *************************     \n    ***************************    \n   *****************************   \n  *******************************  \n ********************************* \n***********************************\n"
+  },
+  {
+    "source_file_path": "lab3/B3.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0,
+    "input": "hello\n",
+    "output": "hi there :)\n"
+  },
+  {
+    "source_file_path": "lab3/B4.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 6,
+    "input": "",
+    "output": "abc"
+  },
+  {
+    "source_file_path": "lab3/B5.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0,
+    "input": "",
+    "output": "6171\n18514\n9257\n27772\n13886\n6943\n20830\n10415\n31246\n15623\n46870\n23435\n70306\n35153\n105460\n52730\n26365\n79096\n39548\n19774\n9887\n29662\n14831\n44494\n22247\n66742\n33371\n100114\n50057\n150172\n75086\n37543\n112630\n56315\n168946\n84473\n253420\n126710\n63355\n190066\n95033\n285100\n142550\n71275\n213826\n106913\n320740\n160370\n80185\n240556\n120278\n60139\n180418\n90209\n270628\n135314\n67657\n202972\n101486\n50743\n152230\n76115\n228346\n114173\n342520\n171260\n85630\n42815\n128446\n64223\n192670\n96335\n289006\n144503\n433510\n216755\n650266\n325133\n975400\n487700\n243850\n121925\n365776\n182888\n91444\n45722\n22861\n68584\n34292\n17146\n8573\n25720\n12860\n6430\n3215\n9646\n4823\n14470\n7235\n21706\n10853\n32560\n16280\n8140\n4070\n2035\n6106\n3053\n9160\n4580\n2290\n1145\n3436\n1718\n859\n2578\n1289\n3868\n1934\n967\n2902\n1451\n4354\n2177\n6532\n3266\n1633\n4900\n2450\n1225\n3676\n1838\n919\n2758\n1379\n4138\n2069\n6208\n3104\n1552\n776\n388\n194\n97\n292\n146\n73\n220\n110\n55\n166\n83\n250\n125\n376\n188\n94\n47\n142\n71\n214\n107\n322\n161\n484\n242\n121\n364\n182\n91\n274\n137\n412\n206\n103\n310\n155\n466\n233\n700\n350\n175\n526\n263\n790\n395\n1186\n593\n1780\n890\n445\n1336\n668\n334\n167\n502\n251\n754\n377\n1132\n566\n283\n850\n425\n1276\n638\n319\n958\n479\n1438\n719\n2158\n1079\n3238\n1619\n4858\n2429\n7288\n3644\n1822\n911\n2734\n1367\n4102\n2051\n6154\n3077\n9232\n4616\n2308\n1154\n577\n1732\n866\n433\n1300\n650\n325\n976\n488\n244\n122\n61\n184\n92\n46\n23\n70\n35\n106\n53\n160\n80\n40\n20\n10\n5\n16\n8\n4\n2\n1\n\n262\n"
+  },
+  {
+    "source_file_path": "lab3/C1.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 255
+  },
+  {
+    "source_file_path": "lab3/C2.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 9
+  },
+  {
+    "source_file_path": "lab3/C3.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0,
+    "output": "\u00A0"
+  },
+  {
+    "source_file_path": "lab3/C4.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab3/C5.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab3/C6.txt",
+    "compiler_exit_code": 7
+  },
+  {
+    "source_file_path": "lab3/C7.txt",
+    "compiler_exit_code": 0,
+    "expect_float_point_exception": true
+  },
+  {
+    "source_file_path": "lab3/C8.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0,
+    "output": "1 2 3 4 5 \n1 2 3 4 5 \n1 2 3 4 5 \n1 2 3 4 5 \n1 2 3 4 5 \n1 2 3 4 5 \n"
   }
 ]
