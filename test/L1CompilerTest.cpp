@@ -22,9 +22,24 @@ auto TestCompileSourceCode(const fs::path& path) -> std::tuple<int, fs::path> {
   return {exit_code, output};
 }
 
-auto TestRunBinary(const fs::path& path) -> std::tuple<bool, int> {
+auto TestRunBinary(const fs::path& path, const std::string& input)
+    -> std::tuple<bool, int, std::string> {
+  std::array<int, 2> stdin_pipe;
+  std::array<int, 2> stdout_pipe;
+
+  if (pipe(stdin_pipe.data()) != 0 || pipe(stdout_pipe.data()) != 0) {
+    spdlog::error("failed to create pipes");
+    return {false, -1, {}};
+  }
+
   pid_t pid = fork();
   if (pid == 0) {
+    dup2(stdin_pipe[0], STDIN_FILENO);
+    dup2(stdout_pipe[1], STDOUT_FILENO);
+
+    close(stdin_pipe[1]);
+    close(stdout_pipe[0]);
+
     const auto fpe_trap =
         fs::current_path() / "build" / "lib" / "libfpe_trap.so";
 
@@ -37,17 +52,31 @@ auto TestRunBinary(const fs::path& path) -> std::tuple<bool, int> {
     _exit(127);
   }
 
+  close(stdin_pipe[0]);
+  close(stdout_pipe[1]);
+
+  if (!input.empty()) write(stdin_pipe[1], input.data(), input.size());
+  close(stdin_pipe[1]);
+
+  std::string output;
+  std::array<char, 1024> buffer;
+  ssize_t n;
+  while ((n = read(stdout_pipe[0], buffer.data(), sizeof(buffer))) > 0) {
+    output.append(buffer.data(), n);
+  }
+  close(stdout_pipe[0]);
+
   int status;
   waitpid(pid, &status, 0);
 
   if (WIFSIGNALED(status)) {
     const auto sig = WTERMSIG(status);
     spdlog::debug("detect signal from child process: {}", sig);
-    return {false, -sig};
+    return {false, -sig, {}};
   }
 
-  if (WIFEXITED(status)) return {true, WEXITSTATUS(status)};
-  return {false, -(1 << 16)};
+  if (WIFEXITED(status)) return {true, WEXITSTATUS(status), output};
+  return {false, -(1 << 16), output};
 }
 
 auto ListTestSourcefiles(const fs::path& dir, const std::set<std::string>& exts)
@@ -99,20 +128,31 @@ auto GetResourcesPath() -> fs::path { return fs::current_path() / "resources"; }
 void from_json(const nlohmann::json& j, ResourceTestCase& tc) {
   j.at("source_file_path").get_to(tc.source_file_path);
   j.at("compiler_exit_code").get_to(tc.compiler_exit_code);
+
   if (j.contains("exec_exit_code")) {
     j.at("exec_exit_code").get_to(tc.exec_exit_code);
   } else {
     tc.exec_exit_code = 0;
   }
+
   if (j.contains("expect_float_point_exception")) {
     j.at("expect_float_point_exception")
         .get_to(tc.expect_float_point_exception);
   } else {
     tc.expect_float_point_exception = false;
   }
+
   if (j.contains("expect_segment_fault")) {
     j.at("expect_segment_fault").get_to(tc.expect_segment_fault);
   } else {
     tc.expect_segment_fault = false;
+  }
+
+  if (j.contains("input")) {
+    j.at("input").get_to(tc.input);
+  }
+
+  if (j.contains("output")) {
+    j.at("output").get_to(tc.output);
   }
 }

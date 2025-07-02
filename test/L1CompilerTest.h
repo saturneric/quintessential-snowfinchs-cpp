@@ -8,6 +8,8 @@ struct ResourceTestCase {
   int exec_exit_code;
   bool expect_float_point_exception = false;
   bool expect_segment_fault = false;
+  std::string input;
+  std::string output;
 };
 
 // for json to ResourceTestCase using by json library
@@ -21,7 +23,8 @@ void PrintTo(const ResourceTestCase& tc, std::ostream* os);
 
 auto TestCompileSourceCode(const fs::path& path) -> std::tuple<int, fs::path>;
 
-auto TestRunBinary(const fs::path& path) -> std::tuple<bool, int>;
+auto TestRunBinary(const fs::path& path, const std::string& input)
+    -> std::tuple<bool, int, std::string>;
 
 auto ListTestSourcefiles(const fs::path& dir, const std::set<std::string>& exts)
     -> std::vector<std::string>;

@@ -13,7 +13,7 @@ TEST_P(ResourceTest, FileExistsAndNotEmpty) {
 
   ASSERT_TRUE(fs::exists(path));
 
-  auto [succ, ret_b] = TestRunBinary(path);
+  auto [succ, ret_b, output] = TestRunBinary(path, tc.input);
 
   if (tc.expect_float_point_exception) {
     ASSERT_FALSE(succ);
@@ -24,6 +24,7 @@ TEST_P(ResourceTest, FileExistsAndNotEmpty) {
   } else {
     ASSERT_TRUE(succ);
     ASSERT_EQ(ret_b, tc.exec_exit_code);
+    if (!tc.output.empty()) ASSERT_EQ(tc.output, output);
   }
 }
 
