@@ -547,6 +547,8 @@ auto X86Translator::pre_alloc_stack_memory() -> std::vector<std::string> {
 
 auto X86Translator::GenerateDataSegment() -> std::vector<std::string> {
   std::vector<std::string> ret;
+
+  // external symbols
   ret.emplace_back(".extern fflush");
   ret.emplace_back(".extern getchar");
   ret.emplace_back(".extern putchar");
@@ -653,27 +655,16 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
     auto arg = format_operand(s_arg);
 
     if (param_index_ == 0) {
-      for (const auto& reg : al_regs) {
-        auto reg64 = To64BitReg(reg);
-        if (kCallerSavedReg.count(reg64) != 0U) {
-          out.push_back(op_mov_ + " " + reg + ", " + f_regs_loc_.at(reg64) +
-                        "   # save allocated reg state");
-          saved_f_regs_.push_back(reg);
-        }
-      }
+      auto ret = store_allocated_function_args(al_regs);
+      out.insert(out.end(), ret.begin(), ret.end());
     }
 
     if (param_index_ < 6) {
       auto target = std::string(f_regs[param_index_]);
 
-      if (IsReg(s_arg)) {
-        const auto* it = std::find(f_regs.begin(), f_regs.end(), arg);
-        if (it != f_regs.end()) {
-          out.push_back(op_mov_ + " " + f_regs_loc_.at(To64BitReg(arg)) + ", " +
-                        target);
-        } else {
-          out.push_back(op_mov_ + " " + arg + ", " + target);
-        }
+      if (IsReg(s_arg) && kFRegsS64.count(To64BitReg(arg)) != 0U) {
+        out.push_back(op_mov_ + " " + f_regs_loc_.at(To64BitReg(arg)) + ", " +
+                      target);
       } else {
         out.push_back(op_mov_ + " " + arg + ", " + target);
       }
@@ -689,14 +680,8 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
     auto func = format_operand(i.SRC(0));
 
     if (saved_f_regs_.empty() && !al_regs.empty()) {
-      for (const auto& reg : al_regs) {
-        auto reg64 = To64BitReg(reg);
-        if (kCallerSavedReg.count(reg64) != 0U) {
-          out.push_back(op_mov_ + " " + reg + ", " + f_regs_loc_.at(reg64) +
-                        "   # save allocated reg state");
-          saved_f_regs_.push_back(reg);
-        }
-      }
+      auto ret = store_allocated_function_args(al_regs);
+      out.insert(out.end(), ret.begin(), ret.end());
     }
 
     out.emplace_back("push %r12");
@@ -711,11 +696,11 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
       auto arg = format_operand(*it);
 
       if (IsReg(s_arg)) {
-        auto reg64 = To64BitReg(arg);
+        const auto reg64 = To64BitReg(arg);
         if (kFRegsS64.count(reg64) != 0U) {
-          out.push_back("push " + f_regs_loc_.at(To64BitReg(arg)));
+          out.push_back("push " + f_regs_loc_.at(reg64));
         } else {
-          out.push_back("push " + To64BitReg(arg));
+          out.push_back("push " + reg64);
         }
       } else {
         out.push_back("push " + arg);
@@ -753,7 +738,7 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
       auto reg64 = To64BitReg(reg);
       if (kCallerSavedReg.count(reg64) != 0U) {
         out.push_back(op_mov_ + " " + f_regs_loc_.at(reg64) + ", " + reg +
-                      "    # restore allocated reg state");
+                      "    # restore reg state");
       }
     }
 
@@ -775,20 +760,14 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
 
     if (idx < 6) {
       // load from the appropriate register
-
-      if (IsReg(s_dst)) {
-        const auto* it = std::find(f_regs.begin(), f_regs.end(), dst);
-        if (it != f_regs.end()) {
-          auto reg64 = To64BitReg(f_regs[idx]);
-          out.push_back(op_mov_ + " " + f_regs_loc_.at(reg64) + ", " + dst);
-          req_args_regs_.emplace_back(f_regs[idx]);
-        } else {
-          out.push_back(op_mov_ + " " + f_regs[idx] + ", " + dst);
-        }
+      const auto* const reg = f_regs[idx];
+      if (IsReg(s_dst) && kFRegsS64.count(To64BitReg(reg)) != 0U) {
+        out.push_back(op_mov_ + " " + f_regs_loc_.at(To64BitReg(reg)) + ", " +
+                      dst);
+        req_args_regs_.emplace_back(reg);
       } else {
-        out.push_back(op_mov_ + " " + f_regs[idx] + ", " + dst);
+        out.push_back(op_mov_ + " " + reg + ", " + dst);
       }
-
     } else {
       int stack_offset = 16 + (8 * (idx - 6));
       bool dst_mem = !IsReg(s_dst);
@@ -807,4 +786,17 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
 auto X86Translator::alloc_stack_64() -> std::string {
   stack_offset_ -= 8;
   return std::to_string(stack_offset_) + "(" + bp_ + ")";
+}
+
+auto X86Translator::store_allocated_function_args(
+    const std::set<std::string>& al_regs) -> std::vector<std::string> {
+  std::vector<std::string> ret;
+  for (const auto& reg : al_regs) {
+    auto reg64 = To64BitReg(reg);
+    if (kCallerSavedReg.count(reg64) == 0U) continue;
+    ret.push_back(op_mov_ + " " + reg + ", " + f_regs_loc_.at(reg64) +
+                  "   # save reg state");
+    saved_f_regs_.push_back(reg);
+  }
+  return ret;
 }

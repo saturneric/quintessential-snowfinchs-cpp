@@ -93,4 +93,7 @@ class X86Translator : public Translator {
   static auto gen_data_var_immediate_label(const SymbolPtr& val) -> std::string;
 
   auto pre_alloc_stack_memory() -> std::vector<std::string>;
+
+  auto store_allocated_function_args(const std::set<std::string>& al_regs)
+      -> std::vector<std::string>;
 };
