@@ -85,6 +85,8 @@ void IR2Generator::convert_ira3_2_ira2() {
         continue;
       }
 
+      if (op == "dcl") continue;
+
       SPDLOG_ERROR("Unsupported op: {}", op);
     }
 

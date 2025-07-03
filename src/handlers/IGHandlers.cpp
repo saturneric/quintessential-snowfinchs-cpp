@@ -428,8 +428,6 @@ auto IRFunctionHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     if (param_list_node->Tag() != ASTNodeTag::kPARAMS) continue;
     for (auto& p : param_list_node->Children()) {
       auto p_sym = ctx->MapSymbol(p->Symbol());
-
-      ctx->AddIns("dcl", p_sym);
       ctx->AddIns("arg", p_sym,
                   ctx->MapSymbol(std::to_string(param_index++), "immediate"));
     }

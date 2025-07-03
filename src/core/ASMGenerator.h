@@ -16,7 +16,8 @@ class Translator {
   virtual auto Optimums(const std::vector<IRInstructionPtr>& ir)
       -> std::vector<IRInstructionPtr> = 0;
 
-  virtual auto GenerateTextSection(const std::vector<IRInstructionPtr>& ir)
+  virtual auto GenerateTextSection(const std::vector<IRInstructionPtr>& ir,
+                                   const std::set<std::string>& all_regs)
       -> std::vector<std::string> = 0;
 
   virtual auto GenerateDataSegment() -> std::vector<std::string> = 0;
@@ -56,23 +57,30 @@ class ASMGenerator {
   void PrintIFG(const std::string& path);
 
  private:
+  struct RegAllocState {
+    std::string func;
+    InterferenceGraph inf;
+    std::set<std::string> al_regs;
+    std::set<SymbolPtr> vars;
+  };
+
   TranslatorPtr translator_;
   SymbolTablePtr symbol_table_;
   ScopedSymbolLookUpHelper helper_;
-  std::vector<InterferenceGraph> inf_graphs_;
+  std::vector<RegAllocState> states_;
   std::vector<FuncInstructions> ir2_;
-  std::vector<IRInstructionPtr> ir2_final_;
-  std::set<SymbolPtr> vars_;
+  std::vector<FuncInstructions> ir2_final_;
 
   void gen_final_asm_source(const std::string& path);
 
-  void alloc_register(InterferenceGraph& inf_graph);
+  auto alloc_register(InterferenceGraph& inf_graph) -> std::set<std::string>;
 
-  void build_inf_graph(InterferenceGraph& inf_graph,
-                       const FuncInstructions& fi);
+  void build_inf_graph(InterferenceGraph& inf_graph, const FuncInstructions& fi,
+                       RegAllocState& ras);
 
   auto map_sym(const std::string& name, const std::string& type) -> SymbolPtr;
 
-  auto generate_text_section(const std::vector<IRInstructionPtr>& irs)
+  auto generate_text_section(const std::vector<IRInstructionPtr>& irs,
+                             const std::set<std::string>& all_regs)
       -> std::vector<std::string>;
 };

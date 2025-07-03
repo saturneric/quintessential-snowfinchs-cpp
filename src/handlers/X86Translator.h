@@ -11,7 +11,8 @@ class X86Translator : public Translator {
 
   void HandleVariables(const std::set<SymbolPtr>& vars) override;
 
-  auto GenerateTextSection(const std::vector<IRInstructionPtr>& ir)
+  auto GenerateTextSection(const std::vector<IRInstructionPtr>& ir,
+                           const std::set<std::string>& all_regs)
       -> std::vector<std::string> override;
 
   auto GenerateDataSegment() -> std::vector<std::string> override;
@@ -23,7 +24,7 @@ class X86Translator : public Translator {
 
  private:
   bool r32_;
-  int stack_offset_dt_ = 16;
+  int stack_offset_dt_ = r32_ ? 4 : 8;
   int stack_offset_ = 0;
   std::string suffix_ = r32_ ? "l" : "q";
   std::string acc_reg_ = r32_ ? "%eax" : "%rax";
@@ -47,8 +48,12 @@ class X86Translator : public Translator {
 
   int param_index_;
   std::vector<SymbolPtr> stack_args_;
+  std::map<std::string, std::string> f_regs_loc_;
+  std::vector<std::string> saved_f_regs_;
+  std::vector<std::string> req_args_regs_;
 
-  auto translate(const std::vector<IRInstructionPtr>& ir)
+  auto translate(const std::vector<IRInstructionPtr>& ir,
+                 const std::set<std::string>& al_regs)
       -> std::vector<std::string>;
 
   auto format_operand(const SymbolPtr& operand, bool force_use_loc = false)
@@ -76,11 +81,16 @@ class X86Translator : public Translator {
                    const IRInstruction& i);
 
   void emit_func_op(std::vector<std::string>& out, const std::string& op,
-                    const IRInstruction& i);
+                    const IRInstruction& i,
+                    const std::set<std::string>& al_regs);
 
   auto alloc_stack_for_immediate(const SymbolPtr& val) -> std::string;
 
+  auto alloc_stack() -> std::string;
+
+  auto alloc_stack_64() -> std::string;
+
   static auto gen_data_var_immediate_label(const SymbolPtr& val) -> std::string;
 
-  auto alloc_stack_memory() -> std::vector<std::string>;
+  auto pre_alloc_stack_memory() -> std::vector<std::string>;
 };

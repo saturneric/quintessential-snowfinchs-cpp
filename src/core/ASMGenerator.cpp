@@ -31,36 +31,34 @@ void ASMGenerator::Generate(const std::string& path) {
   spdlog::stopwatch sw;
 
   for (const auto& fi : ir2_) {
-    inf_graphs_.push_back(InterferenceGraph{});
+    states_.push_back(RegAllocState{fi.func});
+    auto& state = states_.back();
 
-    build_inf_graph(inf_graphs_.back(), fi);
-
+    build_inf_graph(state.inf, fi, state);
     spdlog::debug("Built Inf Graph: {:.3}s", sw);
 
-    alloc_register(inf_graphs_.back());
-
+    state.al_regs = alloc_register(state.inf);
     spdlog::debug("Allocated Register: {:.3}s", sw);
-  }
 
-  std::vector<IRInstructionPtr> ir2;
-  for (const auto& fi : ir2_) {
-    ir2.insert(ir2.end(), fi.ins.begin(), fi.ins.end());
+    ir2_final_.push_back(
+        FuncInstructions{fi.func, translator_->Optimums(fi.ins)});
+    spdlog::debug("Translator Optimums: {:.3}s", sw);
   }
-
-  ir2_final_ = translator_->Optimums(ir2);
 
   gen_final_asm_source(path);
-
   spdlog::debug("Generated ASM Source Code: {:.3}s", sw);
 }
 
-void ASMGenerator::alloc_register(InterferenceGraph& inf_graph) {
+auto ASMGenerator::alloc_register(InterferenceGraph& inf_graph)
+    -> std::set<std::string> {
+  std::set<std::string> allocated_registers;
   auto registers = translator_->AvailableRegisters();
   auto result = GraphColorRegisterAlloc(inf_graph, registers);
 
   for (const auto& [var, reg] : result.reg_assignment) {
     var->MetaRef(SymbolMetaKey::kIN_REGISTER) = true;
     var->MetaRef(SymbolMetaKey::kLOCATION) = reg;
+    allocated_registers.insert(reg);
   }
 
   for (const auto& var : result.spilled) {
@@ -68,24 +66,22 @@ void ASMGenerator::alloc_register(InterferenceGraph& inf_graph) {
       var->MetaRef(SymbolMetaKey::kIS_SPILLED) = true;
     }
   }
-
-  translator_->HandleVariables(vars_);
+  return allocated_registers;
 }
 
 void ASMGenerator::build_inf_graph(InterferenceGraph& inf_graph,
-                                   const FuncInstructions& fi) {
-  vars_.clear();
-
+                                   const FuncInstructions& fi,
+                                   RegAllocState& ras) {
   for (const auto& instr : fi.ins) {
     for (const auto& sym : instr->Use()) {
       // no reg name yet
       // but have label
-      if (sym && IsVariable(sym)) vars_.insert(sym);
+      if (sym && IsVariable(sym)) ras.vars.insert(sym);
     }
   }
 
   // insert all vars in to graph
-  for (const auto& v : vars_) {
+  for (const auto& v : ras.vars) {
     inf_graph.AddVariable(v);
   }
 
@@ -109,8 +105,8 @@ auto ASMGenerator::map_sym(const std::string& name, const std::string& type)
 void ASMGenerator::PrintIFG(const std::string& path) {
   std::ofstream f(path);
 
-  for (const auto& g : inf_graphs_) {
-    g.Print(f);
+  for (const auto& s : states_) {
+    s.inf.Print(f);
   }
 
   f.close();
@@ -134,44 +130,13 @@ void ASMGenerator::gen_final_asm_source(const std::string& path) {
 
   // .text
   lines.emplace_back("\n.text");
-
-  lines.emplace_back("\t.macro SAVE_ALL");
-  lines.emplace_back("\t\tpushfq");
-  lines.emplace_back("\t\tpush   %rbx");
-  lines.emplace_back("\t\tpush   %r12");
-  lines.emplace_back("\t\tpush   %r13");
-  lines.emplace_back("\t\tpush   %r14");
-  lines.emplace_back("\t\tpush   %r15");
-  lines.emplace_back("\t.endm");
-
-  lines.emplace_back("\t.macro RESTORE_ALL");
-  lines.emplace_back("\t\tpop    %r15");
-  lines.emplace_back("\t\tpop    %r14");
-  lines.emplace_back("\t\tpop    %r13");
-  lines.emplace_back("\t\tpop    %r12");
-  lines.emplace_back("\t\tpop    %rbx");
-  lines.emplace_back("\t\tpopfq");
-  lines.emplace_back("\t.endm");
-
   lines.emplace_back(".globl main");
 
-  std::vector<IRInstructionPtr> ir_f;
-
-  for (const auto& ir : ir2_final_) {
-    if (ir->Op()->Name() == "label" && ir->SRC(0) &&
-        ir->SRC(0)->Value() == "function") {
-      if (!ir_f.empty()) {
-        auto l = generate_text_section(ir_f);
-        lines.insert(lines.end(), l.begin(), l.end());
-      }
-      ir_f.clear();
-    }
-    ir_f.push_back(ir);
-  }
-
-  // flush the last section
-  if (!ir_f.empty()) {
-    auto l = generate_text_section(ir_f);
+  int index = 0;
+  for (const auto& fi : ir2_final_) {
+    assert(fi.func == states_[index].func);
+    translator_->HandleVariables(states_[index].vars);
+    auto l = generate_text_section(fi.ins, states_[index++].al_regs);
     lines.insert(lines.end(), l.begin(), l.end());
   }
 
@@ -210,16 +175,17 @@ void Translator::SetOpSearcher(SymbolSearcher searcher) {
 
 void ASMGenerator::PrintFinalIR(const std::string& path) {
   std::ofstream f(path);
-  PrintInstructions(f, ir2_final_);
+  for (const auto& fi : ir2_final_) PrintInstructions(f, fi.ins);
   f.close();
 }
 
 auto ASMGenerator::generate_text_section(
-    const std::vector<IRInstructionPtr>& irs) -> std::vector<std::string> {
+    const std::vector<IRInstructionPtr>& irs,
+    const std::set<std::string>& all_regs) -> std::vector<std::string> {
   static const std::regex kLabelRe(R"(^[A-Za-z_]\w*:$)");
 
   std::vector<std::string> lines;
-  for (const auto& l : translator_->GenerateTextSection(irs)) {
+  for (const auto& l : translator_->GenerateTextSection(irs, all_regs)) {
     auto s = l;
     s.erase(0, s.find_first_not_of(' '));
     s.erase(s.find_last_not_of(' ') + 1);
@@ -230,6 +196,5 @@ auto ASMGenerator::generate_text_section(
       lines.emplace_back("    " + s);
     }
   }
-  translator_->Reset();
   return lines;
 }

@@ -42,11 +42,13 @@ inline auto IsInMemory(const SymbolPtr& s) -> bool {
 }
 
 const std::vector<std::string> kRegisters64 = {
-    "%rbx", "%r12", "%r13", "%r14", "%r15",
+    "%rbx", "%rcx", "%rsi", "%rdi", "%r8",  "%r9",
+    "%r10", "%r11", "%r12", "%r13", "%r14", "%r15",
 };
 
-const std::vector<std::string> kRegisters32 = {"%ebx", "%r12d", "%r13d",
-                                               "%r14d", "%r15d"};
+const std::vector<std::string> kRegisters32 = {
+    "%ebx",  "%ecx",  "%esi",  "%edi",  "%r8d",  "%r9d",
+    "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d"};
 
 const std::array<const char*, 6> kFRegs32 = {"%edi", "%esi", "%edx",
                                              "%ecx", "%r8d", "%r9d"};
@@ -54,8 +56,38 @@ const std::array<const char*, 6> kFRegs32 = {"%edi", "%esi", "%edx",
 const std::array<const char*, 6> kFRegs64 = {"%rdi", "%rsi", "%rdx",
                                              "%rcx", "%r8",  "%r9"};
 
-const std::array<const char*, 8> kCallerSavedReg = {
-    "%rcx", "%rdx", "%rsi", "%rdi", "%r8", "%r9", "%r10", "%r11"};
+const std::set<std::string> kFRegsS64 = {"%rdi", "%rsi", "%rdx",
+                                         "%rcx", "%r8",  "%r9"};
+
+const std::set<std::string> kCallerSavedReg = {"%rcx", "%rdx", "%rsi", "%rdi",
+                                               "%r8",  "%r9",  "%r10", "%r11"};
+
+const std::set<std::string> kCalleeSavedReg = {"%rbx", "%rbp", "%r12",
+                                               "%r13", "%r14", "%r15"};
+
+auto To64BitReg(const std::string& reg) -> std::string {
+  if (reg == "%eax" || reg == "%ax" || reg == "%al" || reg == "%ah") {
+    return "%rax";
+  }
+  if (reg == "%ebx" || reg == "%bx" || reg == "%bl" || reg == "%bh") {
+    return "%rbx";
+  }
+  if (reg == "%ecx" || reg == "%cx" || reg == "%cl" || reg == "%ch") {
+    return "%rcx";
+  }
+  if (reg == "%edx" || reg == "%dx" || reg == "%dl" || reg == "%dh") {
+    return "%rdx";
+  }
+  if (reg == "%esi" || reg == "%si" || reg == "%sil") return "%rsi";
+  if (reg == "%edi" || reg == "%di" || reg == "%dil") return "%rdi";
+  if (reg == "%ebp" || reg == "%bp" || reg == "%bpl") return "%rbp";
+  if (reg == "%esp" || reg == "%sp" || reg == "%spl") return "%rsp";
+
+  if (reg.size() >= 4 && reg.substr(1, 1) == "r" && reg.back() == 'd') {
+    return reg.substr(0, reg.size() - 1);
+  }
+  return reg;
+}
 }  // namespace
 
 X86Translator::X86Translator(bool r32) : r32_(r32), param_index_(0) {}
@@ -426,7 +458,8 @@ void X86Translator::emit_unary_op(std::vector<std::string>& fins,
   }
 }
 
-auto X86Translator::translate(const std::vector<IRInstructionPtr>& ir)
+auto X86Translator::translate(const std::vector<IRInstructionPtr>& ir,
+                              const std::set<std::string>& al_regs)
     -> std::vector<std::string> {
   std::vector<std::string> ret;
 
@@ -455,7 +488,7 @@ auto X86Translator::translate(const std::vector<IRInstructionPtr>& ir)
     } else if (op == "label" || op == "rtn") {
       emit_spz_op(ret, op, i);
     } else if (op == "call" || op == "param" || op == "arg") {
-      emit_func_op(ret, op, i);
+      emit_func_op(ret, op, i, al_regs);
     } else {
       ret.push_back("# unsupported op: " + op);
     }
@@ -465,15 +498,6 @@ auto X86Translator::translate(const std::vector<IRInstructionPtr>& ir)
 }
 
 void X86Translator::HandleVariables(const std::set<SymbolPtr>& vars) {
-  for (const auto& var : vars) {
-    if (!MetaGet<bool>(var, SymbolMetaKey::kIS_SPILLED)) continue;
-
-    stack_offset_ -= stack_offset_dt_;
-    var->MetaRef(SymbolMetaKey::kIN_STACK) = true;
-    var->MetaRef(SymbolMetaKey::kLOCATION) =
-        std::to_string(stack_offset_) + "(" + bp_ + ")";
-  }
-
   // cache
   vars_ = vars;
 }
@@ -484,9 +508,14 @@ auto X86Translator::alloc_stack_for_immediate(const SymbolPtr& val)
   if (!loc.empty()) return loc;
 
   stack_offset_ -= stack_offset_dt_;
-  loc = std::to_string(stack_offset_) + +"(" + bp_ + ")";
+  loc = std::to_string(stack_offset_) + "(" + bp_ + ")";
   val->MetaRef(SymbolMetaKey::kLOCATION) = loc;
   return loc;
+}
+
+auto X86Translator::alloc_stack() -> std::string {
+  stack_offset_ -= stack_offset_dt_;
+  return std::to_string(stack_offset_) + "(" + bp_ + ")";
 }
 
 auto X86Translator::gen_data_var_immediate_label(const SymbolPtr& val)
@@ -502,7 +531,7 @@ auto X86Translator::gen_data_var_immediate_label(const SymbolPtr& val)
   return label;
 }
 
-auto X86Translator::alloc_stack_memory() -> std::vector<std::string> {
+auto X86Translator::pre_alloc_stack_memory() -> std::vector<std::string> {
   std::vector<std::string> ret;
 
   ret.push_back("push " + bp_);
@@ -534,19 +563,70 @@ auto X86Translator::GenerateDataSegment() -> std::vector<std::string> {
   return ret;
 }
 
-auto X86Translator::GenerateTextSection(const std::vector<IRInstructionPtr>& ir)
+auto X86Translator::GenerateTextSection(const std::vector<IRInstructionPtr>& ir,
+                                        const std::set<std::string>& al_regs)
     -> std::vector<std::string> {
-  auto main_ins = translate(ir);
+  stack_offset_ = 0;
+  for (const auto& var : vars_) {
+    if (!MetaGet<bool>(var, SymbolMetaKey::kIS_SPILLED)) continue;
+
+    stack_offset_ -= stack_offset_dt_;
+    var->MetaRef(SymbolMetaKey::kIN_STACK) = true;
+    var->MetaRef(SymbolMetaKey::kLOCATION) =
+        std::to_string(stack_offset_) + "(" + bp_ + ")";
+  }
+
+  // alloc stack memory for necessary regs
+  for (const auto& reg : kCallerSavedReg) {
+    f_regs_loc_[reg] = alloc_stack();
+  }
+
+  std::vector<std::string> need_save;
+  for (const auto& reg : al_regs) {
+    auto reg64 = To64BitReg(reg);
+    if (kCalleeSavedReg.count(reg64) != 0U) need_save.push_back(reg64);
+  }
+
+  std::vector<std::string> save_ins;
+  std::vector<std::string> restore_ins;
+  save_ins.reserve(need_save.size());
+
+  for (const auto& reg : need_save) {
+    save_ins.push_back("push " + reg);
+  }
+
+  for (auto it = need_save.rbegin(); it != need_save.rend(); ++it) {
+    restore_ins.push_back("pop " + *it);
+  }
+
+  auto main_ins = translate(ir, al_regs);
 
   // this function need stack size info
   // so run this after translate()
-  auto stack_ins = alloc_stack_memory();
+  auto stack_ins = pre_alloc_stack_memory();
 
   std::vector<std::string> ins;
   ins.push_back(main_ins.front());
   ins.insert(ins.end(), stack_ins.begin(), stack_ins.end());
+
+  for (const auto& reg : req_args_regs_) {
+    ins.push_back("mov " + reg + ", " + f_regs_loc_.at(To64BitReg(reg)) +
+                  "   # save arg reg state");
+  }
+
+  ins.insert(ins.end(), save_ins.begin(), save_ins.end());
   ins.insert(ins.end(), main_ins.begin() + 1, main_ins.end());
 
+  for (auto it = ins.begin(); it != ins.end(); /* note: no ++it here */) {
+    if (*it == "leave") {
+      it = ins.insert(it, restore_ins.begin(), restore_ins.end());
+      std::advance(it, restore_ins.size() + 1);
+    } else {
+      ++it;
+    }
+  }
+
+  Reset();
   return ins;
 }
 
@@ -558,37 +638,88 @@ void X86Translator::Reset() {
   vars_.clear();
   in_data_sec_vars_.clear();
   param_index_ = 0;
+  stack_offset_ = 0;
+  req_args_regs_.clear();
+  f_regs_loc_.clear();
 }
 
 void X86Translator::emit_func_op(std::vector<std::string>& out,
-                                 const std::string& op,
-                                 const IRInstruction& i) {
+                                 const std::string& op, const IRInstruction& i,
+                                 const std::set<std::string>& al_regs) {
+  const auto& f_regs = r32_ ? kFRegs32 : kFRegs64;
+
   if (op == "param") {
     auto s_arg = i.SRC(0);
     auto arg = format_operand(s_arg);
 
+    if (param_index_ == 0) {
+      for (const auto& reg : al_regs) {
+        auto reg64 = To64BitReg(reg);
+        if (kCallerSavedReg.count(reg64) != 0U) {
+          out.push_back(op_mov_ + " " + reg + ", " + f_regs_loc_.at(reg64) +
+                        "   # save allocated reg state");
+          saved_f_regs_.push_back(reg);
+        }
+      }
+    }
+
     if (param_index_ < 6) {
-      out.push_back(op_mov_ + " " + arg + ", " +
-                    (r32_ ? kFRegs32[param_index_] : kFRegs64[param_index_]));
+      auto target = std::string(f_regs[param_index_]);
+
+      if (IsReg(s_arg)) {
+        const auto* it = std::find(f_regs.begin(), f_regs.end(), arg);
+        if (it != f_regs.end()) {
+          out.push_back(op_mov_ + " " + f_regs_loc_.at(To64BitReg(arg)) + ", " +
+                        target);
+        } else {
+          out.push_back(op_mov_ + " " + arg + ", " + target);
+        }
+      } else {
+        out.push_back(op_mov_ + " " + arg + ", " + target);
+      }
+
     } else {
       stack_args_.push_back(s_arg);
     }
+
     param_index_++;
   }
 
   else if (op == "call") {
     auto func = format_operand(i.SRC(0));
 
-    out.emplace_back("SAVE_ALL");
-
-    bool need_pad = (!stack_args_.empty() && stack_args_.size() % 2 == 0);
-    if (need_pad) {
-      out.emplace_back("sub $8, %rsp");
+    if (saved_f_regs_.empty() && !al_regs.empty()) {
+      for (const auto& reg : al_regs) {
+        auto reg64 = To64BitReg(reg);
+        if (kCallerSavedReg.count(reg64) != 0U) {
+          out.push_back(op_mov_ + " " + reg + ", " + f_regs_loc_.at(reg64) +
+                        "   # save allocated reg state");
+          saved_f_regs_.push_back(reg);
+        }
+      }
     }
 
+    out.emplace_back("push %r12");
+    out.push_back("mov " + sp_ + ", %r12");
+    out.push_back("and $-16, " + sp_);
+
+    const bool need_pad = (!stack_args_.empty() && stack_args_.size() % 2 == 1);
+    if (need_pad) out.emplace_back("sub $8, %rsp");
+
     for (auto it = stack_args_.rbegin(); it != stack_args_.rend(); ++it) {
+      const auto& s_arg = *it;
       auto arg = format_operand(*it);
-      out.push_back("push " + arg);
+
+      if (IsReg(s_arg)) {
+        auto reg64 = To64BitReg(arg);
+        if (kFRegsS64.count(reg64) != 0U) {
+          out.push_back("push " + f_regs_loc_.at(To64BitReg(arg)));
+        } else {
+          out.push_back("push " + To64BitReg(arg));
+        }
+      } else {
+        out.push_back("push " + arg);
+      }
     }
 
     if (func == "__func_print") {
@@ -615,7 +746,16 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
       out.emplace_back("add $" + std::to_string(bytes_to_pop) + ", %rsp");
     }
 
-    out.emplace_back("RESTORE_ALL");
+    out.push_back("mov %r12, " + sp_);
+    out.emplace_back("pop %r12");
+
+    for (const auto& reg : saved_f_regs_) {
+      auto reg64 = To64BitReg(reg);
+      if (kCallerSavedReg.count(reg64) != 0U) {
+        out.push_back(op_mov_ + " " + f_regs_loc_.at(reg64) + ", " + reg +
+                      "    # restore allocated reg state");
+      }
+    }
 
     auto s_ret = i.DST();
     auto dst = format_operand(s_ret);
@@ -625,6 +765,7 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
 
     param_index_ = 0;
     stack_args_.clear();
+    saved_f_regs_.clear();
   }
 
   else if (op == "arg") {
@@ -634,8 +775,20 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
 
     if (idx < 6) {
       // load from the appropriate register
-      out.push_back(op_mov_ + " " + (r32_ ? kFRegs32[idx] : kFRegs64[idx]) +
-                    ", " + dst);
+
+      if (IsReg(s_dst)) {
+        const auto* it = std::find(f_regs.begin(), f_regs.end(), dst);
+        if (it != f_regs.end()) {
+          auto reg64 = To64BitReg(f_regs[idx]);
+          out.push_back(op_mov_ + " " + f_regs_loc_.at(reg64) + ", " + dst);
+          req_args_regs_.emplace_back(f_regs[idx]);
+        } else {
+          out.push_back(op_mov_ + " " + f_regs[idx] + ", " + dst);
+        }
+      } else {
+        out.push_back(op_mov_ + " " + f_regs[idx] + ", " + dst);
+      }
+
     } else {
       int stack_offset = 16 + (8 * (idx - 6));
       bool dst_mem = !IsReg(s_dst);
@@ -649,4 +802,9 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
       }
     }
   }
+}
+
+auto X86Translator::alloc_stack_64() -> std::string {
+  stack_offset_ -= 8;
+  return std::to_string(stack_offset_) + "(" + bp_ + ")";
 }
