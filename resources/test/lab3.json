@@ -130,5 +130,30 @@
     "compiler_exit_code": 0,
     "exec_exit_code": 0,
     "output": "1 2 3 4 5 \n1 2 3 4 5 \n1 2 3 4 5 \n1 2 3 4 5 \n1 2 3 4 5 \n1 2 3 4 5 \n"
+  },
+  {
+    "source_file_path": "lab3/C9.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 56
+  },
+  {
+    "source_file_path": "lab3/C10.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 255
+  },
+  {
+    "source_file_path": "lab3/C11.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 186
+  },
+  {
+    "source_file_path": "lab3/C12.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 120
+  },
+  {
+    "source_file_path": "lab3/C13.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 35
   }
 ]

@@ -1,0 +1,15 @@
+int innerTest1(int cf0, int cf1, int cf2, int cf3, int cf4, int cf5, int cf6,
+               int cf7, int cf8, int cf9, int cfa, int cfb, int cfc, int cfd,
+               int cfe, int cff) {
+  return cf0 + cf1 + cf2 + cf3 + cf4;
+  return (cf0 + cf1 + cf2 + cf3 + cf4 + cf5 + cf6 + cf7 + cf8 + cf9 + cfa +
+              cfb + cfc + cfd + cfe + cff ==
+          3960)
+             ? 25
+             : 50;
+}
+
+int main() {
+  return innerTest1(0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9,
+                    0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff);
+}
