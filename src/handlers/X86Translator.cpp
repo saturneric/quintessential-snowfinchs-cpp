@@ -203,20 +203,36 @@ void X86Translator::emit_mov_op(std::vector<std::string>& fins,
   const auto src = format_operand(s_src);
   const auto dst = format_operand(s_dst);
 
-  if (op != "mov") return;
+  if (op == "mov") {
+    // dst should not be constant
+    assert(!IsImmediate(s_dst));
 
-  // dst should not be constant
-  assert(!IsImmediate(s_dst));
+    bool src_mem = !IsReg(s_src) && !IsImmediate(s_src);
+    bool dst_mem = !IsReg(s_dst);
 
-  bool src_mem = !IsReg(s_src) && !IsImmediate(s_src);
-  bool dst_mem = !IsReg(s_dst);
+    // [mem] -> [mem]
+    if (src_mem && dst_mem) {
+      fins.push_back(op_mov_ + " " + src + ", " + acc_reg_);
+      fins.push_back(op_mov_ + " " + acc_reg_ + ", " + dst);
+    } else {
+      fins.push_back(op_mov_ + " " + src + ", " + dst);
+    }
+  }
 
-  // [mem] -> [mem]
-  if (src_mem && dst_mem) {
-    fins.push_back(op_mov_ + " " + src + ", " + acc_reg_);
-    fins.push_back(op_mov_ + " " + acc_reg_ + ", " + dst);
-  } else {
-    fins.push_back(op_mov_ + " " + src + ", " + dst);
+  if (op == "load") {
+    // dst should not be constant
+    assert(!IsImmediate(s_dst));
+
+    bool src_mem = !IsReg(s_src) && !IsImmediate(s_src);
+    bool dst_mem = !IsReg(s_dst);
+
+    if (src_mem) {
+      // [mem] -> *
+      fins.push_back(op_mov_ + " " + src + ", " + acc_reg_);
+      fins.push_back(op_mov_ + " (" + acc_reg_ + "), " + dst);
+    } else {
+      fins.push_back(op_mov_ + " (" + src + "), " + dst);
+    }
   }
 }
 
@@ -468,7 +484,7 @@ auto X86Translator::translate(const std::vector<IRInstructionPtr>& ir,
 
     auto op = i.Op()->Name();
 
-    if (op == "mov") {
+    if (op == "mov" || op == "load") {
       emit_mov_op(ret, op, i);
     } else if (op == "add" || op == "sub" || op == "mul" || op == "div" ||
                op == "mod" || op == "band" || op == "bor" || op == "bxor" ||
@@ -553,6 +569,7 @@ auto X86Translator::GenerateDataSegment() -> std::vector<std::string> {
   ret.emplace_back(".extern getchar");
   ret.emplace_back(".extern putchar");
   ret.emplace_back(".extern stdout");
+  ret.emplace_back(".extern calloc");
 
   for (const auto& c : in_data_sec_vars_) {
     if (IsImmediate(c)) {
@@ -722,6 +739,10 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
       out.emplace_back("mov stdout(%rip), %rdi");
       out.emplace_back("call fflush");
       out.push_back(op_mov_ + " $0," + acc_reg_);
+    }
+
+    else if (func == "__func_alloc_array") {
+      out.emplace_back("call calloc");
     }
 
     else {
