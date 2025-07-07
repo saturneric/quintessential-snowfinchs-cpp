@@ -583,6 +583,9 @@ auto X86Translator::GenerateTextSection(const std::vector<IRInstructionPtr>& ir,
     f_regs_loc_[reg] = alloc_stack();
   }
 
+  // alloc stack memory for %rsp
+  f_regs_loc_["%rsp"] = alloc_stack_64();
+
   std::vector<std::string> need_save;
   for (const auto& reg : al_regs) {
     auto reg64 = To64BitReg(reg);
@@ -684,8 +687,7 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
       out.insert(out.end(), ret.begin(), ret.end());
     }
 
-    out.emplace_back("push %r12");
-    out.push_back("mov " + sp_ + ", %r12");
+    out.push_back("mov " + sp_ + ", " + f_regs_loc_.at("%rsp"));
     out.push_back("and $-16, " + sp_);
 
     const bool need_pad = (!stack_args_.empty() && stack_args_.size() % 2 == 1);
@@ -731,8 +733,7 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
       out.emplace_back("add $" + std::to_string(bytes_to_pop) + ", %rsp");
     }
 
-    out.push_back("mov %r12, " + sp_);
-    out.emplace_back("pop %r12");
+    out.emplace_back("mov " + f_regs_loc_.at("%rsp") + ", " + sp_);
 
     for (const auto& reg : saved_f_regs_) {
       auto reg64 = To64BitReg(reg);
