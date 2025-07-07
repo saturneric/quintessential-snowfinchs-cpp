@@ -39,12 +39,23 @@ class SemanticAnalyzer {
   auto MapFunction(int scope_id, const std::string& name,
                    const std::string& value) -> SymbolPtr;
 
+  auto MapStruct(int scope_id, const std::string& name,
+                 const std::string& value) -> SymbolPtr;
+
+  auto MapType(const std::string& id, const std::string& extra) -> SymbolPtr;
+
+  auto GetRootScopeId() const -> int;
+
+  auto LookupType(const std::string& type_name) -> SymbolPtr;
+
  private:
   SMHandlerMapping node_handler_register_;
   SymbolTablePtr symbol_table_;
   ScopedSymbolLookUpHelper helper_;
   ScopedSymbolLookUpHelper def_sym_helper_;
+  ScopedSymbolLookUpHelper type_desc_sym_helper_;
   std::map<std::string, std::any> meta_data_;
+  ASTNodePtr ast_root_;
 
   bool succ_;
   int inner_var_index_ = 0;

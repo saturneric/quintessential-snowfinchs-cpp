@@ -10,7 +10,13 @@ SemanticAnalyzer::SemanticAnalyzer(SymbolTablePtr symbol_table,
     : symbol_table_(std::move(symbol_table)),
       helper_(SymbolType::kAST, symbol_table_),
       def_sym_helper_(SymbolType::kDEFINE, symbol_table_),
-      node_handler_register_(std::move(mapping)) {};
+      type_desc_sym_helper_(SymbolType::kTYPEDESC, symbol_table_),
+      node_handler_register_(std::move(mapping)) {
+  // map predefined types with their sizes
+  MapType("int", "4");
+  MapType("bool", "4");
+  MapType("type", "0");
+};
 
 auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {
   if (node == nullptr) return node;
@@ -51,6 +57,17 @@ auto SemanticAnalyzer::MapFunction(int scope_id, const std::string& name,
                                   scope_id);
 }
 
+auto SemanticAnalyzer::MapStruct(int scope_id, const std::string& name,
+                                 const std::string& value) -> SymbolPtr {
+  return symbol_table_->AddSymbol(SymbolType::kSTRUCT, name, value, true,
+                                  scope_id);
+}
+
+auto SemanticAnalyzer::MapType(const std::string& id, const std::string& extra)
+    -> SymbolPtr {
+  return symbol_table_->AddSymbol(SymbolType::kTYPEDESC, id, extra, true);
+}
+
 auto SemanticAnalyzer::RecordSymbol(const SymbolPtr& symbol)
     -> std::tuple<bool, SymbolPtr> {
   // we are not allow variable-shadowing
@@ -88,6 +105,7 @@ auto SemanticAnalyzer::Analyze(const AST& ast) -> bool {
     Error(nullptr, "The AST is empty");
   }
 
+  ast_root_ = root;
   visit(root);
 
   if (root && meta_data_.count("has_return") == 0) {
@@ -116,4 +134,12 @@ void SemanticAnalyzer::PrintSymbolTable(const std::string& path) {
 auto SemanticAnalyzer::VisibleDefineSymbols(const ScopePtr& scope)
     -> std::vector<SymbolPtr> {
   return def_sym_helper_.LookupSymbols(scope);
+}
+
+auto SemanticAnalyzer::GetRootScopeId() const -> int {
+  return ast_root_ ? ast_root_->Symbol()->ScopeId() : kNonScopeId;
+}
+
+auto SemanticAnalyzer::LookupType(const std::string& type_name) -> SymbolPtr {
+  return type_desc_sym_helper_.LookupSymbolWithoutScope(type_name);
 }
