@@ -774,7 +774,7 @@ namespace yy {
   case 9: // struct_def: STRUCT VALUE_ID OPENING_BRACE field_list CLOSING_BRACE SEMICOLON
 #line 143 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kSTRUCT, yystack_[4].value.as < std::string > (), {}, drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kSTRUCT, std::string("__struct_") +yystack_[4].value.as < std::string > (), {}, drv);
       for (auto &f : yystack_[2].value.as < std::vector<ASTNodePtr> > ()) yylhs.value.as < ASTNodePtr > ()->AddChild(f);
     }
 #line 781 "Parser.cpp"
@@ -1481,7 +1481,7 @@ namespace yy {
   case 98: // call: ALLOC LEFT_PAREN type RIGHT_PAREN
 #line 531 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "alloc", "", drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") +"alloc", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(MakeASTTreeNode(ASTNodeType::kTYPE, "type", yystack_[1].value.as < std::string > (), drv));
     }
 #line 1488 "Parser.cpp"
@@ -1490,7 +1490,7 @@ namespace yy {
   case 99: // call: ALLOC_ARRAY LEFT_PAREN type COMMA expression RIGHT_PAREN
 #line 536 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "alloc_array", "", drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") +"alloc_array", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(MakeASTTreeNode(ASTNodeType::kTYPE, "type", yystack_[3].value.as < std::string > (), drv));
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
     }

@@ -141,7 +141,7 @@ function:
 struct_def:
     STRUCT VALUE_ID OPENING_BRACE field_list CLOSING_BRACE SEMICOLON
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kSTRUCT, $2, {}, drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kSTRUCT, std::string("__struct_") +$2, {}, drv);
       for (auto &f : $4) $$->AddChild(f);
     }
 ;
@@ -529,12 +529,12 @@ call:
     }
   | ALLOC LEFT_PAREN type RIGHT_PAREN         /* alloc(type) */
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "alloc", "", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") +"alloc", drv);
       $$->AddChild(MakeASTTreeNode(ASTNodeType::kTYPE, "type", $3, drv));
     }
   | ALLOC_ARRAY LEFT_PAREN type COMMA expression RIGHT_PAREN  /* alloc_array(type, exp) */
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "alloc_array", "", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") +"alloc_array", drv);
       $$->AddChild(MakeASTTreeNode(ASTNodeType::kTYPE, "type", $3, drv));
       $$->AddChild($5);
     }
