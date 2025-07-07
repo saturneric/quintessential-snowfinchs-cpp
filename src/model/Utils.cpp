@@ -68,3 +68,14 @@ auto IsImmediate(const SymbolPtr& s) -> bool {
   if (s == nullptr) return false;  // empty symbol
   return s->Value() == "immediate";
 }
+
+auto Trim(const std::string& str) -> std::string {
+  auto start = str.find_first_not_of(" \t\n\r");
+  if (start == std::string::npos) return "";
+  auto end = str.find_last_not_of(" \t\n\r");
+  return str.substr(start, end - start + 1);
+}
+auto EndsWith(const std::string& str, const std::string& suffix) -> bool {
+  if (str.size() < suffix.size()) return false;
+  return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}

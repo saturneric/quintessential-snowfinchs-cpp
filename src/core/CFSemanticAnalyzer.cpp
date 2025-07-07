@@ -77,7 +77,6 @@ void CFSemanticAnalyzer::check_definite_assignment() {
         fail();
 
         auto sym = MetaGet<SymbolPtr>(var, SymbolMetaKey::kDEF_SYMBOL, nullptr);
-
         SPDLOG_ERROR(
             "Semantic Error: Variable '{}' may be used uninitialized in "
             "block.",

@@ -1,8 +1,11 @@
 #pragma once
 
-enum class SymbolMetaType : uint8_t {
+enum class BaseType : uint8_t {
   kNONE = 0,
   kINT,
   kBOOL,
+  kPOINTER,
+  kSTRUCT,
+  kFUNCTION,
   kCOUNT,
 };

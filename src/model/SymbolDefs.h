@@ -6,6 +6,8 @@ enum class SymbolType : uint8_t {
   kDEFINE,
   kIR,
   kFUNCTION,
+  kSTRUCT,
+  kTYPEDESC,
 };
 
 using SymbolMetaKeySizeType = uint8_t;
@@ -29,7 +31,10 @@ enum class SymbolMetaKey : SymbolMetaKeySizeType {
   kWILL_RETURN,
   kWILL_BREAK,
   kPARAM_INDEX,
-  kRETURN_TYPE,
-  kPARAM_TYPES,
+  kRETURN_TYPE,      // SymbolPtr
+  kBASE_TYPE,        // SymbolPtr
+  kSTRUCT_FIELDS,    // std::vector<SymbolPtr>
+  kFUNCTION_PARAMS,  // std::vector<SymbolPtr>
+  kARRAY_SIZE,       // int
   kCOUNT,
 };
