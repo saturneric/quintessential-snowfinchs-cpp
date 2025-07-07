@@ -21,6 +21,10 @@ enum class ASTNodeType : uint8_t {
   kPARAM,
   kCALL,
   kARG_LIST,
+  kSTRUCT,
+  kFIELD,
+  kFIELD_ACCESS,
+  kARRAY_ACCESS,
 };
 
 enum class ASTNodeTag : uint8_t {

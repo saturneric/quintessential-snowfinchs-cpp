@@ -28,9 +28,9 @@
 %type <ASTNodePtr> simple_optional statement control block
 %type <ASTNodePtr> simple_statement declarator left_value
 %type <ASTNodePtr> expression
-%type <ASTNodePtr> function
+%type <ASTNodePtr> root_declaration function struct_def field
 %type <ASTNodePtr> program
-%type <std::vector<ASTNodePtr>> functions
+%type <std::vector<ASTNodePtr>> root_declarations field_list
 %type <std::vector<ASTNodePtr>> param_list_follow
 %type <ASTNodePtr> param_list param
 %type <std::vector<ASTNodePtr>>  arg_list_follow
@@ -46,8 +46,8 @@
 %token PLUS SUB MULT SLASH PERCENT
 // ! ~
 %token LOGIC_NOT BIT_NOT
-// ; ( ) { } ,
-%token SEMICOLON LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE CLOSING_BRACE COMMA
+// ; ( ) [ ] { } ,
+%token SEMICOLON LEFT_PAREN RIGHT_PAREN LEFT_BRACKET RIGHT_BRACKET OPENING_BRACE CLOSING_BRACE COMMA
 // << >> & ^ |
 %token LEFT_SHIFT RIGHT_SHIFT BIT_AND BIT_EX_OR BIT_OR
 // && ||
@@ -57,10 +57,12 @@
 // < <= > >= == !=
 %token LT LT_EQ GT GT_EQ EQ NOT_EQ
 // function
-%token PRINT READ FLUSH
+%token PRINT READ FLUSH ALLOC ALLOC_ARRAY
+// struct -> .
+%token STRUCT ARROW DOT
 
-%token STRUCT IF ELSE WHILE FOR CONTINUE BREAK RETURN 
-%token ASSERT ALLOC ALLOC_ARRAY
+%token IF ELSE WHILE FOR CONTINUE BREAK RETURN 
+%token ASSERT
 %token TRUE FALSE KW_NULL
 %token STRING BOOLEAN VOID CHAR INT
 %token NONE 
@@ -85,30 +87,49 @@
 
 %right LOGIC_NOT BIT_NOT UMINUS   // ! ~ -
 
+%left LEFT_BRACKET RIGHT_BRACKET  // [ ]
+%left DOT ARROW
+
+%right DEREF
+
 %start program
 
 %%
 program:
-  functions    
-  { 
-    $$ = MakeASTTreeNode(ASTNodeType::kPROGRAM, "program", {}, drv);
-    drv.SetSyntaxTreeRoot($$);
-    for (auto p : $1) $$->AddChild(p);
-  }
+    root_declarations
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kPROGRAM, "program", {}, drv);
+      drv.SetSyntaxTreeRoot($$);
+      for (auto decl : $1)
+        $$->AddChild(decl);
+    }
 ;
 
-functions:
-    /* empty */ 
-    { $$ = std::vector<ASTNodePtr>(); }
-  | function functions
+root_declarations:
+    /* empty */
+    {
+      $$ = std::vector<ASTNodePtr>();
+    }
+  | root_declaration root_declarations
     {
       $2.insert($2.begin(), $1);
       $$ = $2;
     }
 ;
 
+root_declaration:
+    function
+    {
+      $$ = $1;
+    }
+  | struct_def
+    {
+      $$ = $1;
+    }
+;
+
 function:
-    type VALUE_ID { EnterScope(drv); } LEFT_BRACKET param_list RIGHT_BRACKET block
+    type VALUE_ID { EnterScope(drv); } LEFT_PAREN param_list RIGHT_PAREN block
     {
       $$ = MakeASTTreeNode(ASTNodeType::kFUNCTION, $1, std::string("__func_") + $2, drv);
       if ($5) $$->AddChild($5, ASTNodeTag::kPARAMS);
@@ -117,9 +138,38 @@ function:
     }
 ;
 
+struct_def:
+    STRUCT VALUE_ID OPENING_BRACE field_list CLOSING_BRACE SEMICOLON
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kSTRUCT, $2, {}, drv);
+      for (auto &f : $4) $$->AddChild(f);
+    }
+;
+
+field_list:
+    /* empty */
+    { 
+      $$ = std::vector<ASTNodePtr>();
+    }
+  | field field_list
+    {
+      $2.insert($2.begin(), $1);
+      $$ = $2;
+    }
+;
+
+field:
+    type VALUE_ID SEMICOLON
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kFIELD, $2, $1, drv);
+    }
+;
+
 param_list:
     /* empty */
-    { $$ = nullptr; }
+    {
+      $$ = nullptr;
+    }
   | param param_list_follow
     {
       auto list = MakeASTTreeNode(ASTNodeType::kPARAM_LIST, "param_list", {}, drv);
@@ -158,8 +208,17 @@ block:
     }
 
 type:
-      INT     { $$ = "int"; }
-    | BOOLEAN { $$ = "bool"; }
+      INT                     { $$ = "int"; }
+    | BOOLEAN                 { $$ = "bool"; }
+    | STRUCT VALUE_ID         { $$ = std::string("struct ") + $2; }
+    | type MULT               /* Pointer */
+      {
+        $$ = $1 + "*";
+      }
+    | type LEFT_BRACKET RIGHT_BRACKET  /* Array */
+      {
+        $$ = $1 + "[]";
+      }
 ;
 
 statements:
@@ -252,33 +311,60 @@ left_value:
     {
       $$ = MakeASTTreeNode(ASTNodeType::kIDENT, "left_value", $1, drv);
     }
-    | LEFT_BRACKET left_value RIGHT_BRACKET
+    | LEFT_PAREN left_value RIGHT_PAREN
     {
       $$ = $2;
+    }
+    | MULT left_value /* *lvalue */ %prec DEREF
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "*", drv);
+      $$->AddChild($2);
+    }
+    | left_value LEFT_BRACKET expression RIGHT_BRACKET  /* lvalue[exp] */
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kARRAY_ACCESS, "subscript", "[]", drv);
+      $$->AddChild($1);
+      $$->AddChild($3);
+    }
+    | left_value DOT VALUE_ID    /* lvalue.field */
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "dot", ".", drv);
+      $$->AddChild($1);
+      $$->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", $3, drv));
+    }
+    | left_value ARROW VALUE_ID  /* lvalue->field */
+    {
+      /* equals to (*lvalue).field */
+      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "*", drv);
+      deref->AddChild($1);
+
+      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", "->", drv);
+      $$->AddChild(deref);
+      $$->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", $3, drv));
     }
 ;
 
 control:
-    IF LEFT_BRACKET expression RIGHT_BRACKET statement ELSE statement
+    IF LEFT_PAREN expression RIGHT_PAREN statement ELSE statement
     {
       $$ = MakeASTTreeNode(ASTNodeType::kIF, "control", {}, drv);
       $$->AddChild($3);
       $$->AddChild($5);
       $$->AddChild($7);
     }
-    | IF LEFT_BRACKET expression RIGHT_BRACKET statement %prec IFX
+    | IF LEFT_PAREN expression RIGHT_PAREN statement %prec IFX
     {
       $$ = MakeASTTreeNode(ASTNodeType::kIF, "control", {}, drv);
       $$->AddChild($3);
       $$->AddChild($5);
     } 
-    | WHILE LEFT_BRACKET expression RIGHT_BRACKET statement
+    | WHILE LEFT_PAREN expression RIGHT_PAREN statement
     {
       $$ = MakeASTTreeNode(ASTNodeType::kWHILE, "while", {}, drv);
       $$->AddChild($3, ASTNodeTag::kCOND);
       $$->AddChild($5, ASTNodeTag::kBODY);
     }
-    | FOR LEFT_BRACKET { EnterScope(drv); } simple_optional SEMICOLON expression SEMICOLON simple_optional RIGHT_BRACKET statement
+    | FOR LEFT_PAREN { EnterScope(drv); } simple_optional SEMICOLON expression SEMICOLON simple_optional RIGHT_PAREN statement
     {
       $$ = MakeASTTreeNode(ASTNodeType::kWHILE, "for", {}, drv);
       $$->AddChild($4, ASTNodeTag::kINIT);
@@ -304,7 +390,7 @@ control:
 ;
 
 expression:
-    LEFT_BRACKET expression RIGHT_BRACKET   { $$ = $2; }
+    LEFT_PAREN expression RIGHT_PAREN   { $$ = $2; }
     | call { $$ = $1; }
     | expression PLUS expression
         { $$ = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PLUS", "+", drv); $$->AddChild($1); $$->AddChild($3); }
@@ -381,7 +467,7 @@ assign_operator:
 ;
 
 call:
-    VALUE_ID LEFT_BRACKET arg_list RIGHT_BRACKET
+    VALUE_ID LEFT_PAREN arg_list RIGHT_PAREN
     {
       $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + $1, drv);
       if ($3) {
@@ -389,7 +475,7 @@ call:
           $$->AddChild(child);
       }
     }
-  | PRINT LEFT_BRACKET arg_list RIGHT_BRACKET
+  | PRINT LEFT_PAREN arg_list RIGHT_PAREN
     {
       $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "print", drv);
       if ($3) {
@@ -397,7 +483,7 @@ call:
           $$->AddChild(child);
       }
     }
-  | READ LEFT_BRACKET arg_list RIGHT_BRACKET
+  | READ LEFT_PAREN arg_list RIGHT_PAREN
     {
       $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "read", drv);
       if ($3) {
@@ -405,7 +491,7 @@ call:
           $$->AddChild(child);
       }
     }
-  | FLUSH LEFT_BRACKET arg_list RIGHT_BRACKET
+  | FLUSH LEFT_PAREN arg_list RIGHT_PAREN
     {
       $$ = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "flush", drv);
       if ($3) {
@@ -413,6 +499,18 @@ call:
           $$->AddChild(child);
       }
     }
+  | ALLOC LEFT_PAREN type RIGHT_PAREN         /* alloc(type) */
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "alloc", "", drv);
+      $$->AddChild(MakeASTTreeNode(ASTNodeType::kTYPE, "type", $3, drv));
+    }
+  | ALLOC_ARRAY LEFT_PAREN type COMMA expression RIGHT_PAREN  /* alloc_array(type, exp) */
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kCALL, "alloc_array", "", drv);
+      $$->AddChild(MakeASTTreeNode(ASTNodeType::kTYPE, "type", $3, drv));
+      $$->AddChild($5);
+    }
+;
   ;
 
 arg_list:

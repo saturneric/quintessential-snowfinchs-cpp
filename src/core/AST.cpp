@@ -19,9 +19,12 @@ const std::map<ASTNodeType, std::string> kAstNodeTypeStr = {
     {ASTNodeType::kFUNCTION, "Function"},
     {ASTNodeType::kCALL, "Function Call"},
     {ASTNodeType::kPARAM_LIST, "Parameter List"},
-    {ASTNodeType::kPARAM_LIST, "Parameter List"},
     {ASTNodeType::kPARAM, "Parameter"},
     {ASTNodeType::kARG_LIST, "Argument List"},
+    {ASTNodeType::kSTRUCT, "Struct"},
+    {ASTNodeType::kFIELD, "Struct Field"},
+    {ASTNodeType::kFIELD_ACCESS, "Struct Field Access"},
+    {ASTNodeType::kARRAY_ACCESS, "Array Access"},
 };
 
 struct AST::Impl {

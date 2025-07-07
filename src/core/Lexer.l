@@ -55,8 +55,10 @@
 "{"                 { return yy::parser::make_OPENING_BRACE(loc); }
 "}"                 { return yy::parser::make_CLOSING_BRACE(loc); }
 ";"                 { return yy::parser::make_SEMICOLON(loc); }
-"("                 { return yy::parser::make_LEFT_BRACKET(loc); }
-")"                 { return yy::parser::make_RIGHT_BRACKET(loc); }
+"["                 { return yy::parser::make_LEFT_BRACKET(loc); }
+"]"                 { return yy::parser::make_RIGHT_BRACKET(loc); }
+"("                 { return yy::parser::make_LEFT_PAREN(loc); }
+")"                 { return yy::parser::make_RIGHT_PAREN(loc); }
 ","                 { return yy::parser::make_COMMA(loc); }
 
 "!"                 { return yy::parser::make_LOGIC_NOT(loc); }
@@ -99,6 +101,9 @@
 ":"                 { return yy::parser::make_COLON(loc); }
 
 "struct"            { return yy::parser::make_STRUCT(loc); }
+"->"                 { return yy::parser::make_ARROW(loc); }
+"."                 { return yy::parser::make_DOT(loc); }
+
 "if"                { return yy::parser::make_IF(loc); }
 "else"              { return yy::parser::make_ELSE(loc); }
 "while"             { return yy::parser::make_WHILE(loc); }
