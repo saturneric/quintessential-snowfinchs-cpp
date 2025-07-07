@@ -382,7 +382,10 @@ namespace yy {
     union union_type
     {
       // program
+      // root_declaration
       // function
+      // struct_def
+      // field
       // param_list
       // param
       // block
@@ -403,7 +406,8 @@ namespace yy {
       // assign_operator
       char dummy2[sizeof (std::string)];
 
-      // functions
+      // root_declarations
+      // field_list
       // param_list_follow
       // statements
       // arg_list_follow
@@ -478,52 +482,57 @@ namespace yy {
     TOKEN_LOGIC_NOT = 276,         // LOGIC_NOT
     TOKEN_BIT_NOT = 277,           // BIT_NOT
     TOKEN_SEMICOLON = 278,         // SEMICOLON
-    TOKEN_LEFT_BRACKET = 279,      // LEFT_BRACKET
-    TOKEN_RIGHT_BRACKET = 280,     // RIGHT_BRACKET
-    TOKEN_OPENING_BRACE = 281,     // OPENING_BRACE
-    TOKEN_CLOSING_BRACE = 282,     // CLOSING_BRACE
-    TOKEN_COMMA = 283,             // COMMA
-    TOKEN_LEFT_SHIFT = 284,        // LEFT_SHIFT
-    TOKEN_RIGHT_SHIFT = 285,       // RIGHT_SHIFT
-    TOKEN_BIT_AND = 286,           // BIT_AND
-    TOKEN_BIT_EX_OR = 287,         // BIT_EX_OR
-    TOKEN_BIT_OR = 288,            // BIT_OR
-    TOKEN_LOGIC_AND = 289,         // LOGIC_AND
-    TOKEN_LOGIC_OR = 290,          // LOGIC_OR
-    TOKEN_QUESTION = 291,          // QUESTION
-    TOKEN_COLON = 292,             // COLON
-    TOKEN_LT = 293,                // LT
-    TOKEN_LT_EQ = 294,             // LT_EQ
-    TOKEN_GT = 295,                // GT
-    TOKEN_GT_EQ = 296,             // GT_EQ
-    TOKEN_EQ = 297,                // EQ
-    TOKEN_NOT_EQ = 298,            // NOT_EQ
-    TOKEN_PRINT = 299,             // PRINT
-    TOKEN_READ = 300,              // READ
-    TOKEN_FLUSH = 301,             // FLUSH
-    TOKEN_STRUCT = 302,            // STRUCT
-    TOKEN_IF = 303,                // IF
-    TOKEN_ELSE = 304,              // ELSE
-    TOKEN_WHILE = 305,             // WHILE
-    TOKEN_FOR = 306,               // FOR
-    TOKEN_CONTINUE = 307,          // CONTINUE
-    TOKEN_BREAK = 308,             // BREAK
-    TOKEN_RETURN = 309,            // RETURN
-    TOKEN_ASSERT = 310,            // ASSERT
-    TOKEN_ALLOC = 311,             // ALLOC
-    TOKEN_ALLOC_ARRAY = 312,       // ALLOC_ARRAY
-    TOKEN_TRUE = 313,              // TRUE
-    TOKEN_FALSE = 314,             // FALSE
-    TOKEN_KW_NULL = 315,           // KW_NULL
-    TOKEN_STRING = 316,            // STRING
-    TOKEN_BOOLEAN = 317,           // BOOLEAN
-    TOKEN_VOID = 318,              // VOID
-    TOKEN_CHAR = 319,              // CHAR
-    TOKEN_INT = 320,               // INT
-    TOKEN_NONE = 321,              // NONE
-    TOKEN_IFX = 322,               // IFX
-    TOKEN_CON_EXP = 323,           // CON_EXP
-    TOKEN_UMINUS = 324             // UMINUS
+    TOKEN_LEFT_PAREN = 279,        // LEFT_PAREN
+    TOKEN_RIGHT_PAREN = 280,       // RIGHT_PAREN
+    TOKEN_LEFT_BRACKET = 281,      // LEFT_BRACKET
+    TOKEN_RIGHT_BRACKET = 282,     // RIGHT_BRACKET
+    TOKEN_OPENING_BRACE = 283,     // OPENING_BRACE
+    TOKEN_CLOSING_BRACE = 284,     // CLOSING_BRACE
+    TOKEN_COMMA = 285,             // COMMA
+    TOKEN_LEFT_SHIFT = 286,        // LEFT_SHIFT
+    TOKEN_RIGHT_SHIFT = 287,       // RIGHT_SHIFT
+    TOKEN_BIT_AND = 288,           // BIT_AND
+    TOKEN_BIT_EX_OR = 289,         // BIT_EX_OR
+    TOKEN_BIT_OR = 290,            // BIT_OR
+    TOKEN_LOGIC_AND = 291,         // LOGIC_AND
+    TOKEN_LOGIC_OR = 292,          // LOGIC_OR
+    TOKEN_QUESTION = 293,          // QUESTION
+    TOKEN_COLON = 294,             // COLON
+    TOKEN_LT = 295,                // LT
+    TOKEN_LT_EQ = 296,             // LT_EQ
+    TOKEN_GT = 297,                // GT
+    TOKEN_GT_EQ = 298,             // GT_EQ
+    TOKEN_EQ = 299,                // EQ
+    TOKEN_NOT_EQ = 300,            // NOT_EQ
+    TOKEN_PRINT = 301,             // PRINT
+    TOKEN_READ = 302,              // READ
+    TOKEN_FLUSH = 303,             // FLUSH
+    TOKEN_ALLOC = 304,             // ALLOC
+    TOKEN_ALLOC_ARRAY = 305,       // ALLOC_ARRAY
+    TOKEN_STRUCT = 306,            // STRUCT
+    TOKEN_ARROW = 307,             // ARROW
+    TOKEN_DOT = 308,               // DOT
+    TOKEN_IF = 309,                // IF
+    TOKEN_ELSE = 310,              // ELSE
+    TOKEN_WHILE = 311,             // WHILE
+    TOKEN_FOR = 312,               // FOR
+    TOKEN_CONTINUE = 313,          // CONTINUE
+    TOKEN_BREAK = 314,             // BREAK
+    TOKEN_RETURN = 315,            // RETURN
+    TOKEN_ASSERT = 316,            // ASSERT
+    TOKEN_TRUE = 317,              // TRUE
+    TOKEN_FALSE = 318,             // FALSE
+    TOKEN_KW_NULL = 319,           // KW_NULL
+    TOKEN_STRING = 320,            // STRING
+    TOKEN_BOOLEAN = 321,           // BOOLEAN
+    TOKEN_VOID = 322,              // VOID
+    TOKEN_CHAR = 323,              // CHAR
+    TOKEN_INT = 324,               // INT
+    TOKEN_NONE = 325,              // NONE
+    TOKEN_IFX = 326,               // IFX
+    TOKEN_CON_EXP = 327,           // CON_EXP
+    TOKEN_UMINUS = 328,            // UMINUS
+    TOKEN_DEREF = 329              // DEREF
       };
       /// Backward compatibility alias (Bison 3.6).
       typedef token_kind_type yytokentype;
@@ -540,7 +549,7 @@ namespace yy {
     {
       enum symbol_kind_type
       {
-        YYNTOKENS = 70, ///< Number of tokens.
+        YYNTOKENS = 75, ///< Number of tokens.
         S_YYEMPTY = -2,
         S_YYEOF = 0,                             // "end of file"
         S_YYerror = 1,                           // error
@@ -566,76 +575,85 @@ namespace yy {
         S_LOGIC_NOT = 21,                        // LOGIC_NOT
         S_BIT_NOT = 22,                          // BIT_NOT
         S_SEMICOLON = 23,                        // SEMICOLON
-        S_LEFT_BRACKET = 24,                     // LEFT_BRACKET
-        S_RIGHT_BRACKET = 25,                    // RIGHT_BRACKET
-        S_OPENING_BRACE = 26,                    // OPENING_BRACE
-        S_CLOSING_BRACE = 27,                    // CLOSING_BRACE
-        S_COMMA = 28,                            // COMMA
-        S_LEFT_SHIFT = 29,                       // LEFT_SHIFT
-        S_RIGHT_SHIFT = 30,                      // RIGHT_SHIFT
-        S_BIT_AND = 31,                          // BIT_AND
-        S_BIT_EX_OR = 32,                        // BIT_EX_OR
-        S_BIT_OR = 33,                           // BIT_OR
-        S_LOGIC_AND = 34,                        // LOGIC_AND
-        S_LOGIC_OR = 35,                         // LOGIC_OR
-        S_QUESTION = 36,                         // QUESTION
-        S_COLON = 37,                            // COLON
-        S_LT = 38,                               // LT
-        S_LT_EQ = 39,                            // LT_EQ
-        S_GT = 40,                               // GT
-        S_GT_EQ = 41,                            // GT_EQ
-        S_EQ = 42,                               // EQ
-        S_NOT_EQ = 43,                           // NOT_EQ
-        S_PRINT = 44,                            // PRINT
-        S_READ = 45,                             // READ
-        S_FLUSH = 46,                            // FLUSH
-        S_STRUCT = 47,                           // STRUCT
-        S_IF = 48,                               // IF
-        S_ELSE = 49,                             // ELSE
-        S_WHILE = 50,                            // WHILE
-        S_FOR = 51,                              // FOR
-        S_CONTINUE = 52,                         // CONTINUE
-        S_BREAK = 53,                            // BREAK
-        S_RETURN = 54,                           // RETURN
-        S_ASSERT = 55,                           // ASSERT
-        S_ALLOC = 56,                            // ALLOC
-        S_ALLOC_ARRAY = 57,                      // ALLOC_ARRAY
-        S_TRUE = 58,                             // TRUE
-        S_FALSE = 59,                            // FALSE
-        S_KW_NULL = 60,                          // KW_NULL
-        S_STRING = 61,                           // STRING
-        S_BOOLEAN = 62,                          // BOOLEAN
-        S_VOID = 63,                             // VOID
-        S_CHAR = 64,                             // CHAR
-        S_INT = 65,                              // INT
-        S_NONE = 66,                             // NONE
-        S_IFX = 67,                              // IFX
-        S_CON_EXP = 68,                          // CON_EXP
-        S_UMINUS = 69,                           // UMINUS
-        S_YYACCEPT = 70,                         // $accept
-        S_program = 71,                          // program
-        S_functions = 72,                        // functions
-        S_function = 73,                         // function
-        S_74_1 = 74,                             // $@1
-        S_param_list = 75,                       // param_list
-        S_param_list_follow = 76,                // param_list_follow
-        S_param = 77,                            // param
-        S_block = 78,                            // block
-        S_79_2 = 79,                             // $@2
-        S_type = 80,                             // type
-        S_statements = 81,                       // statements
-        S_statement = 82,                        // statement
-        S_simple_statement = 83,                 // simple_statement
-        S_simple_optional = 84,                  // simple_optional
-        S_declarator = 85,                       // declarator
-        S_left_value = 86,                       // left_value
-        S_control = 87,                          // control
-        S_88_3 = 88,                             // $@3
-        S_expression = 89,                       // expression
-        S_assign_operator = 90,                  // assign_operator
-        S_call = 91,                             // call
-        S_arg_list = 92,                         // arg_list
-        S_arg_list_follow = 93                   // arg_list_follow
+        S_LEFT_PAREN = 24,                       // LEFT_PAREN
+        S_RIGHT_PAREN = 25,                      // RIGHT_PAREN
+        S_LEFT_BRACKET = 26,                     // LEFT_BRACKET
+        S_RIGHT_BRACKET = 27,                    // RIGHT_BRACKET
+        S_OPENING_BRACE = 28,                    // OPENING_BRACE
+        S_CLOSING_BRACE = 29,                    // CLOSING_BRACE
+        S_COMMA = 30,                            // COMMA
+        S_LEFT_SHIFT = 31,                       // LEFT_SHIFT
+        S_RIGHT_SHIFT = 32,                      // RIGHT_SHIFT
+        S_BIT_AND = 33,                          // BIT_AND
+        S_BIT_EX_OR = 34,                        // BIT_EX_OR
+        S_BIT_OR = 35,                           // BIT_OR
+        S_LOGIC_AND = 36,                        // LOGIC_AND
+        S_LOGIC_OR = 37,                         // LOGIC_OR
+        S_QUESTION = 38,                         // QUESTION
+        S_COLON = 39,                            // COLON
+        S_LT = 40,                               // LT
+        S_LT_EQ = 41,                            // LT_EQ
+        S_GT = 42,                               // GT
+        S_GT_EQ = 43,                            // GT_EQ
+        S_EQ = 44,                               // EQ
+        S_NOT_EQ = 45,                           // NOT_EQ
+        S_PRINT = 46,                            // PRINT
+        S_READ = 47,                             // READ
+        S_FLUSH = 48,                            // FLUSH
+        S_ALLOC = 49,                            // ALLOC
+        S_ALLOC_ARRAY = 50,                      // ALLOC_ARRAY
+        S_STRUCT = 51,                           // STRUCT
+        S_ARROW = 52,                            // ARROW
+        S_DOT = 53,                              // DOT
+        S_IF = 54,                               // IF
+        S_ELSE = 55,                             // ELSE
+        S_WHILE = 56,                            // WHILE
+        S_FOR = 57,                              // FOR
+        S_CONTINUE = 58,                         // CONTINUE
+        S_BREAK = 59,                            // BREAK
+        S_RETURN = 60,                           // RETURN
+        S_ASSERT = 61,                           // ASSERT
+        S_TRUE = 62,                             // TRUE
+        S_FALSE = 63,                            // FALSE
+        S_KW_NULL = 64,                          // KW_NULL
+        S_STRING = 65,                           // STRING
+        S_BOOLEAN = 66,                          // BOOLEAN
+        S_VOID = 67,                             // VOID
+        S_CHAR = 68,                             // CHAR
+        S_INT = 69,                              // INT
+        S_NONE = 70,                             // NONE
+        S_IFX = 71,                              // IFX
+        S_CON_EXP = 72,                          // CON_EXP
+        S_UMINUS = 73,                           // UMINUS
+        S_DEREF = 74,                            // DEREF
+        S_YYACCEPT = 75,                         // $accept
+        S_program = 76,                          // program
+        S_root_declarations = 77,                // root_declarations
+        S_root_declaration = 78,                 // root_declaration
+        S_function = 79,                         // function
+        S_80_1 = 80,                             // $@1
+        S_struct_def = 81,                       // struct_def
+        S_field_list = 82,                       // field_list
+        S_field = 83,                            // field
+        S_param_list = 84,                       // param_list
+        S_param_list_follow = 85,                // param_list_follow
+        S_param = 86,                            // param
+        S_block = 87,                            // block
+        S_88_2 = 88,                             // $@2
+        S_type = 89,                             // type
+        S_statements = 90,                       // statements
+        S_statement = 91,                        // statement
+        S_simple_statement = 92,                 // simple_statement
+        S_simple_optional = 93,                  // simple_optional
+        S_declarator = 94,                       // declarator
+        S_left_value = 95,                       // left_value
+        S_control = 96,                          // control
+        S_97_3 = 97,                             // $@3
+        S_expression = 98,                       // expression
+        S_assign_operator = 99,                  // assign_operator
+        S_call = 100,                            // call
+        S_arg_list = 101,                        // arg_list
+        S_arg_list_follow = 102                  // arg_list_follow
       };
     };
 
@@ -673,7 +691,10 @@ namespace yy {
         switch (this->kind ())
     {
       case symbol_kind::S_program: // program
+      case symbol_kind::S_root_declaration: // root_declaration
       case symbol_kind::S_function: // function
+      case symbol_kind::S_struct_def: // struct_def
+      case symbol_kind::S_field: // field
       case symbol_kind::S_param_list: // param_list
       case symbol_kind::S_param: // param
       case symbol_kind::S_block: // block
@@ -696,7 +717,8 @@ namespace yy {
         value.move< std::string > (std::move (that.value));
         break;
 
-      case symbol_kind::S_functions: // functions
+      case symbol_kind::S_root_declarations: // root_declarations
+      case symbol_kind::S_field_list: // field_list
       case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
       case symbol_kind::S_arg_list_follow: // arg_list_follow
@@ -793,7 +815,10 @@ namespace yy {
 switch (yykind)
     {
       case symbol_kind::S_program: // program
+      case symbol_kind::S_root_declaration: // root_declaration
       case symbol_kind::S_function: // function
+      case symbol_kind::S_struct_def: // struct_def
+      case symbol_kind::S_field: // field
       case symbol_kind::S_param_list: // param_list
       case symbol_kind::S_param: // param
       case symbol_kind::S_block: // block
@@ -816,7 +841,8 @@ switch (yykind)
         value.template destroy< std::string > ();
         break;
 
-      case symbol_kind::S_functions: // functions
+      case symbol_kind::S_root_declarations: // root_declarations
+      case symbol_kind::S_field_list: // field_list
       case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
       case symbol_kind::S_arg_list_follow: // arg_list_follow
@@ -1338,6 +1364,36 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_LEFT_PAREN (location_type l)
+      {
+        return symbol_type (token::TOKEN_LEFT_PAREN, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_LEFT_PAREN (const location_type& l)
+      {
+        return symbol_type (token::TOKEN_LEFT_PAREN, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_RIGHT_PAREN (location_type l)
+      {
+        return symbol_type (token::TOKEN_RIGHT_PAREN, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_RIGHT_PAREN (const location_type& l)
+      {
+        return symbol_type (token::TOKEN_RIGHT_PAREN, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_LEFT_BRACKET (location_type l)
       {
         return symbol_type (token::TOKEN_LEFT_BRACKET, std::move (l));
@@ -1683,6 +1739,36 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_ALLOC (location_type l)
+      {
+        return symbol_type (token::TOKEN_ALLOC, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_ALLOC (const location_type& l)
+      {
+        return symbol_type (token::TOKEN_ALLOC, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_ALLOC_ARRAY (location_type l)
+      {
+        return symbol_type (token::TOKEN_ALLOC_ARRAY, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_ALLOC_ARRAY (const location_type& l)
+      {
+        return symbol_type (token::TOKEN_ALLOC_ARRAY, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_STRUCT (location_type l)
       {
         return symbol_type (token::TOKEN_STRUCT, std::move (l));
@@ -1693,6 +1779,36 @@ switch (yykind)
       make_STRUCT (const location_type& l)
       {
         return symbol_type (token::TOKEN_STRUCT, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_ARROW (location_type l)
+      {
+        return symbol_type (token::TOKEN_ARROW, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_ARROW (const location_type& l)
+      {
+        return symbol_type (token::TOKEN_ARROW, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_DOT (location_type l)
+      {
+        return symbol_type (token::TOKEN_DOT, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_DOT (const location_type& l)
+      {
+        return symbol_type (token::TOKEN_DOT, l);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -1813,36 +1929,6 @@ switch (yykind)
       make_ASSERT (const location_type& l)
       {
         return symbol_type (token::TOKEN_ASSERT, l);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_ALLOC (location_type l)
-      {
-        return symbol_type (token::TOKEN_ALLOC, std::move (l));
-      }
-#else
-      static
-      symbol_type
-      make_ALLOC (const location_type& l)
-      {
-        return symbol_type (token::TOKEN_ALLOC, l);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
-      make_ALLOC_ARRAY (location_type l)
-      {
-        return symbol_type (token::TOKEN_ALLOC_ARRAY, std::move (l));
-      }
-#else
-      static
-      symbol_type
-      make_ALLOC_ARRAY (const location_type& l)
-      {
-        return symbol_type (token::TOKEN_ALLOC_ARRAY, l);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -2025,6 +2111,21 @@ switch (yykind)
         return symbol_type (token::TOKEN_UMINUS, l);
       }
 #endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_DEREF (location_type l)
+      {
+        return symbol_type (token::TOKEN_DEREF, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_DEREF (const location_type& l)
+      {
+        return symbol_type (token::TOKEN_DEREF, l);
+      }
+#endif
 
 
     class context
@@ -2077,7 +2178,7 @@ switch (yykind)
     /// \param yyvalue   the value to check
     static bool yy_table_value_is_error_ (int yyvalue) YY_NOEXCEPT;
 
-    static const signed char yypact_ninf_;
+    static const short yypact_ninf_;
     static const signed char yytable_ninf_;
 
     /// Convert a scanner token kind \a t to a symbol kind.
@@ -2103,10 +2204,10 @@ switch (yykind)
     static const signed char yydefact_[];
 
     // YYPGOTO[NTERM-NUM].
-    static const signed char yypgoto_[];
+    static const short yypgoto_[];
 
     // YYDEFGOTO[NTERM-NUM].
-    static const signed char yydefgoto_[];
+    static const unsigned char yydefgoto_[];
 
     // YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
     // positive, shift that token.  If negative, reduce the rule whose
@@ -2355,9 +2456,9 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 510,     ///< Last index in yytable_.
-      yynnts_ = 24,  ///< Number of nonterminal symbols.
-      yyfinal_ = 7 ///< Termination state number.
+      yylast_ = 658,     ///< Last index in yytable_.
+      yynnts_ = 28,  ///< Number of nonterminal symbols.
+      yyfinal_ = 11 ///< Termination state number.
     };
 
 
@@ -2408,10 +2509,10 @@ switch (yykind)
       35,    36,    37,    38,    39,    40,    41,    42,    43,    44,
       45,    46,    47,    48,    49,    50,    51,    52,    53,    54,
       55,    56,    57,    58,    59,    60,    61,    62,    63,    64,
-      65,    66,    67,    68,    69
+      65,    66,    67,    68,    69,    70,    71,    72,    73,    74
     };
     // Last valid token kind.
-    const int code_max = 324;
+    const int code_max = 329;
 
     if (t <= 0)
       return symbol_kind::S_YYEOF;
@@ -2431,7 +2532,10 @@ switch (yykind)
     switch (this->kind ())
     {
       case symbol_kind::S_program: // program
+      case symbol_kind::S_root_declaration: // root_declaration
       case symbol_kind::S_function: // function
+      case symbol_kind::S_struct_def: // struct_def
+      case symbol_kind::S_field: // field
       case symbol_kind::S_param_list: // param_list
       case symbol_kind::S_param: // param
       case symbol_kind::S_block: // block
@@ -2454,7 +2558,8 @@ switch (yykind)
         value.copy< std::string > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_functions: // functions
+      case symbol_kind::S_root_declarations: // root_declarations
+      case symbol_kind::S_field_list: // field_list
       case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
       case symbol_kind::S_arg_list_follow: // arg_list_follow
@@ -2493,7 +2598,10 @@ switch (yykind)
     switch (this->kind ())
     {
       case symbol_kind::S_program: // program
+      case symbol_kind::S_root_declaration: // root_declaration
       case symbol_kind::S_function: // function
+      case symbol_kind::S_struct_def: // struct_def
+      case symbol_kind::S_field: // field
       case symbol_kind::S_param_list: // param_list
       case symbol_kind::S_param: // param
       case symbol_kind::S_block: // block
@@ -2516,7 +2624,8 @@ switch (yykind)
         value.move< std::string > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_functions: // functions
+      case symbol_kind::S_root_declarations: // root_declarations
+      case symbol_kind::S_field_list: // field_list
       case symbol_kind::S_param_list_follow: // param_list_follow
       case symbol_kind::S_statements: // statements
       case symbol_kind::S_arg_list_follow: // arg_list_follow
@@ -2589,7 +2698,7 @@ switch (yykind)
 
 
 } // yy
-#line 2593 "Parser.hpp"
+#line 2702 "Parser.hpp"
 
 
 
