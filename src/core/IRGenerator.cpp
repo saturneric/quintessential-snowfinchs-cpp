@@ -10,6 +10,45 @@ auto SSAOriginSym(const SymbolPtr& s) -> SymbolPtr {
   return MetaGet<SymbolPtr>(s, SymbolMetaKey::kSSA_ORIGIN_SYM);
 }
 
+auto ParseTypeName(const std::string& type_name) -> std::string {
+  if (type_name == "int" || type_name == "bool" || type_name == "type") {
+    return type_name;
+  }
+
+  if (type_name.back() == '*') {
+    auto base_type = Trim(type_name.substr(0, type_name.size() - 1));
+    SymbolPtr sym_base = nullptr;
+    auto base_type_name = ParseTypeName(base_type);
+
+    if (base_type_name.empty() || sym_base == nullptr) {
+      return "";
+    }
+
+    return "ptr_" + base_type_name;
+  }
+
+  if (type_name.rfind("struct", 0) == 0) {
+    // struct type
+    auto struct_name = Trim(type_name.substr(6));
+    if (struct_name.empty()) {
+      return "";
+    }
+    return "struct_" + struct_name;
+  }
+
+  // array []
+  if (EndsWith(type_name, "[]")) {
+    auto base_type = Trim(type_name.substr(0, type_name.size() - 2));
+    auto base_type_name = ParseTypeName(base_type);
+
+    if (base_type_name.empty()) return "";
+
+    return "array_" + base_type_name;
+  }
+
+  return "";  // Unknown type
+}
+
 }  // namespace
 
 auto IRGenerator::do_ir_generate(IRGeneratorContext* ctx,
@@ -96,6 +135,7 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table, IRHandlerMapping mapping)
       symbol_table_(std::move(symbol_table)),
       def_symbol_helper_(SymbolType::kDEFINE, symbol_table_),
       ir_symbol_helper_(SymbolType::kIR, symbol_table_),
+      type_desc_helper_(SymbolType::kTYPEDESC, symbol_table_),
       ir_handler_mapping_(std::move(mapping)) {
   // register op
   // TODO(eric): use dymatic handler approach
@@ -151,6 +191,9 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table, IRHandlerMapping mapping)
   reg_op("call");
   reg_op("param");
   reg_op("arg");
+
+  // memory
+  reg_op("load");
 }
 
 void IRGenerator::convert2_ssa() {
@@ -281,13 +324,25 @@ auto IRGeneratorContext::MapSymbol(const SymbolPtr& symbol) -> SymbolPtr {
 
   // should then convert to ir symbol
   if (sym->Type() == SymbolType::kDEFINE) {
-    const auto type = sym->MetaData(SymbolMetaKey::kTYPE);
+    const auto type = MetaGet<SymbolPtr>(sym, SymbolMetaKey::kTYPE, nullptr);
     auto o_sym = sym;
 
     if (sym->Value().rfind("__func_", 0) != std::string::npos) {
       sym = MapSymbol(sym->Value(), "function");
     } else {
       sym = MapSymbol(sym->Value(), "variable");
+
+      spdlog::debug("MapSymbol : {} -> {} with type: {}", o_sym->Name(),
+                    sym->Name(), type ? type->Name() : "unknown");
+
+      // handle array
+      if (type && type->Name().rfind("array_", 0) == 0) {
+        spdlog::debug("MapSymbol: {} is an array", sym->Name());
+
+        auto array_size = MetaGet<int>(o_sym, SymbolMetaKey::kARRAY_SIZE, -1);
+        assert(array_size >= 0);
+        MetaSet(sym, SymbolMetaKey::kARRAY_SIZE, array_size);
+      }
     }
 
     MetaSet(sym, SymbolMetaKey::kDEF_SYMBOL, o_sym);
@@ -339,7 +394,7 @@ auto IRGenerator::map_op(const std::string& name) -> SymbolPtr {
 }
 
 void IRGeneratorContext::AddError(const std::string& err) {
-  SPDLOG_ERROR("IR Generate Error: {}", err);
+  spdlog::error("IR Generate Error: {}", err);
 }
 
 auto IRGeneratorContext::NewLabel() -> SymbolPtr { return ig_->new_label(); }
@@ -465,4 +520,32 @@ auto IRGenerator::optimums(const std::vector<IRInstructionPtr>& irs)
 
 void IRGeneratorContext::EnterInsGroup(const std::string& func) {
   ins_.push_back({func, {}});
+}
+
+auto IRGenerator::lookup_type(const std::string& type_name) -> SymbolPtr {
+  return type_desc_helper_.LookupSymbolWithoutScope(type_name);
+}
+
+auto IRGeneratorContext::LookupType(const std::string& type_name) -> SymbolPtr {
+  if (type_name.empty()) {
+    AddError("Type name cannot be empty");
+    return nullptr;
+  }
+
+  auto type_id = ParseTypeName(type_name);
+  if (type_id.empty()) {
+    AddError("Unknown type: " + type_name);
+    return nullptr;
+  }
+
+  auto sym = ig_->lookup_type(type_id);
+  assert(sym != nullptr);
+
+  if (sym == nullptr) {
+    AddError("Type not found: " + type_name);
+    return nullptr;
+  }
+
+  assert(sym->Type() == SymbolType::kTYPEDESC);
+  return sym;
 }

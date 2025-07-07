@@ -48,6 +48,8 @@ class IRGeneratorContext {
 
   void AddError(const std::string& err);
 
+  auto LookupType(const std::string& type_name) -> SymbolPtr;
+
  private:
   IRGenerator* ig_;
   IRExpHandler handler_;
@@ -77,6 +79,7 @@ class IRGenerator {
   SymbolTablePtr symbol_table_;
   ScopedSymbolLookUpHelper def_symbol_helper_;
   ScopedSymbolLookUpHelper ir_symbol_helper_;
+  ScopedSymbolLookUpHelper type_desc_helper_;
   int tmp_var_idx_ = 1;
 
   std::vector<FuncCFG> cfgs_;
@@ -116,6 +119,8 @@ class IRGenerator {
   void insert_phi();
 
   void refresh_irs_by_cfg();
+
+  auto lookup_type(const std::string& type_name) -> SymbolPtr;
 
   static auto optimums(const std::vector<IRInstructionPtr>&)
       -> std::vector<IRInstructionPtr>;
