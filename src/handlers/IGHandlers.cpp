@@ -29,9 +29,9 @@ auto IRValueExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   if (node->Type() == ASTNodeType::kIDENT) return sym;
 
   // immediate
-  auto type = MetaGet<SymbolMetaType>(node->Symbol(), SymbolMetaKey::kTYPE);
+  auto type = MetaGet<SymbolPtr>(node->Symbol(), SymbolMetaKey::kTYPE);
 
-  if (type == SymbolMetaType::kBOOL) {
+  if (type == ctx->LookupType("bool")) {
     if (sym->Name() == "true") {
       return ctx->MapSymbol("1", "immediate");
     }
@@ -219,7 +219,7 @@ auto IRMeaninglessNodeHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   for (const auto& child : node->Children()) {
     ctx->ExpRoute(child);
   }
-  return {};
+  return node->Symbol();
 }
 
 auto IRReturnExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
@@ -452,17 +452,139 @@ auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   auto ret_tmp = ctx->NewTempVariable();
   auto ret_sym = ctx->MapSymbol(ret_tmp);
 
-  int index = 0;
-  for (auto& a : args) {
-    auto sym = ctx->MapSymbol(a);
-    MetaSet<int>(sym, SymbolMetaKey::kPARAM_INDEX, index++);
-    ctx->AddIns("param", nullptr, sym);
+  auto func_sym = ctx->MapSymbol(node->Symbol());
+  auto func_name = func_sym->Name();
+
+  // handle alloc_array function parameters
+  if (func_name == "__func_alloc_array") {
+    if (args.size() != 2) {
+      ctx->AddError(
+          "Function '__func_alloc_array' expects two arguments: "
+          "'type' and 'int'.");
+      return nullptr;
+    }
+
+    const auto& arg_0_sym = args.front();
+    if (!arg_0_sym) {
+      ctx->AddError("First argument of '__func_alloc_array' is missing.");
+      return nullptr;
+    }
+
+    auto arg_0_type = MetaGet<SymbolPtr>(arg_0_sym, SymbolMetaKey::kTYPE);
+    if (!arg_0_type) {
+      ctx->AddError("First argument of '__func_alloc_array' must have a type.");
+      return nullptr;
+    }
+
+    // void* calloc(size_t nmemb, size_t size);
+    // allocate memory for the array
+    ctx->AddIns("param", nullptr, args.back());  // element count
+    ctx->AddIns(
+        "param", nullptr,
+        ctx->MapSymbol(arg_0_type->Value(), "immediate"));  // element type size
   }
 
-  auto func_sym = ctx->MapSymbol(node->Symbol());
-  ctx->AddIns("call", ret_sym, func_sym);
+  // handle normal function calls
+  else {
+    int index = 0;
+    for (auto& a : args) {
+      auto sym = ctx->MapSymbol(a);
+      MetaSet<int>(sym, SymbolMetaKey::kPARAM_INDEX, index++);
+      ctx->AddIns("param", nullptr, sym);
+    }
+  }
 
+  ctx->AddIns("call", ret_sym, func_sym);
   return ret_sym;
+}
+
+/**
+ * |    |    |    |    Array Access<[],subscript,18>
+ * |    |    |    |    |    Identity<arr,reference,18>
+ * |    |    |    |    |    Value<10,int,18>
+ */
+auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+    -> SymbolPtr {
+  auto children = node->Children();
+  if (children.size() != 2) {
+    ctx->AddError("Array access must have exactly one index: " +
+                  node->Symbol()->Name());
+    return {};
+  }
+  auto ident = ctx->ExpRoute(children.front());
+  auto subscript = ctx->ExpRoute(children.back());
+
+  assert(ident != nullptr && subscript != nullptr);
+
+  // get element type
+  auto arr_type =
+      MetaGet<SymbolPtr>(children.front()->Symbol(), SymbolMetaKey::kTYPE);
+  if (!arr_type) {
+    ctx->AddError("Array access requires a valid array type.");
+    return {};
+  }
+
+  // get array element size
+  auto arr_base_type = MetaGet<SymbolPtr>(arr_type, SymbolMetaKey::kBASE_TYPE);
+  if (!arr_base_type) {
+    ctx->AddError("Array access requires a valid base type.");
+    return {};
+  }
+
+  auto elem_size = std::stoi(arr_base_type->Value());
+  if (elem_size <= 0) {
+    ctx->AddError("Array element size must be greater than zero.");
+    return {};
+  }
+
+  // get array length
+  auto arr_length = MetaGet<int>(ident, SymbolMetaKey::kARRAY_SIZE, -1);
+  if (arr_length < 0) {
+    ctx->AddError("Array access requires a valid array length.");
+    return {};
+  }
+
+  auto abort_label = ctx->NewLabel();
+  auto after_label = ctx->NewLabel();
+
+  // if (subscript < 0) goto abort
+  auto compare_tmp = ctx->NewTempVariable();
+  ctx->AddIns("lt", compare_tmp, subscript, ctx->MapSymbol("0", "immediate"));
+  ctx->AddIns("brnz", {}, compare_tmp, abort_label);
+
+  // if (subscript >= arr_length) goto abort
+  compare_tmp = ctx->NewTempVariable();
+  ctx->AddIns("ge", compare_tmp, subscript,
+              ctx->MapSymbol(std::to_string(arr_length), "immediate"));
+  ctx->AddIns("brnz", {}, compare_tmp, abort_label);
+
+  SymbolPtr offset;
+  if (elem_size == 1) {
+    offset = subscript;
+  } else {
+    auto tmp_offset = ctx->NewTempVariable();
+    ctx->AddIns("mul", tmp_offset, subscript,
+                ctx->MapSymbol(std::to_string(elem_size), "immediate"));
+    offset = ctx->MapSymbol(tmp_offset);
+  }
+
+  auto addr_tmp = ctx->NewTempVariable();
+  ctx->AddIns("add", addr_tmp, ident, offset);
+
+  auto value_tmp = ctx->NewTempVariable();
+  ctx->AddIns("load", value_tmp, addr_tmp);
+
+  ctx->AddIns("jmp", {}, after_label);
+  ctx->AddIns("label", {}, abort_label);
+
+  auto abort_tmp = ctx->NewTempVariable();
+  ctx->AddIns("call", abort_tmp, ctx->MapSymbol("abort", "function"));
+  ctx->AddIns("rtn", {}, abort_tmp);
+
+  ctx->AddIns("label", {}, after_label);
+
+  auto tmp = ctx->NewTempVariable();
+  return ctx->MapSymbol(value_tmp);
 }
 
 const IRHandlerMapping kIRHandlerMapping = {
@@ -482,6 +604,8 @@ const IRHandlerMapping kIRHandlerMapping = {
     {ASTNodeType::kCONTINUE, IRContinueBreakHandler},
     {ASTNodeType::kBREAK, IRContinueBreakHandler},
     {ASTNodeType::kCALL, IRCallHandler},
+    {ASTNodeType::kTYPE, IRMeaninglessNodeHandler},
+    {ASTNodeType::kARRAY_ACCESS, IRArrayAccessHandler},
 };
 
 }  // namespace
