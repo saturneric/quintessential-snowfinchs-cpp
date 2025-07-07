@@ -450,6 +450,34 @@ expression:
         { $$ = MakeASTTreeNode(ASTNodeType::kVALUE, "bool", "true", drv); }
     | FALSE
         { $$ = MakeASTTreeNode(ASTNodeType::kVALUE, "bool", "false", drv); }
+
+    | expression DOT VALUE_ID    /* exp.field */
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "dot", ".", drv);
+      $$->AddChild($1);
+      $$->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", $3, drv));
+    }
+    | expression ARROW VALUE_ID  /* exp->field */
+    {
+      /* equals to (*exp).field */
+      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "*", drv);
+      deref->AddChild($1);
+
+      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", "->", drv);
+      $$->AddChild(deref);
+      $$->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", $3, drv));
+    }
+    | MULT expression /* *exp */ %prec DEREF
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "*", drv);
+      $$->AddChild($2);
+    }
+    | expression LEFT_BRACKET expression RIGHT_BRACKET  /* exp[exp] */
+    {
+      $$ = MakeASTTreeNode(ASTNodeType::kARRAY_ACCESS, "subscript", "[]", drv);
+      $$->AddChild($1);
+      $$->AddChild($3);
+    }
 ;
 
 assign_operator:
