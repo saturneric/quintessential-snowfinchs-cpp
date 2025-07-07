@@ -56,16 +56,114 @@ auto SafeParseInt(const std::string& text, int& result) -> bool {
   return true;
 }
 
-auto TypeName2SymbolMetaType(SemanticAnalyzer* sa, const SymbolPtr& sym,
+inline auto ends_with(std::string const& value, std::string const& ending)
+    -> bool {
+  if (ending.size() > value.size()) return false;
+  return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+auto Trim(const std::string& s) -> std::string {
+  size_t first = 0;
+  while (first < s.size() &&
+         (std::isspace(static_cast<unsigned char>(s[first])) != 0)) {
+    ++first;
+  }
+  size_t last = s.size();
+  while (last > first &&
+         (std::isspace(static_cast<unsigned char>(s[last - 1])) != 0)) {
+    --last;
+  }
+  return s.substr(first, last - first);
+}
+
+auto ParseType(SemanticAnalyzer* sa, const std::string& type_name,
+               SymbolPtr& sym, const ASTNodePtr& node) -> std::string {
+  if (type_name == "int" || type_name == "bool" || type_name == "type") {
+    sym = sa->MapType(type_name, {});
+    return type_name;
+  }
+
+  if (type_name.back() == '*') {
+    auto base_type = Trim(type_name.substr(0, type_name.size() - 1));
+    SymbolPtr sym_base = nullptr;
+    auto base_type_name = ParseType(sa, base_type, sym_base, node);
+
+    if (base_type_name.empty() || sym_base == nullptr) {
+      sa->Error(nullptr, "Unknown base type for pointer: " + base_type);
+      return "";
+    }
+
+    sym = sa->MapType("ptr_" + base_type_name, "8");
+    sym->SetMeta(SymbolMetaKey::kBASE_TYPE, sym_base);
+    return "ptr_" + base_type_name;
+  }
+
+  if (type_name.rfind("struct", 0) == 0) {
+    // struct type
+    auto struct_name = Trim(type_name.substr(6));
+    if (struct_name.empty()) {
+      sa->Error(nullptr, "Invalid struct type name: " + type_name);
+      return "";
+    }
+
+    auto def_sym = sa->LookupSymbol(
+        sa->MapSymbol(sa->GetRootScopeId(), "struct_" + struct_name, {}));
+    if (!def_sym) {
+      sa->Error(node, "Undeclared struct: " + sym->Name());
+      return "";
+    }
+
+    sym = sa->MapType("struct_" + struct_name, def_sym->Value());
+    return "struct_" + struct_name;
+  }
+
+  // array []
+  if (ends_with(type_name, "[]")) {
+    auto base_type = Trim(type_name.substr(0, type_name.size() - 2));
+    SymbolPtr sym_base = nullptr;
+    auto base_type_name = ParseType(sa, base_type, sym_base, node);
+
+    if (base_type_name.empty() || sym_base == nullptr) {
+      sa->Error(nullptr, "Unknown base type for array: " + base_type);
+      return "";
+    }
+
+    sym = sa->MapType("array_" + base_type_name, "0");
+    sym->SetMeta(SymbolMetaKey::kBASE_TYPE, sym_base);
+    return "array_" + base_type_name;
+  }
+
+  sa->Error(node, "Unknown type: " + type_name);
+  return "";  // Unknown type
+}
+
+auto TypeName2Symbol(SemanticAnalyzer* sa, const std::string& type_name,
+                     const ASTNodePtr& node) -> SymbolPtr {
+  SymbolPtr type_desc_sym = nullptr;
+  auto type = ParseType(sa, type_name, type_desc_sym, node);
+
+  if (type.empty() || type_desc_sym == nullptr) {
+    sa->Error(node, "Invalid type name: " + type_name);
+    return nullptr;
+  }
+
+  if (type_desc_sym->Type() != SymbolType::kTYPEDESC) {
+    sa->Error(node, "Invalid type descriptor: " + type_name);
+    return nullptr;
+  }
+
+  return type_desc_sym;
+}
+
+void TypeName2SymbolMetaType(SemanticAnalyzer* sa, const SymbolPtr& sym,
                              const std::string& type_name,
                              const ASTNodePtr& node) {
-  if (type_name == "int") {
-    MetaSet(sym, SymbolMetaKey::kTYPE, SymbolMetaType::kINT);
-  } else if (type_name == "bool") {
-    MetaSet(sym, SymbolMetaKey::kTYPE, SymbolMetaType::kBOOL);
-  } else {
-    sa->Error(node, "Unknown type of declaration: " + type_name);
+  auto sym_type = TypeName2Symbol(sa, type_name, node);
+  if (!sym_type) {
+    sa->Error(node, "Failed to resolve type: " + type_name);
+    return;
   }
+  sym->SetMeta(SymbolMetaKey::kTYPE, sym_type);
 }
 
 void SetReturnType(SemanticAnalyzer* sa, const SymbolPtr& sym,
@@ -83,7 +181,16 @@ auto SMDeclareHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     sa->Error(node, "Redefine identity: " + symbol->Name());
   }
 
+  // set type info
   TypeName2SymbolMetaType(sa, def_sym, symbol->Value(), node);
+
+  // sync type info from def to ast
+  MetaSet(symbol, SymbolMetaKey::kTYPE,
+          def_sym->MetaData(SymbolMetaKey::kTYPE));
+
+  auto type = MetaGet<SymbolPtr>(def_sym, SymbolMetaKey::kTYPE, nullptr);
+  spdlog::debug("Declare: {}:{} with type: {}", def_sym->Name(),
+                def_sym->Index(), type ? type->Name() : "unknown");
 
   auto children = node->Children();
   if (children.empty()) return node;
@@ -91,9 +198,6 @@ auto SMDeclareHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   const auto& assign = children.front();
   router(assign);
 
-  // sync type info from def to ast
-  MetaSet(symbol, SymbolMetaKey::kTYPE,
-          def_sym->MetaData(SymbolMetaKey::kTYPE));
   return node;
 }
 
@@ -122,12 +226,32 @@ auto SMAssignHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   if (sa->Meta("only_redefine_analyse").has_value()) return node;
 
   // check type
-  auto sym_type = MetaGet<SymbolMetaType>(sym, SymbolMetaKey::kTYPE);
-  auto exp_type =
-      MetaGet<SymbolMetaType>(value->Symbol(), SymbolMetaKey::kTYPE);
+  auto sym_type = MetaGet<SymbolPtr>(sym, SymbolMetaKey::kTYPE);
+  auto exp_type = MetaGet<SymbolPtr>(value->Symbol(), SymbolMetaKey::kTYPE);
+
+  spdlog::debug("Assign: {}:{} = {}", sym->Name(), sym->Index(),
+                sym_type ? sym_type->Name() : "unknown");
+  spdlog::debug("Expression type: {}:{} = {}", value->Symbol()->Name(),
+                value->Symbol()->Index(),
+                exp_type ? exp_type->Name() : "unknown");
+
+  if (!sym_type || !exp_type) {
+    sa->Error(node, "Type information missing for: " + sym->Name());
+    return node;
+  }
 
   if (sym_type != exp_type) {
-    sa->Error(node, "Assignment type conflicts: " + sym->Name());
+    sa->Error(node, "Assignment type conflicts: " + sym->Name() +
+                        " (expected: " + sym_type->Name() +
+                        ", got: " + exp_type->Name() + ")");
+  }
+
+  // sync array size info
+  if (sym_type->Name().find("array_") == 0) {
+    auto size = MetaGet<int>(value->Symbol(), SymbolMetaKey::kARRAY_SIZE, 0);
+    if (size > 0) {
+      sym->SetMeta(SymbolMetaKey::kARRAY_SIZE, 0);
+    }
   }
 
   sym->SetMeta(SymbolMetaKey::kHAS_INIT, true);
@@ -143,13 +267,17 @@ auto SMReturnHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   router(value);
 
   auto exp_type =
-      MetaGet(value->Symbol(), SymbolMetaKey::kTYPE, SymbolMetaType::kNONE);
+      MetaGet<SymbolPtr>(value->Symbol(), SymbolMetaKey::kTYPE, nullptr);
 
-  auto rtn_type = MetaGet(node->Symbol(), SymbolMetaKey::kRETURN_TYPE,
-                          SymbolMetaType::kINT);
+  auto rtn_type = MetaGet<SymbolPtr>(
+      node->Symbol(), SymbolMetaKey::kRETURN_TYPE, sa->LookupType("int"));
 
   if (exp_type != rtn_type) {
-    sa->Error(node, "The return type mismatch");
+    sa->Error(node,
+              "The return type mismatch"
+              " (expected: " +
+                  rtn_type->Name() +
+                  ", got: " + (exp_type ? exp_type->Name() : "unknown") + ")");
   }
 
   sa->SetMeta("has_return", true);
@@ -190,14 +318,17 @@ auto SMValueHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   auto symbol = node->Symbol();
 
   TypeName2SymbolMetaType(sa, symbol, symbol->Value(), node);
+  auto sym_type = MetaGet<SymbolPtr>(symbol, SymbolMetaKey::kTYPE, nullptr);
+  if (!sym_type) {
+    sa->Error(node, "Unknown type: " + symbol->Value());
+    return node;
+  }
 
-  if (MetaGet<SymbolMetaType>(symbol, SymbolMetaKey::kTYPE) ==
-      SymbolMetaType::kINT) {
+  if (sym_type == sa->LookupType("int")) {
     if (!SafeParseInt(symbol->Name(), val)) {
       sa->Error(node, "Integer Overflow");
     }
   }
-
   return node;
 }
 
@@ -238,19 +369,19 @@ auto SMBinOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   auto sym = node->Symbol();
   auto op = sym->Name();
 
-  auto sym_lhs_type = MetaGet<SymbolMetaType>(sym_lhs, SymbolMetaKey::kTYPE);
-  auto sym_rhs_type = MetaGet<SymbolMetaType>(sym_rhs, SymbolMetaKey::kTYPE);
+  auto sym_lhs_type = MetaGet<SymbolPtr>(sym_lhs, SymbolMetaKey::kTYPE);
+  auto sym_rhs_type = MetaGet<SymbolPtr>(sym_rhs, SymbolMetaKey::kTYPE);
 
   if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%" ||
       op == "&" || op == "^" || op == "|" || op == "<<" || op == ">>") {
-    if (sym_lhs_type != SymbolMetaType::kINT ||
-        sym_rhs_type != SymbolMetaType::kINT) {
+    if (sym_lhs_type != sa->LookupType("int") ||
+        sym_rhs_type != sa->LookupType("int")) {
       sa->Error(node, "Operands must be integers for binary arithmetic op");
       return node;
     }
 
     // set as an int expr
-    MetaSet(sym, SymbolMetaKey::kTYPE, SymbolMetaType::kINT);
+    MetaSet(sym, SymbolMetaKey::kTYPE, sa->LookupType("int"));
     return node;
   }
 
@@ -262,19 +393,19 @@ auto SMBinOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     }
 
     // set as an bool expr
-    MetaSet(sym, SymbolMetaKey::kTYPE, SymbolMetaType::kBOOL);
+    MetaSet(sym, SymbolMetaKey::kTYPE, sa->LookupType("bool"));
     return node;
   }
 
   if (op == "&&" || op == "||") {
-    if (sym_lhs_type != SymbolMetaType::kBOOL ||
-        sym_rhs_type != SymbolMetaType::kBOOL) {
+    if (sym_lhs_type != sa->LookupType("bool") ||
+        sym_rhs_type != sa->LookupType("bool")) {
       sa->Error(node, "Operands must be boolean for logical op");
       return node;
     }
 
     // set as an bool expr
-    MetaSet(sym, SymbolMetaKey::kTYPE, SymbolMetaType::kBOOL);
+    MetaSet(sym, SymbolMetaKey::kTYPE, sa->LookupType("bool"));
     return node;
   }
 
@@ -294,23 +425,23 @@ auto SMUnOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   assert(val != nullptr);
 
   auto sym_val = val->Symbol();
-  auto sym_val_type = MetaGet<SymbolMetaType>(sym_val, SymbolMetaKey::kTYPE);
+  auto sym_val_type = MetaGet<SymbolPtr>(sym_val, SymbolMetaKey::kTYPE);
 
   if (op == "-" || op == "~") {
-    if (sym_val_type != SymbolMetaType::kINT) {
+    if (sym_val_type != sa->LookupType("int")) {
       sa->Error(node, "Unary minus requires integer operand");
       return node;
     }
-    MetaSet(sym, SymbolMetaKey::kTYPE, SymbolMetaType::kINT);
+    MetaSet(sym, SymbolMetaKey::kTYPE, sa->LookupType("int"));
     return node;
   }
 
   if (op == "!") {
-    if (sym_val_type != SymbolMetaType::kBOOL) {
+    if (sym_val_type != sa->LookupType("bool")) {
       sa->Error(node, "Logical NOT requires boolean operand");
       return node;
     }
-    MetaSet(sym, SymbolMetaKey::kTYPE, SymbolMetaType::kBOOL);
+    MetaSet(sym, SymbolMetaKey::kTYPE, sa->LookupType("bool"));
     return node;
   }
 
@@ -327,8 +458,8 @@ auto SMIfHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   // type check
   auto exp = router(children.front());
   auto sym = exp->Symbol();
-  auto sym_type = MetaGet<SymbolMetaType>(sym, SymbolMetaKey::kTYPE);
-  if (sym && sym_type != SymbolMetaType::kBOOL) {
+  auto sym_type = MetaGet<SymbolPtr>(sym, SymbolMetaKey::kTYPE);
+  if (sym && sym_type != sa->LookupType("bool")) {
     sa->Error(node, "The condition of if-statement must be boolean type.");
   }
 
@@ -372,8 +503,8 @@ auto SMCondExpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   // type check
   auto exp = router(children.front());
   auto sym = exp->Symbol();
-  auto sym_type = MetaGet<SymbolMetaType>(sym, SymbolMetaKey::kTYPE);
-  if (sym && sym_type != SymbolMetaType::kBOOL) {
+  auto sym_type = MetaGet<SymbolPtr>(sym, SymbolMetaKey::kTYPE);
+  if (sym && sym_type != sa->LookupType("bool")) {
     sa->Error(node, "The condition of if-statement must be boolean type.");
   }
 
@@ -395,8 +526,8 @@ auto SMCondExpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
   if (will_return) MetaSet(node->Symbol(), SymbolMetaKey::kWILL_RETURN, true);
 
-  auto sym_lhs_type = MetaGet<SymbolMetaType>(sym_lhs, SymbolMetaKey::kTYPE);
-  auto sym_rhs_type = MetaGet<SymbolMetaType>(sym_rhs, SymbolMetaKey::kTYPE);
+  auto sym_lhs_type = MetaGet<SymbolPtr>(sym_lhs, SymbolMetaKey::kTYPE);
+  auto sym_rhs_type = MetaGet<SymbolPtr>(sym_rhs, SymbolMetaKey::kTYPE);
 
   if (sym_lhs_type != sym_rhs_type) {
     sa->Error(
@@ -431,8 +562,8 @@ auto SMWhileHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
     // check exp type
     auto sym = exp->Symbol();
-    auto sym_type = MetaGet<SymbolMetaType>(sym, SymbolMetaKey::kTYPE);
-    if (sym && sym_type != SymbolMetaType::kBOOL) {
+    auto sym_type = MetaGet<SymbolPtr>(sym, SymbolMetaKey::kTYPE);
+    if (sym && sym_type != sa->LookupType("bool")) {
       sa->Error(node, "The condition of if-statement must be boolean type.");
     }
 
@@ -480,8 +611,8 @@ auto SMWhileHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     auto cond_exp = router(cond_node);
     assert(cond_exp != nullptr);
     auto sym = cond_exp->Symbol();
-    auto sym_type = MetaGet<SymbolMetaType>(sym, SymbolMetaKey::kTYPE);
-    if (!sym || sym_type != SymbolMetaType::kBOOL) {
+    auto sym_type = MetaGet<SymbolPtr>(sym, SymbolMetaKey::kTYPE);
+    if (!sym || sym_type != sa->LookupType("bool")) {
       sa->Error(node, "The condition of for-statement must be boolean type.");
     }
   }
@@ -517,8 +648,9 @@ auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   auto sym = node->Symbol();
   auto return_type = sym->Value();
 
-  MetaSet(node->Symbol(), SymbolMetaKey::kRETURN_TYPE,
-          return_type == "bool" ? SymbolMetaType::kBOOL : SymbolMetaType::kINT);
+  MetaSet(
+      node->Symbol(), SymbolMetaKey::kRETURN_TYPE,
+      return_type == "bool" ? sa->LookupType("bool") : sa->LookupType("int"));
 
   auto children = node->Children();
 
@@ -536,25 +668,39 @@ auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
 auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                       const ASTNodePtr& node) -> ASTNodePtr {
-  const auto root_scope_id = node->Symbol()->ScopeId();
+  const auto root_scope_id = sa->GetRootScopeId();
+
   // predefined functions
   auto [succ_0, def_p_sym] = sa->RecordRealSymbol(
       sa->MapFunction(root_scope_id, "__func_print", "__func_print"));
   SetReturnType(sa, def_p_sym, "int", node);
-  MetaSet<std::vector<SymbolMetaType>>(def_p_sym, SymbolMetaKey::kPARAM_TYPES,
-                                       {SymbolMetaType::kINT});
+  MetaSet<std::vector<SymbolPtr>>(def_p_sym, SymbolMetaKey::kFUNCTION_PARAMS,
+                                  {sa->LookupType("int")});
 
   auto [succ_1, def_r_sym] = sa->RecordRealSymbol(
       sa->MapFunction(root_scope_id, "__func_read", "__func_read"));
   SetReturnType(sa, def_r_sym, "int", node);
-  MetaSet<std::vector<SymbolMetaType>>(def_r_sym, SymbolMetaKey::kPARAM_TYPES,
-                                       {});
+  MetaSet<std::vector<SymbolPtr>>(def_r_sym, SymbolMetaKey::kFUNCTION_PARAMS,
+                                  {});
 
   auto [succ_2, def_f_sym] = sa->RecordRealSymbol(
       sa->MapFunction(root_scope_id, "__func_flush", "__func_flush"));
   SetReturnType(sa, def_f_sym, "int", node);
-  MetaSet<std::vector<SymbolMetaType>>(def_f_sym, SymbolMetaKey::kPARAM_TYPES,
-                                       {});
+  MetaSet<std::vector<SymbolPtr>>(def_f_sym, SymbolMetaKey::kFUNCTION_PARAMS,
+                                  {});
+
+  auto [succ_3, def_a_sym] = sa->RecordRealSymbol(
+      sa->MapFunction(root_scope_id, "__func_alloc", "__func_alloc"));
+  SetReturnType(sa, def_a_sym, "type*", node);
+  MetaSet<std::vector<SymbolPtr>>(def_a_sym, SymbolMetaKey::kFUNCTION_PARAMS,
+                                  {sa->LookupType("type")});
+
+  auto [succ_4, def_aa_sym] = sa->RecordRealSymbol(sa->MapFunction(
+      root_scope_id, "__func_alloc_array", "__func_alloc_array"));
+  SetReturnType(sa, def_aa_sym, "type[]", node);
+  MetaSet<std::vector<SymbolPtr>>(
+      def_aa_sym, SymbolMetaKey::kFUNCTION_PARAMS,
+      {sa->LookupType("type"), sa->LookupType("int")});
 
   for (auto& fn : node->Children()) {
     auto sym = fn->Symbol();
@@ -567,7 +713,7 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     auto ret_type = sym->Value();
     SetReturnType(sa, def_sym, ret_type, node);
 
-    std::vector<SymbolMetaType> param_types;
+    std::vector<SymbolPtr> param_types;
     for (auto& child : fn->Children()) {
       if (child->Tag() != ASTNodeTag::kPARAMS) continue;
 
@@ -581,12 +727,12 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
         SetReturnType(sa, pdef, param_node->Symbol()->Value(), param_node);
         pdef->SetMeta(SymbolMetaKey::kHAS_INIT, true);
 
-        auto p_type = MetaGet<SymbolMetaType>(pdef, SymbolMetaKey::kTYPE);
+        auto p_type = MetaGet<SymbolPtr>(pdef, SymbolMetaKey::kTYPE);
         param_types.push_back(p_type);
       }
     }
 
-    MetaSet(def_sym, SymbolMetaKey::kPARAM_TYPES, param_types);
+    MetaSet(def_sym, SymbolMetaKey::kFUNCTION_PARAMS, param_types);
   }
 
   for (auto& fn : node->Children()) {
@@ -599,13 +745,13 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     if (g->Name() == "__func_main") {
       found_main = true;
       // check main function
-      auto t = MetaGet<SymbolMetaType>(g, SymbolMetaKey::kTYPE);
-      if (t != SymbolMetaType::kINT) {
+      auto t = MetaGet<SymbolPtr>(g, SymbolMetaKey::kTYPE);
+      if (t != sa->LookupType("int")) {
         sa->Error(node, "main must return int");
       }
-      auto param_types = MetaGet<std::vector<SymbolMetaType>>(
-          g, SymbolMetaKey::kPARAM_TYPES, {});
 
+      auto param_types = MetaGet<std::vector<SymbolPtr>>(
+          g, SymbolMetaKey::kFUNCTION_PARAMS, {});
       if (!param_types.empty()) {
         sa->Error(node, "main should not have any arg");
       }
@@ -631,17 +777,17 @@ auto SMCallHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     return node;
   }
 
-  std::vector<SymbolMetaType> arg_types;
+  std::vector<SymbolPtr> arg_types;
   auto children = node->Children();
 
   for (auto& arg : children) {
     auto node = router(arg);
     arg_types.push_back(
-        MetaGet<SymbolMetaType>(node->Symbol(), SymbolMetaKey::kTYPE));
+        MetaGet<SymbolPtr>(node->Symbol(), SymbolMetaKey::kTYPE));
   }
 
-  auto param_types = MetaGet<std::vector<SymbolMetaType>>(
-      def_sym, SymbolMetaKey::kPARAM_TYPES, {});
+  auto param_types = MetaGet<std::vector<SymbolPtr>>(
+      def_sym, SymbolMetaKey::kFUNCTION_PARAMS, {});
 
   if (arg_types.size() != param_types.size()) {
     sa->Error(node, "Function '" + sym->Name() + "' expects " +
@@ -652,16 +798,120 @@ auto SMCallHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   }
 
   size_t n = std::min(arg_types.size(), param_types.size());
+
   for (size_t i = 0; i < n; ++i) {
+    const auto& param_type = param_types[i];
+
+    // allow type to be "type" for generic functions
+    if (param_type->Name().find("type") != std::string::npos) {
+      continue;  // skip type check for generic types
+    }
+
     if (arg_types[i] != param_types[i]) {
       sa->Error(node, "Type mismatch for argument " + std::to_string(i + 1) +
                           " of function '" + sym->Name() + "'.");
     }
   }
 
-  auto ret_type = MetaGet<SymbolMetaType>(def_sym, SymbolMetaKey::kTYPE);
-  MetaSet(sym, SymbolMetaKey::kTYPE, ret_type);
+  auto ret_type = MetaGet<SymbolPtr>(def_sym, SymbolMetaKey::kTYPE);
 
+  if (def_sym->Name() == "__func_alloc_array") {
+    if (arg_types.size() != 2 || arg_types.back()->Name() != "int") {
+      sa->Error(node,
+                "Function '__func_alloc_array' expects two arguments: "
+                "'type' and 'int'.");
+      return node;
+    }
+
+    auto arg_type_name = arg_types.front()->Name();
+    spdlog::debug("Allocating array of type: {}", arg_type_name);
+
+    ret_type = sa->MapType("array_" + arg_type_name, {});
+    if (!ret_type) {
+      sa->Error(node, "Failed to resolve type for '__func_alloc_array': " +
+                          arg_type_name + "[]");
+      return node;
+    }
+
+    auto array_size = children.back()->Symbol()->Name();
+    int size = 0;
+    if (!SafeParseInt(array_size, size)) {
+      sa->Error(node, "Invalid array size: " + array_size);
+      return node;
+    }
+    sym->SetMeta(SymbolMetaKey::kARRAY_SIZE, size);
+  }
+
+  MetaSet(sym, SymbolMetaKey::kTYPE, ret_type);
+  spdlog::debug("Call function: {}:{} with return type: {}", def_sym->Name(),
+                def_sym->Index(), ret_type ? ret_type->Name() : "unknown");
+  return node;
+}
+
+auto SMTypeHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                   const ASTNodePtr& node) -> ASTNodePtr {
+  auto symbol = node->Symbol();
+  auto sym_type = TypeName2Symbol(sa, symbol->Name(), node);
+  if (!sym_type) {
+    sa->Error(node, "Failed to resolve type: " + symbol->Name());
+    return node;
+  }
+  symbol->SetMeta(SymbolMetaKey::kTYPE, sym_type);
+  return node;
+}
+
+auto SMArrayAccessHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                          const ASTNodePtr& node) -> ASTNodePtr {
+  auto symbol = node->Symbol();
+
+  auto children = node->Children();
+  if (children.size() != 2) {
+    sa->Error(node,
+              "Array access must have exactly one index: " + symbol->Name());
+    return node;
+  }
+
+  for (const auto& child : children) {
+    router(child);
+  }
+
+  auto l_value = children.front()->Symbol();
+  // look up l_value
+  auto l_value_sym = sa->LookupSymbol(l_value);
+  if (!l_value_sym) {
+    sa->Error(node, "Undeclared array: " + l_value->Name());
+    return node;
+  }
+
+  auto l_value_type =
+      MetaGet<SymbolPtr>(l_value_sym, SymbolMetaKey::kTYPE, nullptr);
+  if (!l_value_type) {
+    sa->Error(node, "Left value of array access must have a type: " +
+                        l_value->Name());
+    return node;
+  }
+
+  spdlog::debug("Array access: {}:{} with type: {}", l_value_sym->Name(),
+                l_value_sym->Index(),
+                l_value_type ? l_value_type->Name() : "unknown");
+
+  const auto& index = children.back();
+  auto index_type =
+      MetaGet<SymbolPtr>(index->Symbol(), SymbolMetaKey::kTYPE, nullptr);
+  if (!index_type || index_type != sa->LookupType("int")) {
+    sa->Error(node, "Index of array access must be an integer: " +
+                        index->Symbol()->Name());
+    return node;
+  }
+
+  auto base_type =
+      MetaGet<SymbolPtr>(l_value_type, SymbolMetaKey::kBASE_TYPE, nullptr);
+  if (!base_type) {
+    sa->Error(node, "Array access must have a base type: " + l_value->Name());
+    return node;
+  }
+
+  symbol->SetMeta(SymbolMetaKey::kTYPE, base_type);
   return node;
 }
 
@@ -683,6 +933,8 @@ const SMHandlerMapping kSMHandlerMapping = {
     {ASTNodeType::kBREAK, SMContinueBreakHandler},
     {ASTNodeType::kCALL, SMCallHandler},
     {ASTNodeType::kARG_LIST, SMMeaninglessHandler},
+    {ASTNodeType::kTYPE, SMTypeHandler},
+    {ASTNodeType::kARRAY_ACCESS, SMArrayAccessHandler},
 };
 
 }  // namespace
