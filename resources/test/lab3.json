@@ -155,5 +155,12 @@
     "source_file_path": "lab3/C13.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 35
+  },
+  {
+    "source_file_path": "lab3/D1.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0,
+    "input": "ibuprofen\n",
+    "output": "ibuprofenibuprofenibuprofen"
   }
 ]

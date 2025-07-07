@@ -1,0 +1,50 @@
+
+int main() {
+  int a = read();
+  int b = read();
+  int c = read();
+  int d = read();
+  int e = read();
+  int f = read();
+  int g = read();
+  int h = read();
+  int i = read();
+
+  print(a);
+  print(b);
+  print(c);
+  print(d);
+  print(e);
+  print(f);
+  print(g);
+  print(h);
+  print(i);
+
+  foo(a, b, c, d, e, f, g, h, i);
+
+  print(a);
+  print(b);
+  print(c);
+  print(d);
+  print(e);
+  print(f);
+  print(g);
+  print(h);
+  print(i);
+
+  return 0;
+}
+
+int foo(int a, int b, int c, int d, int e, int f, int g, int h, int i) {
+  print(a);
+  print(b);
+  print(c);
+  print(d);
+  print(e);
+  print(f);
+  print(g);
+  print(h);
+  print(i);
+
+  return 0;
+}
