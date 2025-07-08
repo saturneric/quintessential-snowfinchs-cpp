@@ -52,11 +52,12 @@ auto ParseTypeName(const std::string& type_name) -> std::string {
 }  // namespace
 
 auto IRGenerator::do_ir_generate(IRGeneratorContext* ctx,
-                                 const ASTNodePtr& node) -> SymbolPtr {
+                                 const ASTNodePtr& node, bool is_lhs)
+    -> SymbolPtr {
   if (ctx == nullptr || node == nullptr) return {};
   if (ir_handler_mapping_.count(node->Type()) == 0) return {};
 
-  return ir_handler_mapping_[node->Type()](ctx, node);
+  return ir_handler_mapping_[node->Type()](ctx, node, is_lhs);
 }
 
 void IRGenerator::Generate(const AST& tree) {
@@ -82,6 +83,12 @@ auto IRGeneratorContext::NewTempVariable() -> SymbolPtr {
   return ig_->new_temp_variable();
 }
 
+auto IRGeneratorContext::NewTempAddressVariable() -> SymbolPtr {
+  auto sym = ig_->new_temp_variable();
+  sym->SetMeta(SymbolMetaKey::kIS_ADDRESS, true);
+  return sym;
+}
+
 auto IRGeneratorContext::Instructions() const -> std::vector<FuncInstructions> {
   return ins_;
 }
@@ -96,7 +103,8 @@ void IRGenerator::PrintAddr(const std::string& path) {
   }
 }
 
-auto IRGeneratorContext::ExpRoute(const ASTNodePtr& node) -> SymbolPtr {
+auto IRGeneratorContext::ExpRoute(const ASTNodePtr& node, bool is_lhs)
+    -> SymbolPtr {
   if (node == nullptr) return nullptr;
 
   // do inheritance of some meta: break_label and continue_label
@@ -104,7 +112,7 @@ auto IRGeneratorContext::ExpRoute(const ASTNodePtr& node) -> SymbolPtr {
     node->Symbol()->Inheritance(node->Parent()->Symbol());
   }
 
-  if (handler_) return handler_(this, node);
+  if (handler_) return handler_(this, node, is_lhs);
   return {};
 }
 
@@ -128,9 +136,10 @@ IRGeneratorContext::IRGeneratorContext(IRGenerator* ig, IRExpHandler handler)
 IRGenerator::IRGenerator(SymbolTablePtr symbol_table, IRHandlerMapping mapping)
     : ctx_(std::make_shared<IRGeneratorContext>(
           this,
-          [this](auto&& PH1, auto&& PH2) {
+          [this](auto&& PH1, auto&& PH2, auto&& PH3) -> SymbolPtr {
             return do_ir_generate(std::forward<decltype(PH1)>(PH1),
-                                  std::forward<decltype(PH2)>(PH2));
+                                  std::forward<decltype(PH2)>(PH2),
+                                  std::forward<decltype(PH3)>(PH3));
           })),
       symbol_table_(std::move(symbol_table)),
       def_symbol_helper_(SymbolType::kDEFINE, symbol_table_),
@@ -332,17 +341,6 @@ auto IRGeneratorContext::MapSymbol(const SymbolPtr& symbol) -> SymbolPtr {
       sym = MapSymbol(sym->Value(), "function");
     } else {
       sym = MapSymbol(sym->Value(), "variable");
-
-      spdlog::debug("MapSymbol : {} -> {} with type: {}", o_sym->Name(),
-                    sym->Name(), type ? type->Name() : "unknown");
-
-      // handle array
-      if (type && type->Name().rfind("array_", 0) == 0) {
-        auto array_size = MetaGet<int>(o_sym, SymbolMetaKey::kARRAY_SIZE, -1);
-        assert(array_size >= 0);
-        spdlog::debug("Array size for {}: {}", o_sym->Value(), array_size);
-        MetaSet(sym, SymbolMetaKey::kARRAY_SIZE, array_size);
-      }
     }
 
     MetaSet(sym, SymbolMetaKey::kDEF_SYMBOL, o_sym);

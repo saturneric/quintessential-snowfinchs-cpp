@@ -13,15 +13,17 @@ using IRGeneratorContextPtr = std::shared_ptr<IRGeneratorContext>;
 
 class IRGenerator;
 using IRExpHandler =
-    std::function<SymbolPtr(IRGeneratorContext*, const ASTNodePtr&)>;
+    std::function<SymbolPtr(IRGeneratorContext*, const ASTNodePtr&, bool)>;
 
 class IRGeneratorContext {
  public:
   explicit IRGeneratorContext(IRGenerator* ig, IRExpHandler handler);
 
-  auto ExpRoute(const ASTNodePtr& node) -> SymbolPtr;
+  auto ExpRoute(const ASTNodePtr& node, bool is_lhs = false) -> SymbolPtr;
 
   auto NewTempVariable() -> SymbolPtr;
+
+  auto NewTempAddressVariable() -> SymbolPtr;
 
   auto NewLabel() -> SymbolPtr;
 
@@ -87,7 +89,8 @@ class IRGenerator {
 
   static auto select_instruction(const std::string& operation) -> std::string;
 
-  auto do_ir_generate(IRGeneratorContext*, const ASTNodePtr& node) -> SymbolPtr;
+  auto do_ir_generate(IRGeneratorContext*, const ASTNodePtr& node,
+                      bool is_lhs = false) -> SymbolPtr;
 
   auto map_ssa(const SymbolPtr& sym, bool is_def) -> SymbolPtr;
 
