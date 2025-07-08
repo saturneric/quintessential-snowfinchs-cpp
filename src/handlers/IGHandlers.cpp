@@ -507,6 +507,24 @@ auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node, bool is_lhs)
       return nullptr;
     }
 
+    auto abort_label = ctx->NewLabel();
+    auto after_label = ctx->NewLabel();
+
+    // if (subscript < 0) goto abort
+    auto compare_tmp = ctx->NewTempVariable();
+    ctx->AddIns("lt", compare_tmp, args.back(),
+                ctx->MapSymbol("0", "immediate"));
+    ctx->AddIns("brnz", {}, compare_tmp, abort_label);
+
+    ctx->AddIns("jmp", {}, after_label);
+    ctx->AddIns("label", {}, abort_label);
+
+    auto abort_tmp = ctx->NewTempVariable();
+    ctx->AddIns("call", abort_tmp, ctx->MapSymbol("abort", "function"));
+    ctx->AddIns("rtn", {}, abort_tmp);
+
+    ctx->AddIns("label", {}, after_label);
+
     // void* calloc(size_t nmemb, size_t size);
     // allocate memory for the array
     auto tmp_elem_count = ctx->NewTempVariable();
