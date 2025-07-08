@@ -774,7 +774,7 @@ namespace yy {
   case 9: // struct_def: STRUCT VALUE_ID OPENING_BRACE field_list CLOSING_BRACE SEMICOLON
 #line 143 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kSTRUCT, std::string("__struct_") +yystack_[4].value.as < std::string > (), {}, drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kSTRUCT, "struct", std::string("__struct_") +yystack_[4].value.as < std::string > (), drv);
       for (auto &f : yystack_[2].value.as < std::vector<ASTNodePtr> > ()) yylhs.value.as < ASTNodePtr > ()->AddChild(f);
     }
 #line 781 "Parser.cpp"

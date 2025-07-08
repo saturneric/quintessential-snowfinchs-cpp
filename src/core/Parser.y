@@ -141,7 +141,7 @@ function:
 struct_def:
     STRUCT VALUE_ID OPENING_BRACE field_list CLOSING_BRACE SEMICOLON
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kSTRUCT, std::string("__struct_") +$2, {}, drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kSTRUCT, "struct", std::string("__struct_") +$2, drv);
       for (auto &f : $4) $$->AddChild(f);
     }
 ;

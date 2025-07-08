@@ -746,7 +746,6 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     auto sym = fn->Symbol();
     auto [succ, def_sym] = sa->RecordRealSymbol(
         sa->MapFunction(root_scope_id, sym->Name(), sym->Value()));
-    // auto [succ, def_sym] = sa->RecordRealSymbol(sym);
     if (!succ) {
       sa->Error(fn, "Redefine function: " + sym->Name());
     }
@@ -964,6 +963,82 @@ auto SMArrayAccessHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   return node;
 }
 
+auto SMStructHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                     const ASTNodePtr& node) -> ASTNodePtr {
+  auto symbol = node->Symbol();
+  auto struct_name = symbol->Name();
+
+  // check if struct is already defined
+  auto [succ, def_sym] = sa->RecordRealSymbol(
+      sa->MapStruct(sa->GetRootScopeId(), "__struct_" + struct_name, {}));
+  if (!succ) {
+    sa->Error(node, "Redefine struct: " + struct_name);
+    return node;
+  }
+
+  // create new struct type
+  auto def_type_sym = TypeName2Symbol(sa, "struct " + struct_name, node);
+  def_sym->SetMeta(SymbolMetaKey::kTYPE, def_type_sym);
+
+  // parse fields
+  std::vector<std::pair<std::string, SymbolPtr>> fields;
+  for (const auto& field : node->Children()) {
+    if (field->Type() != ASTNodeType::kFIELD) continue;
+
+    auto field_sym = field->Symbol();
+    auto field_type = TypeName2Symbol(sa, field_sym->Name(), field);
+    if (!field_type) {
+      sa->Error(field, "Invalid type for field: " + field_sym->Name());
+      continue;
+    }
+
+    if (field_type == def_type_sym) {
+      sa->Error(field,
+                "Struct cannot contain itself as a field: " + struct_name);
+      continue;
+    }
+
+    spdlog::debug("Struct field: {}:{} with type: {}", field_sym->Value(),
+                  field_sym->Index(),
+                  field_type ? field_type->Name() : "unknown");
+
+    fields.emplace_back(field_sym->Value(), field_type);
+  }
+
+  // set fields to struct symbol
+  if (fields.empty()) {
+    sa->Error(node, "Struct must have at least one field: " + struct_name);
+    return node;
+  }
+
+  size_t offset = 0;
+  size_t struct_align = 1;
+  std::map<std::string, size_t> field_offsets;
+
+  for (auto& [fname, fty] : fields) {
+    size_t sz = std::stoi(fty->Value());
+    // sz equal alg by now
+    size_t alg = sz;
+
+    // update the alignment based on the field type
+    struct_align = std::max(struct_align, alg);
+
+    if (offset % alg != 0) {
+      offset += (alg - offset % alg);
+    }
+
+    spdlog::debug("Field: {} with size: {} and offset: {}", fname, sz, offset);
+    field_offsets[fname] = offset;
+    offset += sz;
+  }
+
+  MetaSet<std::vector<std::pair<std::string, SymbolPtr>>>(
+      def_sym, SymbolMetaKey::kSTRUCT_FIELDS, fields);
+  MetaSet<std::map<std::string, size_t>>(
+      def_sym, SymbolMetaKey::kSTRUCT_FIELD_OFFSETS, field_offsets);
+  return node;
+}
+
 const SMHandlerMapping kSMHandlerMapping = {
     {ASTNodeType::kASSIGN, SMAssignHandler},
     {ASTNodeType::kDECLARE, SMDeclareHandler},
@@ -984,6 +1059,7 @@ const SMHandlerMapping kSMHandlerMapping = {
     {ASTNodeType::kARG_LIST, SMMeaninglessHandler},
     {ASTNodeType::kTYPE, SMTypeHandler},
     {ASTNodeType::kARRAY_ACCESS, SMArrayAccessHandler},
+    {ASTNodeType::kSTRUCT, SMStructHandler},
 };
 
 }  // namespace

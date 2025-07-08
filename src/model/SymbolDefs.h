@@ -31,10 +31,11 @@ enum class SymbolMetaKey : SymbolMetaKeySizeType {
   kWILL_RETURN,
   kWILL_BREAK,
   kPARAM_INDEX,
-  kRETURN_TYPE,      // SymbolPtr
-  kBASE_TYPE,        // SymbolPtr
-  kSTRUCT_FIELDS,    // std::vector<SymbolPtr>
-  kFUNCTION_PARAMS,  // std::vector<SymbolPtr>
-  kIS_ADDRESS,       // bool
+  kRETURN_TYPE,           // SymbolPtr
+  kBASE_TYPE,             // SymbolPtr
+  kSTRUCT_FIELDS,         // std::vector<std::pair<std::string, SymbolPtr>>
+  kSTRUCT_FIELD_OFFSETS,  // std::map<std::string, int>
+  kFUNCTION_PARAMS,       // std::vector<SymbolPtr>
+  kIS_ADDRESS,            // bool
   kCOUNT,
 };
