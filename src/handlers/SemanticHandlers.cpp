@@ -218,8 +218,6 @@ auto SMAssignHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
       sa->Error(node, "Undeclared variable: " + sym->Name());
       return node;
     }
-    // mark symbol initialized
-    def_sym->SetMeta(SymbolMetaKey::kHAS_INIT, true);
   }
 
   // parse node
@@ -268,6 +266,11 @@ auto SMAssignHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                   size);
   }
 
+  if (def_sym) {
+    // mark as initialized
+    def_sym->SetMeta(SymbolMetaKey::kHAS_INIT, true);
+    spdlog::debug("Mark {} as initialized", def_sym->Name());
+  }
   return node;
 }
 
@@ -358,9 +361,11 @@ auto SMIdentHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   // sync type info from def to ast
   MetaSet(sym, SymbolMetaKey::kTYPE, def_sym->MetaData(SymbolMetaKey::kTYPE));
 
-  if (!def_sym->MetaData(SymbolMetaKey::kHAS_INIT).has_value()) {
-    sa->Error(node, "Variable not initialized: " + def_sym->Name() +
-                        " (index: " + std::to_string(def_sym->Index()) + ")");
+  if (sym->Value() != "declarator" && sym->Value() != "lvalue") {
+    if (!def_sym->MetaData(SymbolMetaKey::kHAS_INIT).has_value()) {
+      sa->Error(node, "Variable not initialized: " + def_sym->Name() +
+                          " (index: " + std::to_string(def_sym->Index()) + ")");
+    }
   }
 
   return node;
