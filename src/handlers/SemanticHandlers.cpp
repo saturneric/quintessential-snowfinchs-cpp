@@ -254,18 +254,6 @@ auto SMAssignHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                         ", got: " + exp_type->Name() + ")");
   }
 
-  // sync array size info
-  if (sym_type->Name().find("array_") == 0) {
-    auto size = MetaGet<int>(value->Symbol(), SymbolMetaKey::kARRAY_SIZE, 0);
-    if (size > 0) {
-      if (def_sym) def_sym->SetMeta(SymbolMetaKey::kARRAY_SIZE, size);
-      sym->SetMeta(SymbolMetaKey::kARRAY_SIZE, size);
-    }
-
-    spdlog::debug("Array size for {}({}): {}", sym->Value(), sym->Index(),
-                  size);
-  }
-
   if (def_sym) {
     // mark as initialized
     def_sym->SetMeta(SymbolMetaKey::kHAS_INIT, true);
@@ -461,6 +449,23 @@ auto SMUnOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
       return node;
     }
     MetaSet(sym, SymbolMetaKey::kTYPE, sa->LookupType("bool"));
+    return node;
+  }
+
+  if (op == "*") {
+    if (sym_val_type->Name().find("ptr_") != 0) {
+      sa->Error(node, "Dereference operator requires pointer operand");
+      return node;
+    }
+
+    auto base_type =
+        MetaGet<SymbolPtr>(sym_val_type, SymbolMetaKey::kBASE_TYPE);
+    if (!base_type) {
+      sa->Error(node, "Dereference operator requires valid pointer type");
+      return node;
+    }
+
+    MetaSet(sym, SymbolMetaKey::kTYPE, base_type);
     return node;
   }
 
@@ -834,6 +839,23 @@ auto SMCallHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
   auto ret_type = MetaGet<SymbolPtr>(def_sym, SymbolMetaKey::kTYPE);
 
+  if (def_sym->Name() == "__func_alloc") {
+    if (arg_types.size() != 1) {
+      sa->Error(node, "Function '__func_alloc' expects one argument: 'type'.");
+      return node;
+    }
+
+    auto arg_type_name = arg_types.front()->Name();
+    spdlog::debug("Allocating type: {}", arg_type_name);
+
+    ret_type = TypeName2Symbol(sa, arg_type_name + "*", node);
+    if (!ret_type) {
+      sa->Error(node, "Failed to resolve type for '__func_alloc': " +
+                          arg_type_name + "*");
+      return node;
+    }
+  }
+
   if (def_sym->Name() == "__func_alloc_array") {
     if (arg_types.size() != 2 || arg_types.back()->Name() != "int") {
       sa->Error(node,
@@ -851,16 +873,6 @@ auto SMCallHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                           arg_type_name + "[]");
       return node;
     }
-
-    auto array_size = children.back()->Symbol()->Name();
-    int size = 0;
-    if (!SafeParseInt(array_size, size)) {
-      sa->Error(node, "Invalid array size: " + array_size);
-      return node;
-    }
-
-    def_sym->SetMeta(SymbolMetaKey::kARRAY_SIZE, size);
-    sym->SetMeta(SymbolMetaKey::kARRAY_SIZE, size);
   }
 
   MetaSet(sym, SymbolMetaKey::kTYPE, ret_type);

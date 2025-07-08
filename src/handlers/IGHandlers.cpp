@@ -8,8 +8,8 @@
 
 namespace {
 
-auto DeclareHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto DeclareHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                    bool is_lhs) -> SymbolPtr {
   assert(node != nullptr);
 
   auto sym = ctx->MapSymbol(node->Symbol());
@@ -19,8 +19,8 @@ auto DeclareHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return sym;
 }
 
-auto IRValueExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto IRValueExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                       bool is_lhs) -> SymbolPtr {
   assert(node != nullptr);
 
   auto sym = ctx->MapSymbol(node->Symbol());
@@ -41,8 +41,8 @@ auto IRValueExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return sym;
 }
 
-auto IRBinOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto IRBinOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                       bool is_lhs) -> SymbolPtr {
   auto children = node->Children();
 
   if (children.size() != 2) return {};
@@ -173,8 +173,8 @@ auto IRBinOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return tmp;
 }
 
-auto IRUnOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto IRUnOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                      bool is_lhs) -> SymbolPtr {
   auto children = node->Children();
 
   if (children.empty()) return {};
@@ -206,6 +206,21 @@ auto IRUnOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     sym_tmp = sym_tmp1;
   }
 
+  else if (op == "*") {
+    auto sym_tmp1 = ctx->NewTempVariable();
+
+    if (is_lhs) {
+      // pointer dereference
+      ctx->AddIns("mov", sym_tmp1, temp);
+      sym_tmp1->SetMeta(SymbolMetaKey::kIS_ADDRESS, true);
+    } else {
+      // dereference operator
+      ctx->AddIns("load", sym_tmp1, temp);
+    }
+
+    sym_tmp = sym_tmp1;
+  }
+
   else {
     ctx->AddError("Unsupported unary operator: " + op);
     return {};
@@ -214,16 +229,16 @@ auto IRUnOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return sym_tmp;
 }
 
-auto IRMeaninglessNodeHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto IRMeaninglessNodeHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                              bool is_lhs) -> SymbolPtr {
   for (const auto& child : node->Children()) {
     ctx->ExpRoute(child);
   }
   return node->Symbol();
 }
 
-auto IRReturnExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto IRReturnExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                        bool is_lhs) -> SymbolPtr {
   auto children = node->Children();
 
   if (node->Children().empty()) return {};
@@ -234,14 +249,14 @@ auto IRReturnExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return {};
 }
 
-auto IRAssignExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto IRAssignExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                        bool is_lhs) -> SymbolPtr {
   auto children = node->Children();
 
   if (node->Children().size() != 2) return {};
 
   auto sym_rhs = ctx->ExpRoute(node->Children().back());
-  auto sym_lhs = ctx->ExpRoute(node->Children().front());
+  auto sym_lhs = ctx->ExpRoute(node->Children().front(), true);
 
   auto rhs = ctx->MapSymbol(sym_rhs);
   auto lhs = ctx->MapSymbol(sym_lhs);
@@ -265,7 +280,8 @@ auto IRAssignExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return {};
 }
 
-auto IRIfHandler(IRGeneratorContext* ctx, const ASTNodePtr& node) -> SymbolPtr {
+auto IRIfHandler(IRGeneratorContext* ctx, const ASTNodePtr& node, bool is_lhs)
+    -> SymbolPtr {
   auto children = node->Children();
 
   auto cond_sym = ctx->ExpRoute(children[0]);
@@ -294,7 +310,7 @@ auto IRIfHandler(IRGeneratorContext* ctx, const ASTNodePtr& node) -> SymbolPtr {
   return nullptr;
 }
 
-auto IRCondHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+auto IRCondHandler(IRGeneratorContext* ctx, const ASTNodePtr& node, bool is_lhs)
     -> SymbolPtr {
   auto children = node->Children();
 
@@ -322,8 +338,8 @@ auto IRCondHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return tmp;
 }
 
-auto IRWhileHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto IRWhileHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                    bool is_lhs) -> SymbolPtr {
   const auto& children = node->Children();
 
   ASTNodePtr init;
@@ -391,8 +407,8 @@ auto IRWhileHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return nullptr;
 }
 
-auto IRContinueBreakHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto IRContinueBreakHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                            bool is_lhs) -> SymbolPtr {
   auto p_sym = node->Symbol();
   assert(p_sym != nullptr);
 
@@ -414,8 +430,8 @@ auto IRContinueBreakHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return nullptr;
 }
 
-auto IRProgramHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto IRProgramHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                      bool is_lhs) -> SymbolPtr {
   for (auto& fn : node->Children()) {
     if (fn->Symbol()->Name() == "__func_main") {
       ctx->ExpRoute(fn);
@@ -429,8 +445,8 @@ auto IRProgramHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return nullptr;
 }
 
-auto IRFunctionHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto IRFunctionHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                       bool is_lhs) -> SymbolPtr {
   const auto func_name = node->Symbol()->Name();
   ctx->EnterInsGroup(func_name);
 
@@ -454,7 +470,7 @@ auto IRFunctionHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   return nullptr;
 }
 
-auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
+auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node, bool is_lhs)
     -> SymbolPtr {
   std::vector<SymbolPtr> args;
 
@@ -493,10 +509,40 @@ auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
 
     // void* calloc(size_t nmemb, size_t size);
     // allocate memory for the array
-    ctx->AddIns("param", nullptr, args.back());  // element count
-    ctx->AddIns(
-        "param", nullptr,
-        ctx->MapSymbol(arg_0_type->Value(), "immediate"));  // element type size
+    auto tmp_elem_count = ctx->NewTempVariable();
+    ctx->AddIns("add", tmp_elem_count, args.back(),
+                ctx->MapSymbol("1", "immediate"));  // element count + 1
+
+    ctx->AddIns("param", nullptr, tmp_elem_count);  // element count
+    ctx->AddIns("param", nullptr,
+                ctx->MapSymbol(arg_0_type->Value(),
+                               "immediate"));  // element type size
+  }
+
+  else if (func_name == "__func_alloc") {
+    if (args.size() != 1) {
+      ctx->AddError("Function '__func_alloc' expects one argument: 'type'.");
+      return nullptr;
+    }
+
+    const auto& arg_0_sym = args.front();
+    if (!arg_0_sym) {
+      ctx->AddError("First argument of '__func_alloc' is missing.");
+      return nullptr;
+    }
+
+    auto arg_0_type = MetaGet<SymbolPtr>(arg_0_sym, SymbolMetaKey::kTYPE);
+    if (!arg_0_type) {
+      ctx->AddError("First argument of '__func_alloc' must have a type.");
+      return nullptr;
+    }
+
+    // void* calloc(size_t nmemb, size_t size);
+    // allocate memory for the object
+    ctx->AddIns("param", nullptr,
+                ctx->MapSymbol("1", "immediate"));  // element count
+    ctx->AddIns("param", nullptr,
+                ctx->MapSymbol(arg_0_type->Value(), "immediate"));
   }
 
   // handle normal function calls
@@ -510,6 +556,31 @@ auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   }
 
   ctx->AddIns("call", ret_sym, func_sym);
+
+  if (func_name == "__func_alloc_array") {
+    // set the element count for the allocated memory
+    auto elem_count =
+        args.size() == 2 ? args.back() : ctx->MapSymbol("1", "immediate");
+
+    const auto& arg_0_sym = args.front();
+    if (!arg_0_sym) {
+      ctx->AddError("First argument of '" + func_name +
+                    "' is missing. Cannot determine element type.");
+      return nullptr;
+    }
+
+    auto arg_0_type = MetaGet<SymbolPtr>(arg_0_sym, SymbolMetaKey::kTYPE);
+    if (!arg_0_type) {
+      ctx->AddError("First argument of '" + func_name +
+                    "' must have a type. Cannot determine element type.");
+      return nullptr;
+    }
+
+    ctx->AddIns("store", ret_sym, elem_count);
+    ctx->AddIns("add", ret_sym, ret_sym,
+                ctx->MapSymbol(arg_0_type->Value(), "immediate"));
+  }
+
   return ret_sym;
 }
 
@@ -518,8 +589,8 @@ auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
  * |    |    |    |    |    Identity<arr,reference,18>
  * |    |    |    |    |    Value<10,int,18>
  */
-auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
-    -> SymbolPtr {
+auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                          bool is_lhs) -> SymbolPtr {
   auto children = node->Children();
   if (children.size() != 2) {
     ctx->AddError("Array access must have exactly one index: " +
@@ -530,6 +601,9 @@ auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   auto subscript = ctx->ExpRoute(children.back());
 
   assert(ident != nullptr && subscript != nullptr);
+
+  // ident is an address
+  ident->SetMeta(SymbolMetaKey::kIS_ADDRESS, true);
 
   // get element type
   auto arr_type =
@@ -552,13 +626,6 @@ auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     return {};
   }
 
-  // get array length
-  auto arr_length = MetaGet<int>(ident, SymbolMetaKey::kARRAY_SIZE, -1);
-  if (arr_length < 0) {
-    ctx->AddError("Array access requires a valid array length.");
-    return {};
-  }
-
   auto abort_label = ctx->NewLabel();
   auto after_label = ctx->NewLabel();
 
@@ -567,10 +634,19 @@ auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   ctx->AddIns("lt", compare_tmp, subscript, ctx->MapSymbol("0", "immediate"));
   ctx->AddIns("brnz", {}, compare_tmp, abort_label);
 
+  // get array length: ident - (elem_size) * 1
+  auto p_arr_length = ctx->NewTempAddressVariable();
+  ctx->AddIns("mov", p_arr_length, ident);
+  ctx->AddIns("sub", p_arr_length, p_arr_length,
+              ctx->MapSymbol(std::to_string(elem_size), "immediate"));
+
+  // load array length
+  auto arr_length = ctx->NewTempVariable();
+  ctx->AddIns("load", arr_length, p_arr_length);
+
   // if (subscript >= arr_length) goto abort
   compare_tmp = ctx->NewTempVariable();
-  ctx->AddIns("ge", compare_tmp, subscript,
-              ctx->MapSymbol(std::to_string(arr_length), "immediate"));
+  ctx->AddIns("ge", compare_tmp, subscript, arr_length);
   ctx->AddIns("brnz", {}, compare_tmp, abort_label);
 
   SymbolPtr offset;
@@ -583,12 +659,12 @@ auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
     offset = ctx->MapSymbol(tmp_offset);
   }
 
-  auto addr_tmp = ctx->NewTempVariable();
+  auto addr_tmp = ctx->NewTempAddressVariable();
   ctx->AddIns("add", addr_tmp, ident, offset);
 
   auto value_tmp = ctx->NewTempVariable();
 
-  if (node->Symbol()->Name() == "lvalue") {
+  if (is_lhs) {
     // if this is an lvalue, we need to return the address
     ctx->AddIns("mov", value_tmp, addr_tmp);
     value_tmp->SetMeta(SymbolMetaKey::kIS_ADDRESS, true);
@@ -606,7 +682,6 @@ auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
 
   ctx->AddIns("label", {}, after_label);
 
-  auto tmp = ctx->NewTempVariable();
   return ctx->MapSymbol(value_tmp);
 }
 

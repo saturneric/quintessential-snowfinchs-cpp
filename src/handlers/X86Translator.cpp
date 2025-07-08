@@ -757,7 +757,7 @@ void X86Translator::emit_func_op(std::vector<std::string>& out,
       out.push_back(op_mov_ + " $0," + acc_reg_);
     }
 
-    else if (func == "__func_alloc_array") {
+    else if (func == "__func_alloc_array" || func == "__func_alloc") {
       out.emplace_back("call calloc");
     }
 

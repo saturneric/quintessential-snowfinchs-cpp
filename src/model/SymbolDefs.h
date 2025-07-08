@@ -35,7 +35,6 @@ enum class SymbolMetaKey : SymbolMetaKeySizeType {
   kBASE_TYPE,        // SymbolPtr
   kSTRUCT_FIELDS,    // std::vector<SymbolPtr>
   kFUNCTION_PARAMS,  // std::vector<SymbolPtr>
-  kARRAY_SIZE,       // int
   kIS_ADDRESS,       // bool
   kCOUNT,
 };
