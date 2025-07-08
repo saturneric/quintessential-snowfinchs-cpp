@@ -482,6 +482,10 @@ expression:
       $$->AddChild($1);
       $$->AddChild($3);
     }
+    | KW_NULL
+    { 
+      $$ = MakeASTTreeNode(ASTNodeType::kVALUE, "nullptr", "0", drv); 
+    }
 ;
 
 assign_operator:
