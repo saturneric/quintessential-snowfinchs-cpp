@@ -206,16 +206,26 @@ auto SMAssignHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   auto children = node->Children();
   if (children.empty()) return node;
 
-  auto& target = children.front();
-  auto& value = children.back();
+  const auto& target = children.front();
+  const auto& value = children.back();
 
-  auto var = target->Symbol();
+  auto sym = target->Symbol();
 
-  auto sym = sa->LookupSymbol(var);
-  if (!sym) {
-    sa->Error(node, "Undeclared variables: " + var->Name());
-    return node;
+  SymbolPtr def_sym = nullptr;
+  if (target->Type() == ASTNodeType::kIDENT) {
+    def_sym = sa->LookupSymbol(sym);
+    if (!def_sym) {
+      sa->Error(node, "Undeclared variable: " + sym->Name());
+      return node;
+    }
+    // mark symbol initialized
+    def_sym->SetMeta(SymbolMetaKey::kHAS_INIT, true);
   }
+
+  // parse node
+  auto node_target = router(target);
+  spdlog::debug("Assign: {}:{} = {}", sym->Name(), sym->Index(),
+                value->Symbol()->Name());
 
   auto node_value = router(value);
   if (MetaGet<bool>(node_value->Symbol(), SymbolMetaKey::kWILL_RETURN, false)) {
@@ -250,11 +260,14 @@ auto SMAssignHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   if (sym_type->Name().find("array_") == 0) {
     auto size = MetaGet<int>(value->Symbol(), SymbolMetaKey::kARRAY_SIZE, 0);
     if (size > 0) {
-      sym->SetMeta(SymbolMetaKey::kARRAY_SIZE, 0);
+      if (def_sym) def_sym->SetMeta(SymbolMetaKey::kARRAY_SIZE, size);
+      sym->SetMeta(SymbolMetaKey::kARRAY_SIZE, size);
     }
+
+    spdlog::debug("Array size for {}({}): {}", sym->Value(), sym->Index(),
+                  size);
   }
 
-  sym->SetMeta(SymbolMetaKey::kHAS_INIT, true);
   return node;
 }
 
@@ -346,7 +359,8 @@ auto SMIdentHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   MetaSet(sym, SymbolMetaKey::kTYPE, def_sym->MetaData(SymbolMetaKey::kTYPE));
 
   if (!def_sym->MetaData(SymbolMetaKey::kHAS_INIT).has_value()) {
-    sa->Error(node, "Variable not initialized: " + def_sym->Name());
+    sa->Error(node, "Variable not initialized: " + def_sym->Name() +
+                        " (index: " + std::to_string(def_sym->Index()) + ")");
   }
 
   return node;
@@ -839,6 +853,8 @@ auto SMCallHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
       sa->Error(node, "Invalid array size: " + array_size);
       return node;
     }
+
+    def_sym->SetMeta(SymbolMetaKey::kARRAY_SIZE, size);
     sym->SetMeta(SymbolMetaKey::kARRAY_SIZE, size);
   }
 
