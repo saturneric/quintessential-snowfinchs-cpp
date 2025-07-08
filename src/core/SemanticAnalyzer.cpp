@@ -16,6 +16,7 @@ SemanticAnalyzer::SemanticAnalyzer(SymbolTablePtr symbol_table,
   MapType("int", "4");
   MapType("bool", "4");
   MapType("type", "0");
+  MapType("nullptr", "0");
 };
 
 auto SemanticAnalyzer::visit(const ASTNodePtr& node) -> ASTNodePtr {

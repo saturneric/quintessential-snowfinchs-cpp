@@ -78,7 +78,8 @@ auto Trim(const std::string& s) -> std::string {
 
 auto ParseType(SemanticAnalyzer* sa, const std::string& type_name,
                SymbolPtr& sym, const ASTNodePtr& node) -> std::string {
-  if (type_name == "int" || type_name == "bool" || type_name == "type") {
+  if (type_name == "int" || type_name == "bool" || type_name == "type" ||
+      type_name == "nullptr") {
     sym = sa->MapType(type_name, {});
     return type_name;
   }
@@ -249,9 +250,16 @@ auto SMAssignHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   }
 
   if (sym_type != exp_type) {
-    sa->Error(node, "Assignment type conflicts: " + sym->Name() +
-                        " (expected: " + sym_type->Name() +
-                        ", got: " + exp_type->Name() + ")");
+    if (sym_type->Name().rfind("ptr_", 0) == 0 &&
+        exp_type->Name() == "nullptr") {
+      // pointer type, allow assignment of nullptr
+      spdlog::debug("Allow pointer assignment of nullptr: {} -> {}",
+                    sym_type->Name(), exp_type->Name());
+    } else {
+      sa->Error(node, "Assignment type conflicts: " + sym->Name() +
+                          " (expected: " + sym_type->Name() +
+                          ", got: " + exp_type->Name() + ")");
+    }
   }
 
   if (def_sym) {
@@ -395,8 +403,16 @@ auto SMBinOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   if (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" ||
       op == ">=") {
     if (sym_lhs_type != sym_rhs_type) {
-      sa->Error(node, "Operands must be comparable");
-      return node;
+      if (sym_lhs_type->Name().rfind("ptr_", 0) == 0 &&
+          sym_rhs_type->Name().rfind("nullptr", 0) == 0) {
+        // pointer type, allow comparison with nullptr
+      } else if (sym_rhs_type->Name().rfind("ptr_", 0) == 0 &&
+                 sym_lhs_type->Name().rfind("nullptr", 0) == 0) {
+        // pointer type, allow comparison with nullptr
+      } else {
+        sa->Error(node, "Operands must be of the same type for comparison");
+        return node;
+      }
     }
 
     // set as an bool expr
