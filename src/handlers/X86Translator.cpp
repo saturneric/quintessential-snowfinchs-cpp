@@ -234,6 +234,22 @@ void X86Translator::emit_mov_op(std::vector<std::string>& fins,
       fins.push_back(op_mov_ + " (" + src + "), " + dst);
     }
   }
+
+  if (op == "store") {
+    // src should not be constant
+    assert(!IsImmediate(s_dst));
+
+    bool src_mem = !IsReg(s_src) && !IsImmediate(s_src);
+    bool dst_mem = !IsReg(s_dst);
+
+    if (dst_mem) {
+      // * -> [mem]
+      fins.push_back(op_mov_ + " " + dst + ", " + acc_reg_);
+      fins.push_back(op_mov_ + src + ", (" + acc_reg_ + ")");
+    } else {
+      fins.push_back(op_mov_ + " " + src + ", (" + dst + ")");
+    }
+  }
 }
 
 void X86Translator::emit_binary_op(std::vector<std::string>& fins,
@@ -484,7 +500,7 @@ auto X86Translator::translate(const std::vector<IRInstructionPtr>& ir,
 
     auto op = i.Op()->Name();
 
-    if (op == "mov" || op == "load") {
+    if (op == "mov" || op == "load" || op == "store") {
       emit_mov_op(ret, op, i);
     } else if (op == "add" || op == "sub" || op == "mul" || op == "div" ||
                op == "mod" || op == "band" || op == "bor" || op == "bxor" ||

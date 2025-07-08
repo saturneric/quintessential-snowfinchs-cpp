@@ -87,7 +87,7 @@ void IR2Generator::convert_ira3_2_ira2() {
 
       if (op == "dcl") continue;
 
-      if (op == "load") {
+      if (op == "load" || op == "store") {
         res.emplace_back(i->Op(), i->DST(), i->SRC(0));
         continue;
       }

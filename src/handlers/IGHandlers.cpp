@@ -246,7 +246,22 @@ auto IRAssignExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   auto rhs = ctx->MapSymbol(sym_rhs);
   auto lhs = ctx->MapSymbol(sym_lhs);
 
-  ctx->AddIns("mov", lhs, rhs);
+  if (!lhs || !rhs) {
+    ctx->AddError("Invalid assignment: " + node->Symbol()->Name());
+    return {};
+  }
+
+  // check if lhs is an address
+  auto is_address = MetaGet<bool>(lhs, SymbolMetaKey::kIS_ADDRESS, false);
+
+  if (!is_address) {
+    // if lhs is not an address, we store the value
+    ctx->AddIns("mov", lhs, rhs);
+  } else {
+    // if lhs is an address, we need to store the value at the address
+    ctx->AddIns("store", lhs, rhs);
+  }
+
   return {};
 }
 
@@ -499,7 +514,7 @@ auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
 }
 
 /**
- * |    |    |    |    Array Access<[],subscript,18>
+ * |    |    |    |    Array Access<lvalue/exp,subscript,18>
  * |    |    |    |    |    Identity<arr,reference,18>
  * |    |    |    |    |    Value<10,int,18>
  */
@@ -572,7 +587,15 @@ auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node)
   ctx->AddIns("add", addr_tmp, ident, offset);
 
   auto value_tmp = ctx->NewTempVariable();
-  ctx->AddIns("load", value_tmp, addr_tmp);
+
+  if (node->Symbol()->Name() == "lvalue") {
+    // if this is an lvalue, we need to return the address
+    ctx->AddIns("mov", value_tmp, addr_tmp);
+    value_tmp->SetMeta(SymbolMetaKey::kIS_ADDRESS, true);
+  } else {
+    // if this is an expression, we return the value
+    ctx->AddIns("load", value_tmp, addr_tmp);
+  }
 
   ctx->AddIns("jmp", {}, after_label);
   ctx->AddIns("label", {}, abort_label);

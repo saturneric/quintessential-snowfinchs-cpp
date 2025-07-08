@@ -192,8 +192,9 @@ IRGenerator::IRGenerator(SymbolTablePtr symbol_table, IRHandlerMapping mapping)
   reg_op("param");
   reg_op("arg");
 
-  // memory
+  // memory access
   reg_op("load");
+  reg_op("store");
 }
 
 void IRGenerator::convert2_ssa() {
@@ -337,10 +338,9 @@ auto IRGeneratorContext::MapSymbol(const SymbolPtr& symbol) -> SymbolPtr {
 
       // handle array
       if (type && type->Name().rfind("array_", 0) == 0) {
-        spdlog::debug("MapSymbol: {} is an array", sym->Name());
-
         auto array_size = MetaGet<int>(o_sym, SymbolMetaKey::kARRAY_SIZE, -1);
         assert(array_size >= 0);
+        spdlog::debug("Array size for {}: {}", o_sym->Value(), array_size);
         MetaSet(sym, SymbolMetaKey::kARRAY_SIZE, array_size);
       }
     }
