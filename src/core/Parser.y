@@ -323,7 +323,7 @@ left_value:
     }
     | MULT left_value /* *lvalue */ %prec DEREF
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "lvalue", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "lvalue", "*", drv);
       $$->AddChild($2);
     }
     | left_value LEFT_BRACKET expression RIGHT_BRACKET  /* lvalue[exp] */
@@ -340,7 +340,7 @@ left_value:
     | left_value ARROW VALUE_ID  /* lvalue->field */
     {
       /* equals to (*lvalue).field */
-      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "lvalue", drv);
+      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "lvalue", "*", drv);
       deref->AddChild($1);
 
       $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", $3, drv);
@@ -464,7 +464,7 @@ expression:
     | expression ARROW VALUE_ID  /* exp->field */
     {
       /* equals to (*exp).field */
-      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "exp", drv);
+      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "*", drv);
       deref->AddChild($1);
 
       $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", "exp", drv);
