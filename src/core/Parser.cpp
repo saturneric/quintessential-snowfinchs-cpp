@@ -956,7 +956,13 @@ namespace yy {
         }
 
         auto bin_op = MakeASTTreeNode(ASTNodeType::kBIN_OP, "simple_statement", op, drv);
-        bin_op->AddChild(yystack_[2].value.as < ASTNodePtr > ());
+        
+        if(yystack_[2].value.as < ASTNodePtr > ()->Type() == ASTNodeType::kIDENT) {
+          bin_op->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "reference", yystack_[2].value.as < ASTNodePtr > ()->Symbol()->Name(), drv));
+        } else {
+          bin_op->AddChild(yystack_[2].value.as < ASTNodePtr > ());
+        }
+
         bin_op->AddChild(yystack_[0].value.as < ASTNodePtr > ());
 
         yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kASSIGN, "simple_statement", "=", drv);
@@ -964,47 +970,47 @@ namespace yy {
         yylhs.value.as < ASTNodePtr > ()->AddChild(bin_op);
       }
     }
-#line 968 "Parser.cpp"
-    break;
-
-  case 31: // simple_statement: declarator
-#line 275 "Parser.y"
-    { yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > (); }
 #line 974 "Parser.cpp"
     break;
 
-  case 32: // simple_statement: call
-#line 277 "Parser.y"
+  case 31: // simple_statement: declarator
+#line 281 "Parser.y"
     { yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > (); }
 #line 980 "Parser.cpp"
     break;
 
+  case 32: // simple_statement: call
+#line 283 "Parser.y"
+    { yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > (); }
+#line 986 "Parser.cpp"
+    break;
+
   case 33: // simple_optional: %empty
-#line 282 "Parser.y"
+#line 288 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = {};
     }
-#line 988 "Parser.cpp"
+#line 994 "Parser.cpp"
     break;
 
   case 34: // simple_optional: simple_statement
-#line 286 "Parser.y"
+#line 292 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > ();
     }
-#line 996 "Parser.cpp"
+#line 1002 "Parser.cpp"
     break;
 
   case 35: // declarator: type VALUE_ID
-#line 293 "Parser.y"
+#line 299 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kDECLARE, yystack_[1].value.as < std::string > (), yystack_[0].value.as < std::string > (), drv);
     }
-#line 1004 "Parser.cpp"
+#line 1010 "Parser.cpp"
     break;
 
   case 36: // declarator: type VALUE_ID ASSIGN expression
-#line 297 "Parser.y"
+#line 303 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kDECLARE, yystack_[3].value.as < std::string > (), yystack_[2].value.as < std::string > (), drv);
       auto assign_node = MakeASTTreeNode(ASTNodeType::kASSIGN, yystack_[3].value.as < std::string > (), "=", drv);
@@ -1015,55 +1021,55 @@ namespace yy {
 
       yylhs.value.as < ASTNodePtr > ()->AddChild(assign_node);
     }
-#line 1019 "Parser.cpp"
+#line 1025 "Parser.cpp"
     break;
 
   case 37: // left_value: VALUE_ID
-#line 311 "Parser.y"
+#line 317 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIDENT, "left_value", yystack_[0].value.as < std::string > (), drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIDENT, "lvalue", yystack_[0].value.as < std::string > (), drv);
     }
-#line 1027 "Parser.cpp"
+#line 1033 "Parser.cpp"
     break;
 
   case 38: // left_value: LEFT_PAREN left_value RIGHT_PAREN
-#line 315 "Parser.y"
+#line 321 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > ();
     }
-#line 1035 "Parser.cpp"
+#line 1041 "Parser.cpp"
     break;
 
   case 39: // left_value: MULT left_value
-#line 319 "Parser.y"
+#line 325 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "lvalue", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 1044 "Parser.cpp"
+#line 1050 "Parser.cpp"
     break;
 
   case 40: // left_value: left_value LEFT_BRACKET expression RIGHT_BRACKET
-#line 324 "Parser.y"
+#line 330 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kARRAY_ACCESS, "subscript", "lvalue", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[3].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
     }
-#line 1054 "Parser.cpp"
+#line 1060 "Parser.cpp"
     break;
 
   case 41: // left_value: left_value DOT VALUE_ID
-#line 330 "Parser.y"
+#line 336 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "dot", yystack_[0].value.as < std::string > (), drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ());
     }
-#line 1063 "Parser.cpp"
+#line 1069 "Parser.cpp"
     break;
 
   case 42: // left_value: left_value ARROW VALUE_ID
-#line 335 "Parser.y"
+#line 341 "Parser.y"
     {
       /* equals to (*lvalue).field */
       auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "lvalue", drv);
@@ -1072,48 +1078,48 @@ namespace yy {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", yystack_[0].value.as < std::string > (), drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(deref);
     }
-#line 1076 "Parser.cpp"
+#line 1082 "Parser.cpp"
     break;
 
   case 43: // control: IF LEFT_PAREN expression RIGHT_PAREN statement ELSE statement
-#line 347 "Parser.y"
+#line 353 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIF, "control", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[4].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 1087 "Parser.cpp"
+#line 1093 "Parser.cpp"
     break;
 
   case 44: // control: IF LEFT_PAREN expression RIGHT_PAREN statement
-#line 354 "Parser.y"
+#line 360 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIF, "control", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 1097 "Parser.cpp"
+#line 1103 "Parser.cpp"
     break;
 
   case 45: // control: WHILE LEFT_PAREN expression RIGHT_PAREN statement
-#line 360 "Parser.y"
+#line 366 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kWHILE, "while", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > (), ASTNodeTag::kCOND);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > (), ASTNodeTag::kBODY);
     }
-#line 1107 "Parser.cpp"
-    break;
-
-  case 46: // $@3: %empty
-#line 365 "Parser.y"
-                     { EnterScope(drv); }
 #line 1113 "Parser.cpp"
     break;
 
+  case 46: // $@3: %empty
+#line 371 "Parser.y"
+                     { EnterScope(drv); }
+#line 1119 "Parser.cpp"
+    break;
+
   case 47: // control: FOR LEFT_PAREN $@3 simple_optional SEMICOLON expression SEMICOLON simple_optional RIGHT_PAREN statement
-#line 366 "Parser.y"
+#line 372 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kWHILE, "for", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[6].value.as < ASTNodePtr > (), ASTNodeTag::kINIT);
@@ -1123,214 +1129,214 @@ namespace yy {
 
       LeaveScope(drv);
     }
-#line 1127 "Parser.cpp"
+#line 1133 "Parser.cpp"
     break;
 
   case 48: // control: CONTINUE SEMICOLON
-#line 376 "Parser.y"
+#line 382 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCONTINUE, "continue", {}, drv);
     }
-#line 1135 "Parser.cpp"
+#line 1141 "Parser.cpp"
     break;
 
   case 49: // control: BREAK SEMICOLON
-#line 380 "Parser.y"
+#line 386 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBREAK, "break", {}, drv);
     }
-#line 1143 "Parser.cpp"
+#line 1149 "Parser.cpp"
     break;
 
   case 50: // control: RETURN expression SEMICOLON
-#line 384 "Parser.y"
+#line 390 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kRETURN, "return_statement", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
     }
-#line 1152 "Parser.cpp"
-    break;
-
-  case 51: // expression: LEFT_PAREN expression RIGHT_PAREN
-#line 391 "Parser.y"
-                                        { yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > (); }
 #line 1158 "Parser.cpp"
     break;
 
-  case 52: // expression: call
-#line 392 "Parser.y"
-           { yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > (); }
+  case 51: // expression: LEFT_PAREN expression RIGHT_PAREN
+#line 397 "Parser.y"
+                                        { yylhs.value.as < ASTNodePtr > () = yystack_[1].value.as < ASTNodePtr > (); }
 #line 1164 "Parser.cpp"
     break;
 
-  case 53: // expression: expression PLUS expression
-#line 394 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PLUS", "+", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 52: // expression: call
+#line 398 "Parser.y"
+           { yylhs.value.as < ASTNodePtr > () = yystack_[0].value.as < ASTNodePtr > (); }
 #line 1170 "Parser.cpp"
     break;
 
-  case 54: // expression: expression SUB expression
-#line 396 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "SUB", "-", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 53: // expression: expression PLUS expression
+#line 400 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PLUS", "+", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1176 "Parser.cpp"
     break;
 
-  case 55: // expression: expression MULT expression
-#line 398 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "MULT", "*", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 54: // expression: expression SUB expression
+#line 402 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "SUB", "-", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1182 "Parser.cpp"
     break;
 
-  case 56: // expression: expression SLASH expression
-#line 400 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "SLASH", "/", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 55: // expression: expression MULT expression
+#line 404 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "MULT", "*", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1188 "Parser.cpp"
     break;
 
-  case 57: // expression: expression PERCENT expression
-#line 402 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PERCENT", "%", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 56: // expression: expression SLASH expression
+#line 406 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "SLASH", "/", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1194 "Parser.cpp"
     break;
 
-  case 58: // expression: expression LT expression
-#line 404 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LT", "<", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 57: // expression: expression PERCENT expression
+#line 408 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "PERCENT", "%", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1200 "Parser.cpp"
     break;
 
-  case 59: // expression: expression LT_EQ expression
-#line 406 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LT_EQ", "<=", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 58: // expression: expression LT expression
+#line 410 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LT", "<", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1206 "Parser.cpp"
     break;
 
-  case 60: // expression: expression GT expression
-#line 408 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "GT", ">", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 59: // expression: expression LT_EQ expression
+#line 412 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LT_EQ", "<=", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1212 "Parser.cpp"
     break;
 
-  case 61: // expression: expression GT_EQ expression
-#line 410 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "GT_EQ", ">=", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 60: // expression: expression GT expression
+#line 414 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "GT", ">", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1218 "Parser.cpp"
     break;
 
-  case 62: // expression: expression EQ expression
-#line 412 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "EQ", "==", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 61: // expression: expression GT_EQ expression
+#line 416 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "GT_EQ", ">=", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1224 "Parser.cpp"
     break;
 
-  case 63: // expression: expression NOT_EQ expression
-#line 414 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "NOT_EQ", "!=", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 62: // expression: expression EQ expression
+#line 418 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "EQ", "==", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1230 "Parser.cpp"
     break;
 
-  case 64: // expression: expression LOGIC_AND expression
-#line 416 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LOGIC_AND", "&&", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 63: // expression: expression NOT_EQ expression
+#line 420 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "NOT_EQ", "!=", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1236 "Parser.cpp"
     break;
 
-  case 65: // expression: expression LOGIC_OR expression
-#line 418 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LOGIC_OR", "||", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 64: // expression: expression LOGIC_AND expression
+#line 422 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LOGIC_AND", "&&", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1242 "Parser.cpp"
     break;
 
-  case 66: // expression: expression BIT_AND expression
-#line 420 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_AND", "&", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 65: // expression: expression LOGIC_OR expression
+#line 424 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LOGIC_OR", "||", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1248 "Parser.cpp"
     break;
 
-  case 67: // expression: expression BIT_EX_OR expression
-#line 422 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_EX_OR", "^", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 66: // expression: expression BIT_AND expression
+#line 426 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_AND", "&", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1254 "Parser.cpp"
     break;
 
-  case 68: // expression: expression BIT_OR expression
-#line 424 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_OR", "|", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 67: // expression: expression BIT_EX_OR expression
+#line 428 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_EX_OR", "^", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1260 "Parser.cpp"
     break;
 
-  case 69: // expression: expression LEFT_SHIFT expression
-#line 426 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LEFT_SHIFT", "<<", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 68: // expression: expression BIT_OR expression
+#line 430 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "BIT_OR", "|", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1266 "Parser.cpp"
     break;
 
-  case 70: // expression: expression RIGHT_SHIFT expression
-#line 428 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "RIGHT_SHIFT", ">>", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 69: // expression: expression LEFT_SHIFT expression
+#line 432 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "LEFT_SHIFT", "<<", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1272 "Parser.cpp"
     break;
 
-  case 71: // expression: expression QUESTION expression COLON expression
-#line 432 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCOND_EXP, "conditional_expression", {}, drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[4].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 70: // expression: expression RIGHT_SHIFT expression
+#line 434 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kBIN_OP, "RIGHT_SHIFT", ">>", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1278 "Parser.cpp"
     break;
 
-  case 72: // expression: LOGIC_NOT expression
-#line 436 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "LOGIC_NOT", "!", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 71: // expression: expression QUESTION expression COLON expression
+#line 438 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCOND_EXP, "conditional_expression", {}, drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[4].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ()); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1284 "Parser.cpp"
     break;
 
-  case 73: // expression: BIT_NOT expression
-#line 438 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "BIT_NOT", "~", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 72: // expression: LOGIC_NOT expression
+#line 442 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "LOGIC_NOT", "!", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1290 "Parser.cpp"
     break;
 
-  case 74: // expression: SUB expression
-#line 440 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "SUB", "-", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
+  case 73: // expression: BIT_NOT expression
+#line 444 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "BIT_NOT", "~", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1296 "Parser.cpp"
     break;
 
-  case 75: // expression: VALUE_INTEGER
-#line 444 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "int", yystack_[0].value.as < std::string > (), drv); }
+  case 74: // expression: SUB expression
+#line 446 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "SUB", "-", drv); yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ()); }
 #line 1302 "Parser.cpp"
     break;
 
-  case 76: // expression: VALUE_ID
-#line 446 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIDENT, "reference", yystack_[0].value.as < std::string > (), drv); }
+  case 75: // expression: VALUE_INTEGER
+#line 450 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "int", yystack_[0].value.as < std::string > (), drv); }
 #line 1308 "Parser.cpp"
     break;
 
-  case 77: // expression: TRUE
-#line 448 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "bool", "true", drv); }
+  case 76: // expression: VALUE_ID
+#line 452 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kIDENT, "reference", yystack_[0].value.as < std::string > (), drv); }
 #line 1314 "Parser.cpp"
     break;
 
-  case 78: // expression: FALSE
-#line 450 "Parser.y"
-        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "bool", "false", drv); }
+  case 77: // expression: TRUE
+#line 454 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "bool", "true", drv); }
 #line 1320 "Parser.cpp"
     break;
 
+  case 78: // expression: FALSE
+#line 456 "Parser.y"
+        { yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kVALUE, "bool", "false", drv); }
+#line 1326 "Parser.cpp"
+    break;
+
   case 79: // expression: expression DOT VALUE_ID
-#line 453 "Parser.y"
+#line 459 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "dot", "exp", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[2].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", yystack_[0].value.as < std::string > (), drv));
     }
-#line 1330 "Parser.cpp"
+#line 1336 "Parser.cpp"
     break;
 
   case 80: // expression: expression ARROW VALUE_ID
-#line 459 "Parser.y"
+#line 465 "Parser.y"
     {
       /* equals to (*exp).field */
       auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "exp", drv);
@@ -1340,96 +1346,96 @@ namespace yy {
       yylhs.value.as < ASTNodePtr > ()->AddChild(deref);
       yylhs.value.as < ASTNodePtr > ()->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", yystack_[0].value.as < std::string > (), drv));
     }
-#line 1344 "Parser.cpp"
+#line 1350 "Parser.cpp"
     break;
 
   case 81: // expression: MULT expression
-#line 469 "Parser.y"
+#line 475 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "*", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ());
     }
-#line 1353 "Parser.cpp"
+#line 1359 "Parser.cpp"
     break;
 
   case 82: // expression: expression LEFT_BRACKET expression RIGHT_BRACKET
-#line 474 "Parser.y"
+#line 480 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kARRAY_ACCESS, "subscript", "exp", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[3].value.as < ASTNodePtr > ());
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
     }
-#line 1363 "Parser.cpp"
-    break;
-
-  case 83: // assign_operator: ASSIGN
-#line 482 "Parser.y"
-                          { yylhs.value.as < std::string > () = "="; }
 #line 1369 "Parser.cpp"
     break;
 
-  case 84: // assign_operator: PLUS_ASSIGN
-#line 483 "Parser.y"
-                          { yylhs.value.as < std::string > () = "+="; }
+  case 83: // assign_operator: ASSIGN
+#line 488 "Parser.y"
+                          { yylhs.value.as < std::string > () = "="; }
 #line 1375 "Parser.cpp"
     break;
 
-  case 85: // assign_operator: SUB_ASSIGN
-#line 484 "Parser.y"
-                          { yylhs.value.as < std::string > () = "-="; }
+  case 84: // assign_operator: PLUS_ASSIGN
+#line 489 "Parser.y"
+                          { yylhs.value.as < std::string > () = "+="; }
 #line 1381 "Parser.cpp"
     break;
 
-  case 86: // assign_operator: MULT_ASSIGN
-#line 485 "Parser.y"
-                          { yylhs.value.as < std::string > () = "*="; }
+  case 85: // assign_operator: SUB_ASSIGN
+#line 490 "Parser.y"
+                          { yylhs.value.as < std::string > () = "-="; }
 #line 1387 "Parser.cpp"
     break;
 
-  case 87: // assign_operator: SLASH_ASSIGN
-#line 486 "Parser.y"
-                          { yylhs.value.as < std::string > () = "/="; }
+  case 86: // assign_operator: MULT_ASSIGN
+#line 491 "Parser.y"
+                          { yylhs.value.as < std::string > () = "*="; }
 #line 1393 "Parser.cpp"
     break;
 
-  case 88: // assign_operator: PERCENT_ASSIGN
-#line 487 "Parser.y"
-                          { yylhs.value.as < std::string > () = "%="; }
+  case 87: // assign_operator: SLASH_ASSIGN
+#line 492 "Parser.y"
+                          { yylhs.value.as < std::string > () = "/="; }
 #line 1399 "Parser.cpp"
     break;
 
-  case 89: // assign_operator: BIT_AND_ASSIGN
-#line 488 "Parser.y"
-                          { yylhs.value.as < std::string > () = "&="; }
+  case 88: // assign_operator: PERCENT_ASSIGN
+#line 493 "Parser.y"
+                          { yylhs.value.as < std::string > () = "%="; }
 #line 1405 "Parser.cpp"
     break;
 
-  case 90: // assign_operator: BIT_EX_OR_ASSIGN
-#line 489 "Parser.y"
-                          { yylhs.value.as < std::string > () = "^="; }
+  case 89: // assign_operator: BIT_AND_ASSIGN
+#line 494 "Parser.y"
+                          { yylhs.value.as < std::string > () = "&="; }
 #line 1411 "Parser.cpp"
     break;
 
-  case 91: // assign_operator: BIT_OR_ASSIGN
-#line 490 "Parser.y"
-                          { yylhs.value.as < std::string > () = "|="; }
+  case 90: // assign_operator: BIT_EX_OR_ASSIGN
+#line 495 "Parser.y"
+                          { yylhs.value.as < std::string > () = "^="; }
 #line 1417 "Parser.cpp"
     break;
 
-  case 92: // assign_operator: LEFT_SHIFT_ASSIGN
-#line 491 "Parser.y"
-                          { yylhs.value.as < std::string > () = "<<="; }
+  case 91: // assign_operator: BIT_OR_ASSIGN
+#line 496 "Parser.y"
+                          { yylhs.value.as < std::string > () = "|="; }
 #line 1423 "Parser.cpp"
     break;
 
-  case 93: // assign_operator: RIGHT_SHIFT_ASSIGN
-#line 492 "Parser.y"
-                          { yylhs.value.as < std::string > () = ">>="; }
+  case 92: // assign_operator: LEFT_SHIFT_ASSIGN
+#line 497 "Parser.y"
+                          { yylhs.value.as < std::string > () = "<<="; }
 #line 1429 "Parser.cpp"
     break;
 
+  case 93: // assign_operator: RIGHT_SHIFT_ASSIGN
+#line 498 "Parser.y"
+                          { yylhs.value.as < std::string > () = ">>="; }
+#line 1435 "Parser.cpp"
+    break;
+
   case 94: // call: VALUE_ID LEFT_PAREN arg_list RIGHT_PAREN
-#line 497 "Parser.y"
+#line 503 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + yystack_[3].value.as < std::string > (), drv);
       if (yystack_[1].value.as < ASTNodePtr > ()) {
@@ -1437,11 +1443,11 @@ namespace yy {
           yylhs.value.as < ASTNodePtr > ()->AddChild(child);
       }
     }
-#line 1441 "Parser.cpp"
+#line 1447 "Parser.cpp"
     break;
 
   case 95: // call: PRINT LEFT_PAREN arg_list RIGHT_PAREN
-#line 505 "Parser.y"
+#line 511 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "print", drv);
       if (yystack_[1].value.as < ASTNodePtr > ()) {
@@ -1449,11 +1455,11 @@ namespace yy {
           yylhs.value.as < ASTNodePtr > ()->AddChild(child);
       }
     }
-#line 1453 "Parser.cpp"
+#line 1459 "Parser.cpp"
     break;
 
   case 96: // call: READ LEFT_PAREN arg_list RIGHT_PAREN
-#line 513 "Parser.y"
+#line 519 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "read", drv);
       if (yystack_[1].value.as < ASTNodePtr > ()) {
@@ -1461,11 +1467,11 @@ namespace yy {
           yylhs.value.as < ASTNodePtr > ()->AddChild(child);
       }
     }
-#line 1465 "Parser.cpp"
+#line 1471 "Parser.cpp"
     break;
 
   case 97: // call: FLUSH LEFT_PAREN arg_list RIGHT_PAREN
-#line 521 "Parser.y"
+#line 527 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") + "flush", drv);
       if (yystack_[1].value.as < ASTNodePtr > ()) {
@@ -1473,61 +1479,61 @@ namespace yy {
           yylhs.value.as < ASTNodePtr > ()->AddChild(child);
       }
     }
-#line 1477 "Parser.cpp"
+#line 1483 "Parser.cpp"
     break;
 
   case 98: // call: ALLOC LEFT_PAREN type RIGHT_PAREN
-#line 529 "Parser.y"
+#line 535 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") +"alloc", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(MakeASTTreeNode(ASTNodeType::kTYPE, "type", yystack_[1].value.as < std::string > (), drv));
     }
-#line 1486 "Parser.cpp"
+#line 1492 "Parser.cpp"
     break;
 
   case 99: // call: ALLOC_ARRAY LEFT_PAREN type COMMA expression RIGHT_PAREN
-#line 534 "Parser.y"
+#line 540 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kCALL, "call", std::string("__func_") +"alloc_array", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(MakeASTTreeNode(ASTNodeType::kTYPE, "type", yystack_[3].value.as < std::string > (), drv));
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
     }
-#line 1496 "Parser.cpp"
-    break;
-
-  case 100: // arg_list: %empty
-#line 543 "Parser.y"
-                             { yylhs.value.as < ASTNodePtr > () = nullptr; }
 #line 1502 "Parser.cpp"
     break;
 
+  case 100: // arg_list: %empty
+#line 549 "Parser.y"
+                             { yylhs.value.as < ASTNodePtr > () = nullptr; }
+#line 1508 "Parser.cpp"
+    break;
+
   case 101: // arg_list: expression arg_list_follow
-#line 545 "Parser.y"
+#line 551 "Parser.y"
     {
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kARG_LIST, "arg_list", {}, drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[1].value.as < ASTNodePtr > ());
       for (auto& a : yystack_[0].value.as < std::vector<ASTNodePtr> > ()) yylhs.value.as < ASTNodePtr > ()->AddChild(a);
     }
-#line 1512 "Parser.cpp"
-    break;
-
-  case 102: // arg_list_follow: %empty
-#line 553 "Parser.y"
-                             { yylhs.value.as < std::vector<ASTNodePtr> > () = {}; }
 #line 1518 "Parser.cpp"
     break;
 
+  case 102: // arg_list_follow: %empty
+#line 559 "Parser.y"
+                             { yylhs.value.as < std::vector<ASTNodePtr> > () = {}; }
+#line 1524 "Parser.cpp"
+    break;
+
   case 103: // arg_list_follow: COMMA expression arg_list_follow
-#line 555 "Parser.y"
+#line 561 "Parser.y"
     {
       yystack_[0].value.as < std::vector<ASTNodePtr> > ().insert(yystack_[0].value.as < std::vector<ASTNodePtr> > ().begin(), yystack_[1].value.as < ASTNodePtr > ());
       yylhs.value.as < std::vector<ASTNodePtr> > () = std::move(yystack_[0].value.as < std::vector<ASTNodePtr> > ());
     }
-#line 1527 "Parser.cpp"
+#line 1533 "Parser.cpp"
     break;
 
 
-#line 1531 "Parser.cpp"
+#line 1537 "Parser.cpp"
 
             default:
               break;
@@ -2203,14 +2209,14 @@ namespace yy {
        0,    99,    99,   110,   113,   121,   125,   132,   132,   142,
      151,   154,   162,   170,   173,   184,   185,   194,   201,   201,
      211,   212,   213,   214,   218,   226,   229,   237,   241,   245,
-     252,   274,   276,   282,   285,   292,   296,   310,   314,   318,
-     323,   329,   334,   346,   353,   359,   365,   365,   375,   379,
-     383,   391,   392,   393,   395,   397,   399,   401,   403,   405,
-     407,   409,   411,   413,   415,   417,   419,   421,   423,   425,
-     427,   431,   435,   437,   439,   443,   445,   447,   449,   452,
-     458,   468,   473,   482,   483,   484,   485,   486,   487,   488,
-     489,   490,   491,   492,   496,   504,   512,   520,   528,   533,
-     543,   544,   553,   554
+     252,   280,   282,   288,   291,   298,   302,   316,   320,   324,
+     329,   335,   340,   352,   359,   365,   371,   371,   381,   385,
+     389,   397,   398,   399,   401,   403,   405,   407,   409,   411,
+     413,   415,   417,   419,   421,   423,   425,   427,   429,   431,
+     433,   437,   441,   443,   445,   449,   451,   453,   455,   458,
+     464,   474,   479,   488,   489,   490,   491,   492,   493,   494,
+     495,   496,   497,   498,   502,   510,   518,   526,   534,   539,
+     549,   550,   559,   560
   };
 
   void
@@ -2242,7 +2248,7 @@ namespace yy {
 
 
 } // yy
-#line 2246 "Parser.cpp"
+#line 2252 "Parser.cpp"
 
-#line 561 "Parser.y"
+#line 567 "Parser.y"
 
