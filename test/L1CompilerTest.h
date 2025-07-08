@@ -8,6 +8,7 @@ struct ResourceTestCase {
   int exec_exit_code;
   bool expect_float_point_exception = false;
   bool expect_segment_fault = false;
+  bool except_abort = false;
   std::string input;
   std::string output;
 };

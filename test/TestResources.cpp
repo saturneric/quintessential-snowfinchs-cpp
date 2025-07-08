@@ -21,6 +21,9 @@ TEST_P(ResourceTest, FileExistsAndNotEmpty) {
   } else if (tc.expect_segment_fault) {
     ASSERT_FALSE(succ);
     ASSERT_EQ(ret_b, -SIGSEGV);
+  } else if (tc.except_abort) {
+    ASSERT_FALSE(succ);
+    ASSERT_EQ(ret_b, -SIGABRT);
   } else {
     ASSERT_TRUE(succ);
     ASSERT_EQ(ret_b, tc.exec_exit_code);

@@ -148,6 +148,12 @@ void from_json(const nlohmann::json& j, ResourceTestCase& tc) {
     tc.expect_segment_fault = false;
   }
 
+  if (j.contains("except_abort")) {
+    j.at("except_abort").get_to(tc.except_abort);
+  } else {
+    tc.except_abort = false;
+  }
+
   if (j.contains("input")) {
     j.at("input").get_to(tc.input);
   }
