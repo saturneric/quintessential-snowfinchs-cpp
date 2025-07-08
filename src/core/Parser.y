@@ -317,30 +317,28 @@ left_value:
     }
     | MULT left_value /* *lvalue */ %prec DEREF
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "*", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "lvalue", drv);
       $$->AddChild($2);
     }
     | left_value LEFT_BRACKET expression RIGHT_BRACKET  /* lvalue[exp] */
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kARRAY_ACCESS, "subscript", "[]", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kARRAY_ACCESS, "subscript", "lvalue", drv);
       $$->AddChild($1);
       $$->AddChild($3);
     }
     | left_value DOT VALUE_ID    /* lvalue.field */
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "dot", ".", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "dot", $3, drv);
       $$->AddChild($1);
-      $$->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", $3, drv));
     }
     | left_value ARROW VALUE_ID  /* lvalue->field */
     {
       /* equals to (*lvalue).field */
-      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "*", drv);
+      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "lvalue", drv);
       deref->AddChild($1);
 
-      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", "->", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", $3, drv);
       $$->AddChild(deref);
-      $$->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", $3, drv));
     }
 ;
 
@@ -453,17 +451,17 @@ expression:
 
     | expression DOT VALUE_ID    /* exp.field */
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "dot", ".", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "dot", "exp", drv);
       $$->AddChild($1);
       $$->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", $3, drv));
     }
     | expression ARROW VALUE_ID  /* exp->field */
     {
       /* equals to (*exp).field */
-      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "*", drv);
+      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "exp", drv);
       deref->AddChild($1);
 
-      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", "->", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", "exp", drv);
       $$->AddChild(deref);
       $$->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", $3, drv));
     }
@@ -474,7 +472,7 @@ expression:
     }
     | expression LEFT_BRACKET expression RIGHT_BRACKET  /* exp[exp] */
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kARRAY_ACCESS, "subscript", "[]", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kARRAY_ACCESS, "subscript", "exp", drv);
       $$->AddChild($1);
       $$->AddChild($3);
     }
