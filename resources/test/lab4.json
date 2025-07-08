@@ -1,0 +1,12 @@
+[
+  {
+    "source_file_path": "lab4/A1.txt",
+    "compiler_exit_code": 0,
+    "except_abort": true
+  },  
+  {
+    "source_file_path": "lab4/A2.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 16
+  }
+]
