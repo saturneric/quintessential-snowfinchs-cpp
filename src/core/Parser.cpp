@@ -1043,7 +1043,7 @@ namespace yy {
   case 39: // left_value: MULT left_value
 #line 325 "Parser.y"
     {
-      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "lvalue", drv);
+      yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kUN_OP, "lvalue", "*", drv);
       yylhs.value.as < ASTNodePtr > ()->AddChild(yystack_[0].value.as < ASTNodePtr > ());
     }
 #line 1050 "Parser.cpp"
@@ -1072,7 +1072,7 @@ namespace yy {
 #line 341 "Parser.y"
     {
       /* equals to (*lvalue).field */
-      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "lvalue", drv);
+      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "lvalue", "*", drv);
       deref->AddChild(yystack_[2].value.as < ASTNodePtr > ());
 
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", yystack_[0].value.as < std::string > (), drv);
@@ -1339,7 +1339,7 @@ namespace yy {
 #line 465 "Parser.y"
     {
       /* equals to (*exp).field */
-      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "exp", drv);
+      auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "*", drv);
       deref->AddChild(yystack_[2].value.as < ASTNodePtr > ());
 
       yylhs.value.as < ASTNodePtr > () = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", "exp", drv);
