@@ -1,0 +1,438 @@
+//#include <stdio.h>
+//#define print putchar
+//#define flush() fflush(stdout)
+//#define read getchar
+
+/*
+
+usage: 
+in the first line, enter the number of steps to simulate
+in the next 32 lines, enter the initial state of the field, each line should contain
+32 characters, either 0, 1, space or #.
+0 and space are dead cells, 1 and # are alive cells.
+each line should end with a newline character.
+*/
+
+int raiseIndexOutOfBounds(){
+    print(10); // newline
+    // print 'index out of bounds'
+    print(105); print(110); print(100); print(101); print(120); print(32); print(111); print(117); print(116); print(32); print(111); print(102); print(32); print(98); print(111); print(117); print(110); print(100); print(115); print(33);
+    print(10); // newline
+    flush();
+    return 0/0; // panic (kinda)
+}
+
+int set(int line, int index) {
+    if (index < 0 || index >= 32) {
+        raiseIndexOutOfBounds();
+    }
+    int mask = 0x1 << index;
+    return line | mask;
+}
+
+
+int unset(int line, int index) {
+    if (index < 0 || index >= 32) {
+        raiseIndexOutOfBounds();
+    }
+    int mask = 0x1 << index;
+    return line & ~mask;
+}
+
+int get(int line, int index) {
+    if (index < 0 || index >= 32) {
+        return 0; // out of bounds, return 0
+    }
+    int mask = 0x1 << index;
+    return ((line & mask) == 0) ? 0 : 1;
+}
+
+int printLine(int line){
+    int emptyChar = 32; // space
+    int filledChar = 35; // #
+    int borderChar = 124; // |
+    print(borderChar);
+    for (int i = 0; i < 32; i += 1) {
+        int present = get(line, i);
+        if (present == 1) {
+            print(filledChar);
+        } else {
+            print(emptyChar);
+        }
+    }
+    print(borderChar);
+    return 0;
+}
+
+int newline() {
+    print(10); // newline
+    return 0;
+}
+
+// field: 32 x 32
+// int line1, int line2, int line3, int line4, int line5, int line6, int line7, int line8,
+// int line9, int line10, int line11, int line12, int line13, int line14, int line15, int line16,
+// int line17, int line18, int line19, int line20, int line21, int line22, int line23, int line24,
+// int line25, int line26, int line27, int line28, int line29, int line30, int line31, int line32
+
+
+int printField(int line1, int line2, int line3, int line4, int line5, int line6, int line7, int line8,
+               int line9, int line10, int line11, int line12, int line13, int line14, int line15, int line16,
+               int line17, int line18, int line19, int line20, int line21, int line22, int line23, int line24,
+               int line25, int line26, int line27, int line28, int line29, int line30, int line31, int line32
+) {
+    int topBorder = 45; // -
+    
+    for (int i = 0; i < 34; i += 1) {
+        print(topBorder);
+    }
+    newline();
+    printLine(line1);
+    newline();
+    printLine(line2);
+    newline();
+    printLine(line3);
+    newline();
+    printLine(line4);
+    newline();
+    printLine(line5);
+    newline();
+    printLine(line6);
+    newline();
+    printLine(line7);
+    newline();
+    printLine(line8);
+    newline();
+    printLine(line9);
+    newline();
+    printLine(line10);
+    newline();
+    printLine(line11);
+    newline();
+    printLine(line12);
+    newline();
+    printLine(line13);
+    newline();
+    printLine(line14);
+    newline();
+    printLine(line15);
+    newline();
+    printLine(line16);
+    newline();
+    printLine(line17);
+    newline();
+    printLine(line18);
+    newline();
+    printLine(line19);
+    newline();
+    printLine(line20);
+    newline();
+    printLine(line21);
+    newline();
+    printLine(line22);
+    newline();
+    printLine(line23);
+    newline();
+    printLine(line24);
+    newline();
+    printLine(line25);
+    newline();
+    printLine(line26);
+    newline();
+    printLine(line27);
+    newline();
+    printLine(line28);
+    newline();
+    printLine(line29);
+    newline();
+    printLine(line30);
+    newline();
+    printLine(line31);
+    newline();
+    printLine(line32);
+    newline();
+    for (int i = 0; i < 34; i += 1) {
+        print(topBorder);
+    }
+    return 0;
+}
+
+// the first digit we get is the last digit we should print 
+// => store them on the stack to reverse the order
+int printDecHelper(int lastDigit, int rest) {
+    int zeroAscii = 48;
+    if (rest != 0) {
+        printDecHelper(rest % 10, rest / 10);
+    }
+    print(lastDigit + zeroAscii);
+    return 0;
+}
+
+int printDec(int n) {
+    if (n < 0) {
+        print(45);
+        n = -n;
+    }
+    printDecHelper(n % 10, n / 10); 
+    return 0;
+}
+
+
+int printStep(int step) {
+    print(83); // S
+    print(116); // t
+    print(101); // e
+    print(112); // p
+    print(32); // space
+    printDec(step);
+    return 0;
+}
+
+int step(int lineBefore, int theLine, int lineAfter) {
+    int newline = theLine;
+    for (int i = 0; i < 32; i += 1) {
+        int neighborCount = 0;
+        neighborCount += get(lineBefore, i - 1);
+        neighborCount += get(lineBefore, i);
+        neighborCount += get(lineBefore, i + 1);
+        neighborCount += get(theLine, i - 1);
+        neighborCount += get(theLine, i + 1);
+        neighborCount += get(lineAfter, i - 1);
+        neighborCount += get(lineAfter, i);
+        neighborCount += get(lineAfter, i + 1);
+
+        int thisCell = get(theLine, i);
+
+        if (thisCell == 1 && (neighborCount < 2 || neighborCount > 3)) { 
+            newline = unset(newline, i); // kill if to few or too many neighbors
+        } else if (thisCell == 0 && neighborCount == 3) {
+            newline = set(newline, i); // revive if exactly 3 neighbors
+        }
+    }
+    return newline;
+}
+
+int simulate(int steps, int line1, int line2, int line3, int line4, int line5, int line6, int line7, int line8,
+               int line9, int line10, int line11, int line12, int line13, int line14, int line15, int line16,
+               int line17, int line18, int line19, int line20, int line21, int line22, int line23, int line24,
+               int line25, int line26, int line27, int line28, int line29, int line30, int line31, int line32) {
+
+    print(10); // newline
+    /*
+    printField(line1, line2, line3, line4, line5, line6, line7, line8,
+               line9, line10, line11, line12, line13, line14, line15, line16,
+               line17, line18, line19, line20, line21, line22, line23, line24,
+               line25, line26, line27, line28, line29, line30, line31, line32);
+    newline();
+    newline(); 
+    */
+    
+
+    for (int i = 0; i < steps; i += 1) {
+        int newLine1 = step(0, line1, line2);
+        int newLine2 = step(line1, line2, line3);
+        int newLine3 = step(line2, line3, line4);
+        int newLine4 = step(line3, line4, line5);
+        int newLine5 = step(line4, line5, line6);
+        int newLine6 = step(line5, line6, line7);
+        int newLine7 = step(line6, line7, line8);
+        int newLine8 = step(line7, line8, line9);
+        int newLine9 = step(line8, line9, line10);
+        int newLine10 = step(line9, line10, line11);
+        int newLine11 = step(line10, line11, line12);
+        int newLine12 = step(line11, line12, line13);
+        int newLine13 = step(line12, line13, line14);
+        int newLine14 = step(line13, line14, line15);
+        int newLine15 = step(line14, line15, line16);
+        int newLine16 = step(line15, line16, line17);
+        int newLine17 = step(line16, line17, line18);
+        int newLine18 = step(line17, line18, line19);
+        int newLine19 = step(line18, line19, line20);
+        int newLine20 = step(line19, line20, line21);
+        int newLine21 = step(line20, line21, line22);
+        int newLine22 = step(line21, line22, line23);
+        int newLine23 = step(line22, line23, line24);
+        int newLine24 = step(line23, line24, line25);
+        int newLine25 = step(line24, line25, line26);
+        int newLine26 = step(line25, line26, line27);
+        int newLine27 = step(line26, line27, line28);
+        int newLine28 = step(line27, line28, line29);
+        int newLine29 = step(line28, line29, line30);
+        int newLine30 = step(line29, line30, line31);
+        int newLine31 = step(line30, line31, line32);
+        int newLine32 = step(line31, line32, 0);
+
+        line1 = newLine1; line2 = newLine2; line3 = newLine3; line4 = newLine4;
+        line5 = newLine5; line6 = newLine6; line7 = newLine7; line8 = newLine8;
+        line9 = newLine9; line10 = newLine10; line11 = newLine11; line12 = newLine12;
+        line13 = newLine13; line14 = newLine14; line15 = newLine15; line16 = newLine16;
+        line17 = newLine17; line18 = newLine18; line19 = newLine19; line20 = newLine20;
+        line21 = newLine21; line22 = newLine22; line23 = newLine23; line24 = newLine24;
+        line25 = newLine25; line26 = newLine26; line27 = newLine27; line28 = newLine28;
+        line29 = newLine29; line30 = newLine30; line31 = newLine31; line32 = newLine32;
+
+
+        if (i == steps-1) { // crow does not allow long outputs, so only the last output is printed :(
+            printStep(i + 1);
+            newline();
+            printField(line1, line2, line3, line4, line5, line6, line7, line8,
+                       line9, line10, line11, line12, line13, line14, line15, line16,
+                       line17, line18, line19, line20, line21, line22, line23, line24,
+                       line25, line26, line27, line28, line29, line30, line31, line32);
+            newline();
+            newline();
+        }
+
+    }
+    return 0;
+}
+
+// zero and space are dead
+// one and hash are alive
+int readLine() {
+    int zero = 48; // 0
+    int space = 32; // space
+    int one = 49; // 1
+    int hash = 35; // #
+    int newline = 10; // newline
+
+    int line = 0;
+    for (int i = 0; i < 32; i += 1) {
+        int c = read();
+        if (c == zero || c == space) {
+            line = line; // nothing to do
+        } else if (c == one || c == hash) {
+            line = set(line, i);
+        } else {
+            print(10); // newline
+            // print 'invalid character'
+            print(105); print(110); print(118); print(97); print(108); print(105); print(100); print(32); print(99); print(104); print(97); print(114); print(97); print(99); print(116); print(101); print(114); print(33);
+            print(10); // newline
+            return -1; // error
+        }
+    }
+    int c = read();
+    if (c != newline) {
+        print(10); // newline
+        // print 'expected newline at the end of the line'
+        print(101); print(120); print(112); print(101); print(100); print(101); print(100); print(32); print(110); print(101); print(119); print(108); print(105); print(110); print(101); print(32); print(97); print(116); print(32); print(101); print(110); print(100); print(32); print(111); print(102); print(32); print(116); print(104); print(101); print(108); print(105); print(110); print(101); print(33);
+        print(10); // newline
+        return -1; // error
+    }
+    return line;
+}
+
+int printExpectedDigit() {
+    print(10); // newline
+    // print 'expected digit'
+    print(101); print(120); print(112); print(101); print(99); print(116); print(101); print(100); print(32); print(100); print(105); print(103); print(105); print(116); print(33);
+    print(10); // newline
+    return -1; // error
+}
+
+int unexpectedEOF() {
+    print(10); // newline
+    // print 'unexpected end of file'
+    print(117); print(110); print(101); print(120); print(112); print(101); print(99); print(116); print(101); print(100); print(32); print(101); print(110); print(100); print(32); print(111); print(102); print(32); print(102); print(105); print(108); print(101);
+    print(10); // newline
+    return -1; // error
+}
+
+int readInt() {
+    int newline = 10; // newline
+    int minDigit = 48; // 0
+    int maxDigit = 57; // 9
+    int c = read();
+    int res = 0;
+    while (c != newline) {
+        if (c == -1) {
+            return unexpectedEOF(); // error
+        }
+        if (c < minDigit || c > maxDigit) {
+            return printExpectedDigit(); // error
+        }
+        
+        int digit = c - minDigit; // convert char to int
+        // accumulate the digit
+        res = res * 10 + digit;
+        c = read();
+    }
+    return res;
+}
+
+int main() {
+    int steps = readInt();
+    if (steps == -1) return 1; // error
+
+    int line1 = readLine();
+    if (line1 == -1) return 1; // error
+    int line2 = readLine();
+    if (line2 == -1) return 1; // error
+    int line3 = readLine();
+    if (line3 == -1) return 1; // error
+    int line4 = readLine();
+    if (line4 == -1) return 1; // error
+    int line5 = readLine();
+    if (line5 == -1) return 1; // error
+    int line6 = readLine();
+    if (line6 == -1) return 1; // error
+    int line7 = readLine();
+    if (line7 == -1) return 1; // error
+    int line8 = readLine();
+    if (line8 == -1) return 1; // error
+    int line9 = readLine();
+    if (line9 == -1) return 1; // error
+    int line10 = readLine();
+    if (line10 == -1) return 1; // error
+    int line11 = readLine();
+    if (line11 == -1) return 1; // error
+    int line12 = readLine();
+    if (line12 == -1) return 1; // error
+    int line13 = readLine();
+    if (line13 == -1) return 1; // error
+    int line14 = readLine();
+    if (line14 == -1) return 1; // error
+    int line15 = readLine();
+    if (line15 == -1) return 1; // error
+    int line16 = readLine();
+    if (line16 == -1) return 1; // error
+    int line17 = readLine();
+    if (line17 == -1) return 1; // error
+    int line18 = readLine();
+    if (line18 == -1) return 1; // error
+    int line19 = readLine();
+    if (line19 == -1) return 1; // error
+    int line20 = readLine();
+    if (line20 == -1) return 1; // error
+    int line21 = readLine();
+    if (line21 == -1) return 1; // error
+    int line22 = readLine();
+    if (line22 == -1) return 1; // error
+    int line23 = readLine();
+    if (line23 == -1) return 1; // error
+    int line24 = readLine();
+    if (line24 == -1) return 1; // error
+    int line25 = readLine();
+    if (line25 == -1) return 1; // error
+    int line26 = readLine();
+    if (line26 == -1) return 1; // error
+    int line27 = readLine();
+    if (line27 == -1) return 1; // error
+    int line28 = readLine();
+    if (line28 == -1) return 1; // error
+    int line29 = readLine();
+    if (line29 == -1) return 1; // error
+    int line30 = readLine();
+    if (line30 == -1) return 1; // error
+    int line31 = readLine();
+    if (line31 == -1) return 1; // error
+    int line32 = readLine();
+    if (line32 == -1) return 1; // error
+    print(10); // newline
+    
+    simulate(steps, line1, line2, line3, line4, line5, line6, line7, line8,
+               line9, line10, line11, line12, line13, line14, line15, line16,
+               line17, line18, line19, line20, line21, line22, line23, line24,
+               line25, line26, line27, line28, line29, line30, line31, line32);
+    return 0;
+}

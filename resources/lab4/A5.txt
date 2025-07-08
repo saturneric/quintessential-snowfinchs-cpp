@@ -1,0 +1,6 @@
+int main() {
+  int*[] x = alloc_array(int*, 5);
+  x[2] = alloc(int);
+  *(x[2]) = 5;
+  return *(x[2]);
+}

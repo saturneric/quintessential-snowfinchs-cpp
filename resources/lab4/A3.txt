@@ -1,0 +1,8 @@
+int main() {
+    bool* b1 = alloc(bool);
+    bool* b2 = b1;
+    if (*b1) return 1;
+    *b1 = true;
+    if (!*b2) return 2;
+    return 0;
+}
