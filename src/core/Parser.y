@@ -263,7 +263,13 @@ simple_statement:
         }
 
         auto bin_op = MakeASTTreeNode(ASTNodeType::kBIN_OP, "simple_statement", op, drv);
-        bin_op->AddChild($1);
+        
+        if($1->Type() == ASTNodeType::kIDENT) {
+          bin_op->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "reference", $1->Symbol()->Name(), drv));
+        } else {
+          bin_op->AddChild($1);
+        }
+
         bin_op->AddChild($3);
 
         $$ = MakeASTTreeNode(ASTNodeType::kASSIGN, "simple_statement", "=", drv);
@@ -309,7 +315,7 @@ declarator:
 left_value:
     VALUE_ID
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kIDENT, "left_value", $1, drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kIDENT, "lvalue", $1, drv);
     }
     | LEFT_PAREN left_value RIGHT_PAREN
     {
