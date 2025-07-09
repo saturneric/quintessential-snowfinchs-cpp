@@ -1,0 +1,9 @@
+struct A {
+    int a;
+};
+
+int main() {
+    struct A[] a = alloc_array(struct A, 2);
+    a[0].a = 123;
+    return a[0].a;
+}

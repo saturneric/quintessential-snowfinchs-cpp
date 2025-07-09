@@ -1,0 +1,79 @@
+struct Element {
+  int number;
+  struct Element *next;
+  struct Element *prev;
+};
+
+struct List {
+  struct Element *head;
+  struct Element *tail;
+};
+
+int add_elem(int n, struct List* list) {
+  struct Element *elem = alloc(struct Element);
+  elem->number = n;
+  if (list->head == NULL) {
+      list->tail = elem;
+      elem->next = elem;
+      elem->prev = elem;
+  } else {
+      elem->next = list->head;
+      elem->prev = list->tail;
+      list->head->prev = elem;
+      list->tail->next = elem;
+  }
+  list->head = elem;
+  return 0;
+}
+
+struct Element* get_elem(int position, struct List* list) {
+   struct Element* current = list->head;
+   for (int i = 0; i < position; i += 1) {
+      current = current->next;
+      i += 1;
+   }
+   return current;
+}
+
+int main() {
+  /* We initialize a list.*/
+  struct List *list = alloc(struct List);
+  int j = 1;
+  for (int i = 0; i < 10; i += j) {
+    add_elem(i, list);
+    j += 1;
+  }
+
+  /* Now we output all elements.*/
+  struct Element *current = list->head;
+  while (true) {
+    print(48 + current->number);
+    print(32);
+    current = current->next;
+    if (current == list->head) {
+      flush();
+      break;
+    }
+  }
+  print(10);
+
+/*We modify one element.*/
+  int position = 2;
+  current = get_elem(position, list);
+  current->number = 6;
+
+  /* Now we output all elements again, but backwards.*/
+  current = list->tail;
+  while (true) {
+    print(48 + current->number);
+    print(32);
+    current = current->prev;
+    if (current == list->tail) {
+      flush();
+      break;
+    }
+  }
+
+  /*We return the first number. */
+  return list->head->number;
+}
