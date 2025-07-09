@@ -1,19 +1,52 @@
-# L1Compiler
+# L4Compiler
 
-A simple L4 Compiler written in C++.
+L4Compiler is a simple L4 language compiler written in C++17, implementing the
+full compilation pipeline—from lexical analysis to assembly code emission.
+Developed through four lab stages, it progressively adds support for advanced
+language features, optimization passes, and runtime checks.
 
 ## Features
 
-* Perform lexical analysis with Flex
-* Generate LALR(1) parsers using Bison
-* Perform register allocation using graph coloring algorithms
+* Flex based L4 lexer (`Lexer.l`).
+* Bison-generated LALR(1) parser (`Parser.y`) producing an Abstract Syntax Tree
+  (AST).
+* Static type checking, scope management, symbol tables, and memory-safety
+  validation.
+* Custom IR with Control‑Flow Graph (CFG), supporting optimization passes such
+  as function inlining, dead code elimination, and variable coalescing.
+* Register Allocation: Graph‑coloring allocator with spill handling and
+  calling‑convention support.
+* IR-to-assembly translation via X86Translator.
+* ASMGenerator emits AT&T‑syntax x86-32 / x86-64 code with Position‑Independent
+  Code (PIC) support.
 * Perform simple optimizations during code generation
-* Generate AT&T-style assembly code with support for both 32-bit and 64-bit
-  output
+* Generate AT&T-syntax x86-32 and x86-64 assembly output
 * Provide a command-line interface for compiling source files
 * Include unit tests powered by GoogleTest
 * Support JSON-based configuration and resource loading for individual unit test
   cases
+
+## Repository Structure
+
+```
+L1Compiler/
+├── .github/              # CI workflows (GitHub Actions)
+├── build.sh              # Convenience script: configure & build
+├── run.sh                # Wrapper: compile source → binary
+├── test.sh               # Wrapper: run unit tests
+├── CMakeLists.txt        # Root CMake configuration
+├── include/              # Vendored headers (FlexLexer, cxxopts, nlohmann/json, spdlog, Boost)
+├── src/                  # Core compiler implementation
+│   ├── core/             # Parser, AST, CFG, IR, semantic analyzer, ASMGenerator
+│   ├── model/            # AST & IR data structures, CFG basic blocks
+│   ├── handlers/         # IR generation and translation handlers
+│   ├── driver/           # CLI entrypoint & orchestration (API.cpp)
+│   ├── L1Compiler.cpp    # Main wrapper
+│   └── CMakeLists.txt    # Add subdirectories & define `compiler` target
+├── test/                 # GoogleTest suite (FetchContent for gtest)
+├── resources/            # JSON configs and test inputs
+└── COPYING               # GPL-3.0 License
+```
 
 ## Prerequisites
 
@@ -30,7 +63,7 @@ A simple L4 Compiler written in C++.
    ```bash
    mkdir build
    cd build
-   cmake -DBUILD_TEST_CASES=ON .. 
+   cmake -DBUILD_TEST_CASES=ON [-DBUILD_UNITY=ON] .. 
    make
    ```
 
@@ -38,8 +71,6 @@ A simple L4 Compiler written in C++.
 
    ```bash
    ./build.sh                # Configure and build
-   ./run.sh <source> <dest>  # Compile a source file
-   ./test.sh                 # Run unit tests
    ```
 
 ## Usage
@@ -47,7 +78,12 @@ A simple L4 Compiler written in C++.
 Compile a source file:
 
 ```bash
-./run.sh path/to/source.txt path/to/binary
+# Direct invocation:
+build/bin/compiler -i path/to/source.txt -o path/to/output_binary [--r64] [-d]
+
+# Using provided wrapper scripts:
+./run.sh path/to/source.txt path/to/output_binary
+./test.sh
 ```
 
 Run the full test suite:
@@ -55,6 +91,11 @@ Run the full test suite:
 ```bash
 ./test.sh
 ```
+
+## Configuration
+
+JSON Tests: Located under resources/tests/, where each file defines inputs and
+expected outputs.
 
 ## Dependencies
 
