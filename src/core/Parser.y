@@ -467,9 +467,8 @@ expression:
       auto deref = MakeASTTreeNode(ASTNodeType::kUN_OP, "deref", "*", drv);
       deref->AddChild($1);
 
-      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", "exp", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "arrow", $3, drv);
       $$->AddChild(deref);
-      $$->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", $3, drv));
     }
     | MULT expression /* *exp */ %prec DEREF
     {
