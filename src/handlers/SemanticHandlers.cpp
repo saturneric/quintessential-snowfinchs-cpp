@@ -97,7 +97,7 @@ auto ParseType(SemanticAnalyzer* sa, const std::string& type_name,
       return "";
     }
 
-    sym = sa->MapType("array_" + base_type_name, "0");
+    sym = sa->MapType("array_" + base_type_name, "8");
     sym->SetMeta(SymbolMetaKey::kBASE_TYPE, sym_base);
     return "array_" + base_type_name;
   }
@@ -243,9 +243,6 @@ auto SMAssignHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
   spdlog::debug("Assign: {}:{} = {}", sym->Name(), sym->Index(),
                 sym_type ? sym_type->Name() : "unknown");
-  spdlog::debug("Expression type: {}:{} = {}", value->Symbol()->Name(),
-                value->Symbol()->Index(),
-                exp_type ? exp_type->Name() : "unknown");
 
   if (!sym_type || !exp_type) {
     sa->Error(node, "Type information missing for: " + sym->Name());
@@ -389,6 +386,15 @@ auto SMBinOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
   auto sym_lhs_type = MetaGet<SymbolPtr>(sym_lhs, SymbolMetaKey::kTYPE);
   auto sym_rhs_type = MetaGet<SymbolPtr>(sym_rhs, SymbolMetaKey::kTYPE);
+
+  spdlog::debug("Binary Op: {}:{} {} <-> {}", sym->Name(), sym->Index(),
+                sym_lhs_type ? sym_lhs_type->Name() : "unknown",
+                sym_rhs_type ? sym_rhs_type->Name() : "unknown");
+
+  if (sym_lhs_type == nullptr || sym_rhs_type == nullptr) {
+    sa->Error(node, "Type information missing for binary operation");
+    return node;
+  }
 
   if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%" ||
       op == "&" || op == "^" || op == "|" || op == "<<" || op == ">>") {
@@ -929,12 +935,7 @@ auto SMArrayAccessHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   }
 
   auto l_value = children.front()->Symbol();
-  // look up l_value
-  auto l_value_sym = sa->LookupSymbol(l_value);
-  if (!l_value_sym) {
-    sa->Error(node, "Undeclared array: " + l_value->Name());
-    return node;
-  }
+  const auto& l_value_sym = l_value;
 
   auto l_value_type =
       MetaGet<SymbolPtr>(l_value_sym, SymbolMetaKey::kTYPE, nullptr);
