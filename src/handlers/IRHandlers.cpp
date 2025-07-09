@@ -1,11 +1,10 @@
-#include "IGHandlers.h"
+#include "IRHandlers.h"
 
 #include <queue>
 
 #include "model/AST.h"
 #include "model/Symbol.h"
 #include "model/SymbolDefs.h"
-#include "model/SymbolMetaTypedef.h"
 #include "model/Utils.h"
 
 namespace {

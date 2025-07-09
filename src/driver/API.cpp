@@ -1,5 +1,7 @@
 #include "API.h"
 
+// core
+
 #include "core/ASMGenerator.h"
 #include "core/BinaryGenerator.h"
 #include "core/CFSemanticAnalyzer.h"
@@ -12,7 +14,7 @@
 
 // handlers
 
-#include "handlers/IGHandlers.h"
+#include "handlers/IRHandlers.h"
 #include "handlers/SemanticHandlers.h"
 #include "handlers/Translators.h"
 
