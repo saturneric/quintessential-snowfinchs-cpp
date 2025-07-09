@@ -226,11 +226,20 @@ auto SMDeclareHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   // set type info
   TypeName2SymbolMetaType(sa, def_sym, symbol->Value(), node);
 
-  // sync type info from def to ast
-  MetaSet(symbol, SymbolMetaKey::kTYPE,
-          def_sym->MetaData(SymbolMetaKey::kTYPE));
-
   auto type = MetaGet<SymbolPtr>(def_sym, SymbolMetaKey::kTYPE, nullptr);
+  if (!type) {
+    sa->Error(node, "Type information missing for: " + symbol->Name());
+    return node;
+  }
+
+  if (type->Name().rfind("struct_", 0) == 0) {
+    sa->Error(node, "Struct type cannot be declared directly: " + type->Name());
+    return node;
+  }
+
+  // sync type info from def to ast
+  MetaSet(symbol, SymbolMetaKey::kTYPE, type);
+
   spdlog::debug("Declare: {}:{} with type: {}", def_sym->Name(),
                 def_sym->Index(), type ? type->Name() : "unknown");
 
