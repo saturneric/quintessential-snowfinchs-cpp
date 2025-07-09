@@ -94,7 +94,7 @@ Run the full test suite:
 
 ## Configuration
 
-JSON Tests: Located under resources/tests/, where each file defines inputs and
+JSON Tests: Located under `resources/tests/`, where each file defines inputs and
 expected outputs.
 
 ## Dependencies
