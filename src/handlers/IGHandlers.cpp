@@ -1,5 +1,7 @@
 #include "IGHandlers.h"
 
+#include <queue>
+
 #include "model/AST.h"
 #include "model/Symbol.h"
 #include "model/SymbolDefs.h"
@@ -47,7 +49,7 @@ auto IRBinOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
 
   if (children.size() != 2) return {};
 
-  auto sym_lhs = ctx->ExpRoute(children.front());
+  auto sym_lhs = ctx->ExpRoute(children.front(), is_lhs);
   auto lhs = ctx->MapSymbol(sym_lhs);
 
   auto opera = node->Symbol()->Name();
@@ -62,7 +64,7 @@ auto IRBinOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
     // if (!lhs) goto false_label
     ctx->AddIns("brz", nullptr, lhs, end);
 
-    auto sym_rhs = ctx->ExpRoute(children.back());
+    auto sym_rhs = ctx->ExpRoute(children.back(), is_lhs);
     auto rhs = ctx->MapSymbol(sym_rhs);
     assert(sym_lhs->ScopeId() == sym_rhs->ScopeId());
 
@@ -88,7 +90,7 @@ auto IRBinOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
     // if (!lhs) goto false_label
     ctx->AddIns("brnz", nullptr, lhs, end);
 
-    auto sym_rhs = ctx->ExpRoute(children.back());
+    auto sym_rhs = ctx->ExpRoute(children.back(), is_lhs);
     auto rhs = ctx->MapSymbol(sym_rhs);
     assert(sym_lhs->ScopeId() == sym_rhs->ScopeId());
 
@@ -105,7 +107,7 @@ auto IRBinOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
     return tmp;
   }
 
-  auto sym_rhs = ctx->ExpRoute(children.back());
+  auto sym_rhs = ctx->ExpRoute(children.back(), is_lhs);
   auto rhs = ctx->MapSymbol(sym_rhs);
   assert(sym_lhs->ScopeId() == sym_rhs->ScopeId());
 
@@ -179,7 +181,7 @@ auto IRUnOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
 
   if (children.empty()) return {};
 
-  auto sym_operand = ctx->ExpRoute(children.front());
+  auto sym_operand = ctx->ExpRoute(children.front(), false);
   auto sym_tmp = ctx->NewTempVariable();
 
   auto operand = ctx->MapSymbol(sym_operand);
@@ -232,7 +234,7 @@ auto IRUnOpExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
 auto IRMeaninglessNodeHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
                               bool is_lhs) -> SymbolPtr {
   for (const auto& child : node->Children()) {
-    ctx->ExpRoute(child);
+    ctx->ExpRoute(child, is_lhs);
   }
   return node->Symbol();
 }
@@ -243,7 +245,7 @@ auto IRReturnExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
 
   if (node->Children().empty()) return {};
 
-  auto sym_val = ctx->ExpRoute(children.front());
+  auto sym_val = ctx->ExpRoute(children.front(), is_lhs);
 
   ctx->AddIns("rtn", {}, sym_val);
   return {};
@@ -255,7 +257,7 @@ auto IRAssignExpHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
 
   if (node->Children().size() != 2) return {};
 
-  auto sym_rhs = ctx->ExpRoute(node->Children().back());
+  auto sym_rhs = ctx->ExpRoute(node->Children().back(), false);
   auto sym_lhs = ctx->ExpRoute(node->Children().front(), true);
 
   auto rhs = ctx->MapSymbol(sym_rhs);
@@ -284,7 +286,7 @@ auto IRIfHandler(IRGeneratorContext* ctx, const ASTNodePtr& node, bool is_lhs)
     -> SymbolPtr {
   auto children = node->Children();
 
-  auto cond_sym = ctx->ExpRoute(children[0]);
+  auto cond_sym = ctx->ExpRoute(children[0], is_lhs);
   auto cond = ctx->MapSymbol(cond_sym);
 
   auto label_then = ctx->NewLabel();
@@ -295,15 +297,15 @@ auto IRIfHandler(IRGeneratorContext* ctx, const ASTNodePtr& node, bool is_lhs)
   if (label_else) {
     ctx->AddIns("brz", {}, cond, label_else);  // brz: if cond == 0 jump else
     ctx->AddIns("label", {}, label_then);
-    ctx->ExpRoute(children[1]);  // then
+    ctx->ExpRoute(children[1], is_lhs);  // then
     ctx->AddIns("jmp", {}, label_end);
     ctx->AddIns("label", {}, label_else);
-    ctx->ExpRoute(children.back());  // else
+    ctx->ExpRoute(children.back(), is_lhs);  // else
     ctx->AddIns("label", {}, label_end);
   } else {
     ctx->AddIns("brz", {}, cond, label_end);  // brz: if cond == 0 jump end
     ctx->AddIns("label", {}, label_then);
-    ctx->ExpRoute(children[1]);  // then
+    ctx->ExpRoute(children[1], is_lhs);  // then
     ctx->AddIns("label", {}, label_end);
   }
 
@@ -314,7 +316,7 @@ auto IRCondHandler(IRGeneratorContext* ctx, const ASTNodePtr& node, bool is_lhs)
     -> SymbolPtr {
   auto children = node->Children();
 
-  auto cond_sym = ctx->ExpRoute(children.front());
+  auto cond_sym = ctx->ExpRoute(children.front(), is_lhs);
   auto cond = ctx->MapSymbol(cond_sym);
 
   auto label_then = ctx->NewLabel();
@@ -326,12 +328,12 @@ auto IRCondHandler(IRGeneratorContext* ctx, const ASTNodePtr& node, bool is_lhs)
   // cond jump
   ctx->AddIns("brz", {}, cond, label_else);  // brz: if cond == 0 jump else
   ctx->AddIns("label", {}, label_then);
-  auto lhs = ctx->ExpRoute(children[1]);  // then value
+  auto lhs = ctx->ExpRoute(children[1], is_lhs);  // then value
   ctx->AddIns("mov", tmp, lhs);
   ctx->AddIns("jmp", {}, label_end);
   ctx->AddIns("label", {}, label_else);
-  ctx->ExpRoute(children.back());             // else
-  auto rhs = ctx->ExpRoute(children.back());  // else value
+  ctx->ExpRoute(children.back(), is_lhs);             // else
+  auto rhs = ctx->ExpRoute(children.back(), is_lhs);  // else value
   ctx->AddIns("mov", tmp, rhs);
   ctx->AddIns("label", {}, label_end);
 
@@ -377,7 +379,7 @@ auto IRWhileHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
   MetaSet(symbol, SymbolMetaKey::kBREAK_LABEL, label_end);
 
   // 1. init
-  if (init) ctx->ExpRoute(init);
+  if (init) ctx->ExpRoute(init, is_lhs);
 
   // cond
   ctx->AddIns("label", {}, label_cond);
@@ -385,19 +387,19 @@ auto IRWhileHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
     // endless loop
     ctx->AddIns("jmp", {}, label_body);
   } else {
-    auto cond_sym = ctx->ExpRoute(cond);
+    auto cond_sym = ctx->ExpRoute(cond, is_lhs);
     auto cond_ir = ctx->MapSymbol(cond_sym);
     ctx->AddIns("brz", {}, cond_ir, label_end);  // if cond==0 jump
   }
 
   // body
   ctx->AddIns("label", {}, label_body);
-  if (body) ctx->ExpRoute(body);
+  if (body) ctx->ExpRoute(body, is_lhs);
 
   ctx->AddIns("label", {}, label_step);
 
   // step
-  if (step) ctx->ExpRoute(step);
+  if (step) ctx->ExpRoute(step, is_lhs);
 
   ctx->AddIns("jmp", {}, label_cond);
 
@@ -430,9 +432,103 @@ auto IRContinueBreakHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
   return nullptr;
 }
 
+struct StructInfo {
+  SymbolPtr def_sym;
+  SymbolPtr type;
+  std::vector<std::pair<std::string, SymbolPtr>> fields;
+  size_t size = 0;
+  bool completed = false;
+};
+
+using StructInfoPtr = std::shared_ptr<StructInfo>;
+
+void ComputeStructuresInfo(
+    IRGeneratorContext* ctx,
+    const std::unordered_map<std::string, StructInfoPtr>& structs) {
+  std::queue<StructInfoPtr> q;
+
+  for (const auto& [name, info] : structs) {
+    q.push(info);
+  }
+
+  int max_iterations = 1000;
+
+  while (!q.empty()) {
+    if (--max_iterations <= 0) {
+      ctx->AddError(
+          "Max iterations reached while computing struct sizes. "
+          "Possible circular dependency in struct definitions.");
+      break;
+    }
+
+    auto s = q.front();
+    q.pop();
+
+    if (s->completed) continue;
+
+    bool can_compute = true;
+    std::map<std::string, size_t> field_offsets;
+    size_t offset = 0;
+    size_t align = 1;
+
+    for (auto& field : s->fields) {
+      auto type_id = field.second->Name();
+      auto it = structs.find(type_id);
+      size_t field_size = 0;
+
+      if (it != structs.end()) {
+        if (!it->second->completed) {
+          can_compute = false;
+          break;
+        }
+        field_size = it->second->size;
+      } else {
+        field_size = std::stoi(field.second->Value());
+      }
+
+      if (field_size == 0) {
+        ctx->AddError(
+            "Field '" + field.first +
+            "' has zero size. This is not allowed in struct definitions.");
+        can_compute = false;
+        break;
+      }
+
+      size_t field_align = field_size;
+      align = std::max(align, field_align);
+      if (offset % field_align != 0) {
+        offset += field_align - offset % field_align;
+      }
+
+      spdlog::debug("Field: {} with size: {} and offset: {}", field.first,
+                    field_size, offset);
+      field_offsets[field.first] = offset;
+
+      offset += field_size;
+    }
+
+    if (can_compute) {
+      if (offset % align != 0) offset += align - offset % align;
+      size_t struct_size = offset;
+
+      s->size = struct_size;
+      s->completed = true;
+
+      spdlog::debug("Computed struct: {} with size: {}", s->def_sym->Name(),
+                    s->size);
+
+      s->type->SetValue(std::to_string(s->size));
+      s->def_sym->SetMeta(SymbolMetaKey::kSTRUCT_FIELD_OFFSETS, field_offsets);
+    } else {
+      q.push(s);
+    }
+  }
+}
+
 auto IRProgramHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
                       bool is_lhs) -> SymbolPtr {
   // parse structs first
+  std::unordered_map<std::string, StructInfoPtr> structs;
   for (auto& fn : node->Children()) {
     if (fn->Type() != ASTNodeType::kSTRUCT) continue;
 
@@ -451,73 +547,39 @@ auto IRProgramHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
     auto fields = MetaGet<std::vector<std::pair<std::string, SymbolPtr>>>(
         def_struct_sym, SymbolMetaKey::kSTRUCT_FIELDS);
 
-    size_t offset = 0;
-    size_t struct_align = 1;
-    std::map<std::string, size_t> field_offsets;
-
-    for (auto& [fname, fty] : fields) {
-      if (!fty || fty->Value().empty()) {
-        ctx->AddError("Field type for '" + fname + "' is not defined.");
-        continue;
-      }
-
-      spdlog::debug("Processing field: {}", fty->Value());
-
-      size_t sz = std::stoi(fty->Value());
-      // sz equal alg by now
-      size_t alg = sz;
-
-      if (sz == 0) {
-        ctx->AddError("Field '" + fname + "' has zero size.");
-        continue;
-      }
-
-      // update the alignment based on the field type
-      struct_align = std::max(struct_align, alg);
-
-      if (offset % alg != 0) {
-        offset += (alg - offset % alg);
-      }
-
-      spdlog::debug("Field: {} with size: {} and offset: {}", fname, sz,
-                    offset);
-      field_offsets[fname] = offset;
-      offset += sz;
-    }
-
-    size_t struct_size = offset;
-    if (struct_size % struct_align != 0) {
-      struct_size += (struct_align - struct_size % struct_align);
-    }
-
-    auto def_type_sym =
+    auto type_sym =
         MetaGet<SymbolPtr>(def_struct_sym, SymbolMetaKey::kTYPE, nullptr);
-    if (!def_type_sym) {
-      ctx->AddError("Struct type for '" + struct_name + "' is not defined.");
-      continue;
-    }
 
-    // record the total size and alignment of the struct
-    def_type_sym->SetValue(std::to_string(struct_size));
+    StructInfo struct_info;
+    struct_info.def_sym = def_struct_sym;
+    struct_info.type = type_sym;
+    struct_info.fields = fields;
+    struct_info.completed = false;
+    struct_info.size = 0;
 
-    spdlog::debug("Struct type {}:{} has size: {} and alignment: {}",
-                  def_type_sym->Name(), def_type_sym->Index(), struct_size,
-                  struct_align);
+    structs[type_sym->Name()] = std::make_shared<StructInfo>(struct_info);
+  }
 
-    MetaSet<std::map<std::string, size_t>>(
-        def_struct_sym, SymbolMetaKey::kSTRUCT_FIELD_OFFSETS, field_offsets);
+  // compute structures info
+  ComputeStructuresInfo(ctx, structs);
+
+  if (!ctx->Success()) {
+    spdlog::error("Errors occurred while computing structures info.");
+    return nullptr;
   }
 
   for (auto& fn : node->Children()) {
     if (fn->Symbol()->Name() == "__func_main") {
-      ctx->ExpRoute(fn);
+      ctx->ExpRoute(fn, is_lhs);
       break;
     }
   }
+
   for (auto& fn : node->Children()) {
     if (fn->Symbol()->Name() == "__func_main") continue;
-    ctx->ExpRoute(fn);
+    ctx->ExpRoute(fn, is_lhs);
   }
+
   return nullptr;
 }
 
@@ -541,7 +603,7 @@ auto IRFunctionHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
   }
 
   auto body = children.back();
-  if (body->Tag() == ASTNodeTag::kBODY) ctx->ExpRoute(body);
+  if (body->Tag() == ASTNodeTag::kBODY) ctx->ExpRoute(body, is_lhs);
 
   return nullptr;
 }
@@ -552,7 +614,7 @@ auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node, bool is_lhs)
 
   auto children = node->Children();
   for (auto& arg : children) {
-    auto sym = ctx->ExpRoute(arg);
+    auto sym = ctx->ExpRoute(arg, is_lhs);
     args.push_back(sym);
   }
 
@@ -696,8 +758,8 @@ auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
                   node->Symbol()->Name());
     return {};
   }
-  auto ident = ctx->ExpRoute(children.front());
-  auto subscript = ctx->ExpRoute(children.back());
+  auto ident = ctx->ExpRoute(children.front(), is_lhs);
+  auto subscript = ctx->ExpRoute(children.back(), is_lhs);
 
   assert(ident != nullptr && subscript != nullptr);
 
@@ -819,17 +881,6 @@ auto IRFieldAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
                   lvalue_type_name);
     return {};
   }
-
-  // auto struct_type_name = lvalue_type_name.substr(7);  // remove "struct_"
-
-  // // look up l_value
-  // auto def_struct_sym =
-  //     ctx->MapDefSym(node->Symbol()->Scope(), struct_type_name);
-  // if (!def_struct_sym) {
-  //   ctx->AddError("Field access failed: struct '" + struct_type_name +
-  //                 "' not found.");
-  //   return {};
-  // }
 
   spdlog::debug("IR Field access: {}:{} with type: {} and field: {}",
                 def_struct_sym->Name(), def_struct_sym->Index(),
