@@ -1,0 +1,39 @@
+int main() {
+    int rowsA = 2;
+    int colsA = 3;
+    int rowsB = 3;
+    int colsB = 2;
+
+    int[] A = alloc_array(int, rowsA * colsA);
+    int[] B = alloc_array(int, rowsB * colsB);
+    int[] C = alloc_array(int, rowsA * colsB);
+
+    // Initialize A: [1 2 3; 4 5 6]
+    for (int i = 0; i < rowsA * colsA; i = i + 1) {
+        A[i] = i + 1;
+    }
+
+    // Initialize B manually:
+    B[0] = 1; B[1] = 2;
+    B[2] = 0; B[3] = 1;
+    B[4] = 1; B[5] = 0;
+
+    // Matrix multiplication: C = A * B
+    for (int r = 0; r < rowsA; r = r + 1) {
+        for (int c = 0; c < colsB; c = c + 1) {
+            int sum = 0;
+            for (int k = 0; k < colsA; k = k + 1) {
+                sum = sum + A[r * colsA + k] * B[k * colsB + c];
+            }
+            C[r * colsB + c] = sum;
+        }
+    }
+
+    // Sum all elements in C
+    int total = 0;
+    for (int i = 0; i < rowsA * colsB; i = i + 1) {
+        total = total + C[i];
+    }
+
+    return total;
+}

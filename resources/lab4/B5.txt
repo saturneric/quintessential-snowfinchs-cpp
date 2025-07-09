@@ -1,0 +1,4 @@
+int main() {return 0;}
+
+struct foo {struct bar a;};
+struct bar {struct foo* a;};
