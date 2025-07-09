@@ -432,6 +432,82 @@ auto IRContinueBreakHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
 
 auto IRProgramHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
                       bool is_lhs) -> SymbolPtr {
+  // parse structs first
+  for (auto& fn : node->Children()) {
+    if (fn->Type() != ASTNodeType::kSTRUCT) continue;
+
+    auto symbol = fn->Symbol();
+
+    auto struct_name = symbol->Name();
+    auto struct_sym = ctx->MapSymbol(struct_name, "struct");
+
+    // look up l_value
+    auto def_struct_sym = ctx->MapDefSym(node->Symbol()->Scope(), struct_name);
+    if (!def_struct_sym) {
+      ctx->AddError("Undeclared struct: " + struct_name);
+      return {};
+    }
+
+    auto fields = MetaGet<std::vector<std::pair<std::string, SymbolPtr>>>(
+        def_struct_sym, SymbolMetaKey::kSTRUCT_FIELDS);
+
+    size_t offset = 0;
+    size_t struct_align = 1;
+    std::map<std::string, size_t> field_offsets;
+
+    for (auto& [fname, fty] : fields) {
+      if (!fty || fty->Value().empty()) {
+        ctx->AddError("Field type for '" + fname + "' is not defined.");
+        continue;
+      }
+
+      spdlog::debug("Processing field: {}", fty->Value());
+
+      size_t sz = std::stoi(fty->Value());
+      // sz equal alg by now
+      size_t alg = sz;
+
+      if (sz == 0) {
+        ctx->AddError("Field '" + fname + "' has zero size.");
+        continue;
+      }
+
+      // update the alignment based on the field type
+      struct_align = std::max(struct_align, alg);
+
+      if (offset % alg != 0) {
+        offset += (alg - offset % alg);
+      }
+
+      spdlog::debug("Field: {} with size: {} and offset: {}", fname, sz,
+                    offset);
+      field_offsets[fname] = offset;
+      offset += sz;
+    }
+
+    size_t struct_size = offset;
+    if (struct_size % struct_align != 0) {
+      struct_size += (struct_align - struct_size % struct_align);
+    }
+
+    auto def_type_sym =
+        MetaGet<SymbolPtr>(def_struct_sym, SymbolMetaKey::kTYPE, nullptr);
+    if (!def_type_sym) {
+      ctx->AddError("Struct type for '" + struct_name + "' is not defined.");
+      continue;
+    }
+
+    // record the total size and alignment of the struct
+    def_type_sym->SetValue(std::to_string(struct_size));
+
+    spdlog::debug("Struct type {}:{} has size: {} and alignment: {}",
+                  def_type_sym->Name(), def_type_sym->Index(), struct_size,
+                  struct_align);
+
+    MetaSet<std::map<std::string, size_t>>(
+        def_struct_sym, SymbolMetaKey::kSTRUCT_FIELD_OFFSETS, field_offsets);
+  }
+
   for (auto& fn : node->Children()) {
     if (fn->Symbol()->Name() == "__func_main") {
       ctx->ExpRoute(fn);
@@ -736,16 +812,24 @@ auto IRFieldAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
     return {};
   }
 
-  auto struct_type_name = lvalue_type_name.substr(7);  // remove "struct_"
-
-  // look up l_value
   auto def_struct_sym =
-      ctx->MapDefSym(symbol->Scope(), "__struct_" + struct_type_name);
+      MetaGet<SymbolPtr>(l_value_type, SymbolMetaKey::kSTRUCT_SYMBOL, nullptr);
   if (!def_struct_sym) {
-    ctx->AddError("Field access failed: struct '" + struct_type_name +
-                  "' not found.");
+    ctx->AddError("Field access requires a valid struct type, got: " +
+                  lvalue_type_name);
     return {};
   }
+
+  // auto struct_type_name = lvalue_type_name.substr(7);  // remove "struct_"
+
+  // // look up l_value
+  // auto def_struct_sym =
+  //     ctx->MapDefSym(node->Symbol()->Scope(), struct_type_name);
+  // if (!def_struct_sym) {
+  //   ctx->AddError("Field access failed: struct '" + struct_type_name +
+  //                 "' not found.");
+  //   return {};
+  // }
 
   spdlog::debug("IR Field access: {}:{} with type: {} and field: {}",
                 def_struct_sym->Name(), def_struct_sym->Index(),
@@ -758,7 +842,7 @@ auto IRFieldAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
   auto it = field_offset.find(field_name);
   if (it == field_offset.end()) {
     ctx->AddError("Field '" + field_name + "' not found in struct '" +
-                  struct_type_name + "'.");
+                  def_struct_sym->Name() + "'.");
     return {};
   }
 
