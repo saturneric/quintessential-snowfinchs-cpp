@@ -1,0 +1,36 @@
+struct Test {
+    struct FooBar fb;
+};
+
+struct FooBar {
+    struct Value foo;
+    struct Value bar;
+};
+
+struct Value {
+    int value;
+};
+
+
+
+
+int main() {
+    struct Test* a = alloc(struct Test);
+    struct Test* b = alloc(struct Test);
+
+    a->fb.foo.value = 1;
+    a->fb.bar.value = 2;
+    b->fb.foo.value = 3;
+    b->fb.bar.value = 4;
+
+    bool cond1 = true;
+    bool cond2 = false;
+
+    int value =
+        (cond1
+            ? (cond2 ? a->fb.foo : b->fb.foo)
+            : (cond2 ? a->fb.bar : b->fb.bar))
+        .value;
+
+    return value;
+}
