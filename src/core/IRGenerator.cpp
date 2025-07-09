@@ -1,5 +1,7 @@
 #include "IRGenerator.h"
 
+#include <utility>
+
 #include "model/ControlFlowGraphAlgos.h"
 #include "model/SymbolDefs.h"
 #include "model/Utils.h"
@@ -75,8 +77,6 @@ void IRGenerator::Generate(const AST& tree) {
   block_level_def_analyse();
 
   insert_phi();
-
-  // convert2_ssa();
 }
 
 auto IRGeneratorContext::NewTempVariable() -> SymbolPtr {
@@ -546,4 +546,18 @@ auto IRGeneratorContext::LookupType(const std::string& type_name) -> SymbolPtr {
 
   assert(sym->Type() == SymbolType::kTYPEDESC);
   return sym;
+}
+
+auto IRGeneratorContext::MapDefSym(ScopePtr scope, const std::string& name)
+    -> SymbolPtr {
+  return ig_->lookup_variable(std::move(scope), name);
+}
+
+auto IRGenerator::lookup_variable(ScopePtr scope, const std::string& name)
+    -> SymbolPtr {
+  if (name.empty()) {
+    spdlog::error("Variable name cannot be empty");
+    return nullptr;
+  }
+  return def_symbol_helper_.LookupSymbol(std::move(scope), name);
 }

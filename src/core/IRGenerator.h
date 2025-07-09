@@ -42,6 +42,8 @@ class IRGeneratorContext {
 
   auto MapDefSym(const SymbolPtr& symbol) -> SymbolPtr;
 
+  auto MapDefSym(ScopePtr scope, const std::string& name) -> SymbolPtr;
+
   auto MapOp(const std::string& name) -> SymbolPtr;
 
   auto MapSymbol(const SymbolPtr& symbol) -> SymbolPtr;
@@ -124,6 +126,8 @@ class IRGenerator {
   void refresh_irs_by_cfg();
 
   auto lookup_type(const std::string& type_name) -> SymbolPtr;
+
+  auto lookup_variable(ScopePtr scope, const std::string& name) -> SymbolPtr;
 
   static auto optimums(const std::vector<IRInstructionPtr>&)
       -> std::vector<IRInstructionPtr>;
