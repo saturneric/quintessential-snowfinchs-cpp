@@ -1,6 +1,6 @@
 # L1Compiler
 
-A simple L1 Compiler written in C++.
+A simple L4 Compiler written in C++.
 
 ## Features
 

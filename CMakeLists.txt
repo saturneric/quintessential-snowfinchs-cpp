@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17)
-project(L1Compiler LANGUAGES CXX)
+project(L4Compiler LANGUAGES CXX)
 
 option(BUILD_TEST_CASES "Build Unit Test Cases" OFF)
 message(STATUS "BUILD_TEST_CASES is ${BUILD_TEST_CASES}")
