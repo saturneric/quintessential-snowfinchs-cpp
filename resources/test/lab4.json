@@ -64,6 +64,15 @@
     "compiler_exit_code": 0,
     "output": "9 5 2 0 \n0 2 6 9 ",
     "exec_exit_code": 9
+  },
+  {
+    "source_file_path": "lab4/B2.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
+  },
+  {
+    "source_file_path": "lab4/B3.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
   }
- 
 ]

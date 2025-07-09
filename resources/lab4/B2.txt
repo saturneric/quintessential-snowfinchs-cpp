@@ -1,0 +1,50 @@
+struct IntVector {
+    int[] data;
+    int size;
+    int capacity;
+};
+
+int vector_change_capacity(struct IntVector* vec, int new_capacity) {
+    if (new_capacity < 0) return -1;
+    int[] new_data = alloc_array(int, new_capacity);
+    int new_size = vec->size < new_capacity ? vec->size : new_capacity;
+    for (int i = 0; i < new_size; i += 1) {
+        new_data[i] = vec->data[i];
+    }
+    vec->data = new_data;
+    vec->size = new_size;
+    vec->capacity = new_capacity;
+    return 0;
+}
+
+int vector_push_back(struct IntVector* vec, int value) {
+    if (vec->capacity == vec->size) {
+        vector_change_capacity(vec, vec->capacity * 2 + 5);
+    }
+    vec->data[vec->size] = value;
+    vec->size += 1;
+    return value;
+}
+
+int vector_pop_back(struct IntVector* vec) {
+    if (vec->size == 0) return 0;
+    vec->size -= 1;
+    return vec->data[vec->size];
+}
+
+int main() {
+    struct IntVector* vec = alloc(struct IntVector);
+    if (vec->size != 0) return 1;
+    if (vec->capacity != 0) return 2;
+    for (int i = 0; i < 10; i += 1) {
+        vector_push_back(vec, i);
+    }
+    if (vec->size != 10) return 3;
+    if (vec->capacity != 15) return 4;
+    if (vector_pop_back(vec) != 9) return 5;
+    if (vector_pop_back(vec) != 8) return 6;
+    for (int i = 0; i < vec->size; i += 1) {
+        if (vec->data[i] != i) return 7;
+    }
+    return 0;
+}
