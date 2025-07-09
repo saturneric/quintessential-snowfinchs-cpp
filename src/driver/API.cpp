@@ -101,11 +101,13 @@ auto CompileSourceCode(std::filesystem::path runtime_dir,
   IRGenerator irg(symbol_table, GetIRHandlersMap());
 
   ret = RunOperation("IR Generator", [&]() {
-    irg.Generate(driver.AST());
+    auto ret = irg.Generate(driver.AST());
     if (debug) irg.PrintAddr(runtime_dir / "PrintIR3.txt");
     if (debug) irg.PrintCFG(runtime_dir / "PrintCFG(IR3).txt");
-    return true;
+    return ret;
   });
+
+  if (!ret) return 7;
 
   auto fcs = irg.ControlFlowGraph();
 

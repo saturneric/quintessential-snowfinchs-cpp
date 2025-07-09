@@ -54,9 +54,12 @@ class IRGeneratorContext {
 
   auto LookupType(const std::string& type_name) -> SymbolPtr;
 
+  [[nodiscard]] auto Success() const -> bool;
+
  private:
   IRGenerator* ig_;
   IRExpHandler handler_;
+  bool success_ = true;
 
   std::vector<FuncInstructions> ins_;
 };
@@ -69,7 +72,7 @@ class IRGenerator {
 
   explicit IRGenerator(SymbolTablePtr symbol_table, IRHandlerMapping mapping);
 
-  void Generate(const AST& tree);
+  auto Generate(const AST& tree) -> bool;
 
   void PrintAddr(const std::string& path);
 

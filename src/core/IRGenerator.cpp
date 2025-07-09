@@ -62,11 +62,16 @@ auto IRGenerator::do_ir_generate(IRGeneratorContext* ctx,
   return ir_handler_mapping_[node->Type()](ctx, node, is_lhs);
 }
 
-void IRGenerator::Generate(const AST& tree) {
+auto IRGenerator::Generate(const AST& tree) -> bool {
   auto node = tree.Root();
-  if (node == nullptr) return;
+  if (node == nullptr) return false;
 
   do_ir_generate(ctx_.get(), node);
+
+  if (!ctx_->Success()) {
+    spdlog::error("IR generation failed with errors.");
+    return false;
+  }
 
   build_cfg();
 
@@ -77,6 +82,8 @@ void IRGenerator::Generate(const AST& tree) {
   block_level_def_analyse();
 
   insert_phi();
+
+  return true;
 }
 
 auto IRGeneratorContext::NewTempVariable() -> SymbolPtr {
@@ -393,6 +400,7 @@ auto IRGenerator::map_op(const std::string& name) -> SymbolPtr {
 
 void IRGeneratorContext::AddError(const std::string& err) {
   spdlog::error("IR Generate Error: {}", err);
+  success_ = false;
 }
 
 auto IRGeneratorContext::NewLabel() -> SymbolPtr { return ig_->new_label(); }
@@ -561,3 +569,5 @@ auto IRGenerator::lookup_variable(ScopePtr scope, const std::string& name)
   }
   return def_symbol_helper_.LookupSymbol(std::move(scope), name);
 }
+
+auto IRGeneratorContext::Success() const -> bool { return success_; }
