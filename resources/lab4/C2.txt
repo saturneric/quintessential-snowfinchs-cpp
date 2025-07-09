@@ -1,0 +1,11 @@
+struct R {
+   int x;
+};
+
+int func(struct R r) {
+    return 80;
+}
+
+int main() {
+    return 0;
+}

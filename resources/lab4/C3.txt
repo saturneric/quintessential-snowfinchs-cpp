@@ -1,0 +1,8 @@
+struct S {
+   int i;
+};
+
+int main() {
+    struct S* s = alloc(struct S);
+    return *s.i;
+}

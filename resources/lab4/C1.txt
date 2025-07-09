@@ -1,0 +1,8 @@
+struct main {
+int field;
+bool field;
+};
+
+int main() {
+return 0;
+}

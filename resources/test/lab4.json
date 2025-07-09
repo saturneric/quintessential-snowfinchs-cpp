@@ -102,5 +102,17 @@
     "source_file_path": "lab4/B9.txt",
     "compiler_exit_code":0,
     "exec_exit_code": 3
+  },
+  {
+    "source_file_path": "lab4/C1.txt",
+    "compiler_exit_code":7
+  },
+  {
+    "source_file_path": "lab4/C2.txt",
+    "compiler_exit_code":7
+  },
+  {
+    "source_file_path": "lab4/C3.txt",
+    "compiler_exit_code":7
   }
 ]
