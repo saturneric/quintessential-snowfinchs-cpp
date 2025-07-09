@@ -88,9 +88,10 @@
 %right LOGIC_NOT BIT_NOT UMINUS   // ! ~ -
 
 %left LEFT_BRACKET RIGHT_BRACKET  // [ ]
-%left DOT ARROW
 
 %right DEREF
+%left DOT ARROW
+
 
 %start program
 
