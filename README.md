@@ -2,8 +2,8 @@
 
 L4Compiler is a simple L4 language compiler written in C++17, implementing the
 full compilation pipeline—from lexical analysis to assembly code emission.
-Developed through four [lab stages](labs/), it progressively adds support for advanced
-language features, optimization passes, and runtime checks.
+Developed through [four lab stages](labs/), it progressively adds support for
+advanced language features, optimization passes, and runtime checks.
 
 ## Features
 
@@ -29,7 +29,7 @@ language features, optimization passes, and runtime checks.
 ## Repository Structure
 
 ```
-L1Compiler/
+L4Compiler/
 ├── .github/              # CI workflows (GitHub Actions)
 ├── build.sh              # Convenience script: configure & build
 ├── run.sh                # Wrapper: compile source → binary
@@ -41,7 +41,7 @@ L1Compiler/
 │   ├── model/            # AST & IR data structures, CFG basic blocks
 │   ├── handlers/         # IR generation and translation handlers
 │   ├── driver/           # CLI entrypoint & orchestration (API.cpp)
-│   ├── L1Compiler.cpp    # Main wrapper
+│   ├── L4Compiler.cpp    # Main wrapper
 │   └── CMakeLists.txt    # Add subdirectories & define `compiler` target
 ├── test/                 # GoogleTest suite (FetchContent for gtest)
 ├── resources/            # JSON configs and test inputs
