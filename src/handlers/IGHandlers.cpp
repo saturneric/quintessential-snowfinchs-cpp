@@ -758,8 +758,8 @@ auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
                   node->Symbol()->Name());
     return {};
   }
-  auto ident = ctx->ExpRoute(children.front(), is_lhs);
-  auto subscript = ctx->ExpRoute(children.back(), is_lhs);
+  auto ident = ctx->ExpRoute(children.front(), false);
+  auto subscript = ctx->ExpRoute(children.back(), false);
 
   assert(ident != nullptr && subscript != nullptr);
 
