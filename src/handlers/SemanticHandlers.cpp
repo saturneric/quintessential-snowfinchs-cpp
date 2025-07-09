@@ -78,6 +78,8 @@ auto Trim(const std::string& s) -> std::string {
 
 auto ParseType(SemanticAnalyzer* sa, const std::string& type_name,
                SymbolPtr& sym, const ASTNodePtr& node) -> std::string {
+  spdlog::debug("ParseType: {}", type_name);
+
   if (type_name == "int" || type_name == "bool" || type_name == "type" ||
       type_name == "nullptr") {
     sym = sa->MapType(type_name, {});
@@ -744,6 +746,9 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
   for (auto& fn : node->Children()) {
     auto sym = fn->Symbol();
+
+    if (fn->Type() != ASTNodeType::kFUNCTION) continue;
+
     auto [succ, def_sym] = sa->RecordRealSymbol(
         sa->MapFunction(root_scope_id, sym->Name(), sym->Value()));
     if (!succ) {
@@ -863,7 +868,7 @@ auto SMCallHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     auto arg_type_name = arg_types.front()->Name();
     spdlog::debug("Allocating type: {}", arg_type_name);
 
-    ret_type = TypeName2Symbol(sa, arg_type_name + "*", node);
+    ret_type = sa->MapType("ptr_" + arg_type_name, "8");
     if (!ret_type) {
       sa->Error(node, "Failed to resolve type for '__func_alloc': " +
                           arg_type_name + "*");
@@ -970,11 +975,14 @@ auto SMStructHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
   // check if struct is already defined
   auto [succ, def_sym] = sa->RecordRealSymbol(
-      sa->MapStruct(sa->GetRootScopeId(), "__struct_" + struct_name, {}));
+      sa->MapStruct(sa->GetRootScopeId(), struct_name, {}));
   if (!succ) {
     sa->Error(node, "Redefine struct: " + struct_name);
     return node;
   }
+
+  spdlog::debug("Struct definition: {}:{} with name: {}", def_sym->Name(),
+                def_sym->Index(), struct_name);
 
   // create new struct type
   auto def_type_sym = TypeName2Symbol(sa, "struct " + struct_name, node);
@@ -1032,10 +1040,76 @@ auto SMStructHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     offset += sz;
   }
 
+  spdlog::debug("Struct {}:{} has total size: {} and alignment: {}",
+                struct_name, def_sym->Index(), offset, struct_align);
+
   MetaSet<std::vector<std::pair<std::string, SymbolPtr>>>(
       def_sym, SymbolMetaKey::kSTRUCT_FIELDS, fields);
   MetaSet<std::map<std::string, size_t>>(
       def_sym, SymbolMetaKey::kSTRUCT_FIELD_OFFSETS, field_offsets);
+  return node;
+}
+
+auto SMFieldAccessHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
+                          const ASTNodePtr& node) -> ASTNodePtr {
+  auto symbol = node->Symbol();
+  auto children = node->Children();
+
+  if (children.empty()) {
+    sa->Error(node,
+              "Field access must have exactly one field: " + symbol->Name());
+    return node;
+  }
+
+  auto l_value = router(children.front());
+  auto field_name = symbol->Name();
+
+  auto l_value_type =
+      MetaGet<SymbolPtr>(l_value->Symbol(), SymbolMetaKey::kTYPE, nullptr);
+  if (!l_value_type) {
+    sa->Error(node, "Left value of field access must have a type: " +
+                        l_value->Symbol()->Name());
+    return node;
+  }
+
+  // lvalue type name must start with "struct_"
+  auto lvalue_type_name = l_value_type->Name();
+  if (lvalue_type_name.rfind("struct", 0) == std::string::npos) {
+    sa->Error(node, "Field access must be on a struct type, not: " +
+                        lvalue_type_name);
+    return node;
+  }
+
+  auto struct_type_name = lvalue_type_name.substr(7);  // remove "struct_"
+
+  // look up l_value
+  auto def_sym =
+      sa->LookupSymbol(sa->GetRootScope(), "__struct_" + struct_type_name);
+  if (!def_sym) {
+    sa->Error(node, "Undeclared struct: " + l_value->Symbol()->Name());
+    return node;
+  }
+
+  spdlog::debug("Field access: {}:{} with type: {} and field: {}",
+                def_sym->Name(), def_sym->Index(),
+                l_value_type ? l_value_type->Name() : "unknown", field_name);
+
+  // get struct fields
+  auto fields = MetaGet<std::vector<std::pair<std::string, SymbolPtr>>>(
+      def_sym, SymbolMetaKey::kSTRUCT_FIELDS, {});
+
+  // find the field
+  for (const auto& [fname, ftype] : fields) {
+    spdlog::debug("Checking field: {} with type: {}", fname,
+                  ftype ? ftype->Name() : "unknown");
+    if (fname == field_name) {
+      symbol->SetMeta(SymbolMetaKey::kTYPE, ftype);
+      return node;
+    }
+  }
+
+  sa->Error(node, "Field '" + field_name +
+                      "' not found in struct: " + def_sym->Name());
   return node;
 }
 
@@ -1060,6 +1134,7 @@ const SMHandlerMapping kSMHandlerMapping = {
     {ASTNodeType::kTYPE, SMTypeHandler},
     {ASTNodeType::kARRAY_ACCESS, SMArrayAccessHandler},
     {ASTNodeType::kSTRUCT, SMStructHandler},
+    {ASTNodeType::kFIELD_ACCESS, SMFieldAccessHandler},
 };
 
 }  // namespace
