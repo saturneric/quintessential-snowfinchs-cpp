@@ -56,7 +56,7 @@ auto SafeParseInt(const std::string& text, int& result) -> bool {
   return true;
 }
 
-inline auto ends_with(std::string const& value, std::string const& ending)
+inline auto EndsWith(std::string const& value, std::string const& ending)
     -> bool {
   if (ending.size() > value.size()) return false;
   return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
@@ -87,7 +87,7 @@ auto ParseType(SemanticAnalyzer* sa, const std::string& type_name,
   }
 
   // array []
-  if (ends_with(type_name, "[]")) {
+  if (EndsWith(type_name, "[]")) {
     auto base_type = Trim(type_name.substr(0, type_name.size() - 2));
     SymbolPtr sym_base = nullptr;
     auto base_type_name = ParseType(sa, base_type, sym_base, node);
@@ -174,6 +174,44 @@ void SetReturnType(SemanticAnalyzer* sa, const SymbolPtr& sym,
   spdlog::debug("SetReturnType: {} with type: {}", sym->Name(), type_name);
   TypeName2SymbolMetaType(sa, sym, type_name, node);
 }
+
+auto StructContainsType(const SymbolPtr& curr_type,
+                        const SymbolPtr& target_type, SemanticAnalyzer* sa,
+                        std::set<std::string>& visited) -> bool {
+  if (!curr_type || curr_type->Name().rfind("struct_", 0) != 0) return false;
+  if (curr_type == target_type) return true;
+  if (visited.count(curr_type->Name()) != 0U) return false;
+
+  visited.insert(curr_type->Name());
+
+  spdlog::debug("Checking struct: {} for target type: {}", curr_type->Name(),
+                target_type->Name());
+
+  // get struct symbol
+  auto def_sym =
+      MetaGet<SymbolPtr>(curr_type, SymbolMetaKey::kSTRUCT_SYMBOL, nullptr);
+  if (!def_sym) {
+    spdlog::error("Struct symbol not found for: {}", curr_type->Name());
+    return false;
+  }
+
+  // look up l_value
+  auto fields = MetaGet<std::vector<std::pair<std::string, SymbolPtr>>>(
+      def_sym, SymbolMetaKey::kSTRUCT_FIELDS, {});
+  if (fields.empty()) return false;
+
+  for (const auto& [fname, ftype] : fields) {
+    if (!ftype) continue;
+    if (ftype == target_type) return true;
+    if (ftype->Name().rfind("struct_", 0) == 0) {
+      if (StructContainsType(ftype, target_type, sa, visited)) return true;
+    }
+  }
+
+  return false;
+}
+
+/* Handlers */
 
 auto SMDeclareHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                       const ASTNodePtr& node) -> ASTNodePtr {
@@ -275,9 +313,7 @@ auto SMReturnHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   auto children = node->Children();
 
   if (children.empty()) return node;
-  auto& value = children.back();
-  router(value);
-
+  auto value = router(children.back());
   auto exp_type =
       MetaGet<SymbolPtr>(value->Symbol(), SymbolMetaKey::kTYPE, nullptr);
 
@@ -786,6 +822,59 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   }
 
   for (auto& fn : node->Children()) {
+    if (fn->Type() != ASTNodeType::kSTRUCT) continue;
+
+    auto symbol = fn->Symbol();
+    auto struct_name = symbol->Name();
+
+    // check if struct is already defined
+    auto [succ, def_sym] = sa->RecordRealSymbol(
+        sa->MapStruct(sa->GetRootScopeId(), struct_name, {}));
+    if (!succ) {
+      sa->Error(fn, "Redefine struct: " + struct_name);
+    }
+
+    spdlog::debug("Struct definition: {}:{} with name: {}", def_sym->Name(),
+                  def_sym->Index(), struct_name);
+
+    // get real struct name
+    // remove "__struct_"
+    auto real_struct_name = struct_name.substr(9);
+
+    // create new struct type
+    auto def_type_sym = TypeName2Symbol(sa, "struct " + real_struct_name, node);
+    def_sym->SetMeta(SymbolMetaKey::kTYPE, def_type_sym);
+
+    // parse fields
+    std::vector<std::pair<std::string, SymbolPtr>> fields;
+    for (const auto& field : fn->Children()) {
+      if (field->Type() != ASTNodeType::kFIELD) continue;
+
+      auto field_sym = field->Symbol();
+      auto field_type = TypeName2Symbol(sa, field_sym->Name(), field);
+      if (!field_type) {
+        sa->Error(field, "Invalid type for field: " + field_sym->Name());
+        continue;
+      }
+
+      if (field_type == def_type_sym) {
+        sa->Error(field,
+                  "Struct cannot contain itself as a field: " + struct_name);
+        continue;
+      }
+
+      spdlog::debug("Struct field: {}:{} with type: {}", field_sym->Value(),
+                    field_sym->Index(),
+                    field_type ? field_type->Name() : "unknown");
+
+      fields.emplace_back(field_sym->Value(), field_type);
+    }
+
+    MetaSet(def_sym, SymbolMetaKey::kSTRUCT_FIELDS, fields);
+    MetaSet(def_type_sym, SymbolMetaKey::kSTRUCT_SYMBOL, def_sym);
+  }
+
+  for (auto& fn : node->Children()) {
     router(fn);
   }
 
@@ -875,6 +964,7 @@ auto SMCallHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     spdlog::debug("Allocating type: {}", arg_type_name);
 
     ret_type = sa->MapType("ptr_" + arg_type_name, "8");
+    ret_type->SetMeta(SymbolMetaKey::kBASE_TYPE, arg_types.front());
     if (!ret_type) {
       sa->Error(node, "Failed to resolve type for '__func_alloc': " +
                           arg_type_name + "*");
@@ -975,89 +1065,35 @@ auto SMStructHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   auto struct_name = symbol->Name();
 
   // check if struct is already defined
-  auto [succ, def_sym] = sa->RecordRealSymbol(
-      sa->MapStruct(sa->GetRootScopeId(), struct_name, {}));
-  if (!succ) {
-    sa->Error(node, "Redefine struct: " + struct_name);
+  auto def_sym = sa->LookupSymbol(sa->GetRootScope(), struct_name);
+  if (!def_sym) {
+    sa->Error(node, "Undeclared struct: " + struct_name);
     return node;
   }
 
-  spdlog::debug("Struct definition: {}:{} with name: {}", def_sym->Name(),
-                def_sym->Index(), struct_name);
+  auto def_type_sym =
+      MetaGet<SymbolPtr>(def_sym, SymbolMetaKey::kTYPE, nullptr);
+  if (!def_type_sym) {
+    sa->Error(node, "Struct definition missing type: " + struct_name);
+    return node;
+  }
 
-  // get real struct name
-  // remove "__struct_"
-  auto real_struct_name = struct_name.substr(9);
+  auto fields = MetaGet<std::vector<std::pair<std::string, SymbolPtr>>>(
+      def_sym, SymbolMetaKey::kSTRUCT_FIELDS, {});
 
-  // create new struct type
-  auto def_type_sym = TypeName2Symbol(sa, "struct " + real_struct_name, node);
-  def_sym->SetMeta(SymbolMetaKey::kTYPE, def_type_sym);
+  spdlog::debug("Struct definition: {}:{} with name: {}, fields: {}",
+                def_sym->Name(), def_sym->Index(), struct_name, fields.size());
 
-  // parse fields
-  std::vector<std::pair<std::string, SymbolPtr>> fields;
-  for (const auto& field : node->Children()) {
-    if (field->Type() != ASTNodeType::kFIELD) continue;
-
-    auto field_sym = field->Symbol();
-    auto field_type = TypeName2Symbol(sa, field_sym->Name(), field);
-    if (!field_type) {
-      sa->Error(field, "Invalid type for field: " + field_sym->Name());
+  for (const auto& field : fields) {
+    std::set<std::string> visited;
+    if (StructContainsType(field.second, def_type_sym, sa, visited)) {
+      sa->Error(node,
+                "Struct cannot (directly or indirectly) contain itself: " +
+                    struct_name);
       continue;
     }
-
-    if (field_type == def_type_sym) {
-      sa->Error(field,
-                "Struct cannot contain itself as a field: " + struct_name);
-      continue;
-    }
-
-    spdlog::debug("Struct field: {}:{} with type: {}", field_sym->Value(),
-                  field_sym->Index(),
-                  field_type ? field_type->Name() : "unknown");
-
-    fields.emplace_back(field_sym->Value(), field_type);
   }
 
-  size_t offset = 0;
-  size_t struct_align = 1;
-  std::map<std::string, size_t> field_offsets;
-
-  for (auto& [fname, fty] : fields) {
-    size_t sz = std::stoi(fty->Value());
-    // sz equal alg by now
-    size_t alg = sz;
-
-    // update the alignment based on the field type
-    struct_align = std::max(struct_align, alg);
-
-    if (offset % alg != 0) {
-      offset += (alg - offset % alg);
-    }
-
-    spdlog::debug("Field: {} with size: {} and offset: {}", fname, sz, offset);
-    field_offsets[fname] = offset;
-    offset += sz;
-  }
-
-  size_t struct_size = offset;
-  if (struct_size % struct_align != 0) {
-    struct_size += (struct_align - struct_size % struct_align);
-  }
-
-  // record the total size and alignment of the struct
-  def_type_sym->SetValue(std::to_string(struct_size));
-
-  spdlog::debug("Struct type {}:{} has size: {} and alignment: {}",
-                def_type_sym->Name(), def_type_sym->Index(), struct_size,
-                struct_align);
-
-  spdlog::debug("Struct {}:{} has total size: {} and alignment: {}",
-                struct_name, def_sym->Index(), offset, struct_align);
-
-  MetaSet<std::vector<std::pair<std::string, SymbolPtr>>>(
-      def_sym, SymbolMetaKey::kSTRUCT_FIELDS, fields);
-  MetaSet<std::map<std::string, size_t>>(
-      def_sym, SymbolMetaKey::kSTRUCT_FIELD_OFFSETS, field_offsets);
   return node;
 }
 

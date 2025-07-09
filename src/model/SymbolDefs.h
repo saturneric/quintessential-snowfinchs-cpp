@@ -33,6 +33,7 @@ enum class SymbolMetaKey : SymbolMetaKeySizeType {
   kPARAM_INDEX,
   kRETURN_TYPE,           // SymbolPtr
   kBASE_TYPE,             // SymbolPtr
+  kSTRUCT_SYMBOL,         // SymbolPtr
   kSTRUCT_FIELDS,         // std::vector<std::pair<std::string, SymbolPtr>>
   kSTRUCT_FIELD_OFFSETS,  // std::map<std::string, size_t>
   kFUNCTION_PARAMS,       // std::vector<SymbolPtr>
