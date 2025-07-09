@@ -814,6 +814,15 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
         pdef->SetMeta(SymbolMetaKey::kHAS_INIT, true);
 
         auto p_type = MetaGet<SymbolPtr>(pdef, SymbolMetaKey::kTYPE);
+
+        if (p_type == nullptr) {
+          sa->Error(param_node, "Invalid type for parameter: " + p_sym->Name());
+          continue;
+        }
+
+        spdlog::debug("Function parameter: {}:{} with type: {}", p_sym->Name(),
+                      p_sym->Index(), p_type->Name());
+
         param_types.push_back(p_type);
       }
     }
