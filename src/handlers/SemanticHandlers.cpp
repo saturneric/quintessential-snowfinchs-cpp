@@ -984,8 +984,12 @@ auto SMStructHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   spdlog::debug("Struct definition: {}:{} with name: {}", def_sym->Name(),
                 def_sym->Index(), struct_name);
 
+  // get real struct name
+  // remove "__struct_"
+  auto real_struct_name = struct_name.substr(9);
+
   // create new struct type
-  auto def_type_sym = TypeName2Symbol(sa, "struct " + struct_name, node);
+  auto def_type_sym = TypeName2Symbol(sa, "struct " + real_struct_name, node);
   def_sym->SetMeta(SymbolMetaKey::kTYPE, def_type_sym);
 
   // parse fields
@@ -1039,6 +1043,18 @@ auto SMStructHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
     field_offsets[fname] = offset;
     offset += sz;
   }
+
+  size_t struct_size = offset;
+  if (struct_size % struct_align != 0) {
+    struct_size += (struct_align - struct_size % struct_align);
+  }
+
+  // record the total size and alignment of the struct
+  def_type_sym->SetValue(std::to_string(struct_size));
+
+  spdlog::debug("Struct type {}:{} has size: {} and alignment: {}",
+                def_type_sym->Name(), def_type_sym->Index(), struct_size,
+                struct_align);
 
   spdlog::debug("Struct {}:{} has total size: {} and alignment: {}",
                 struct_name, def_sym->Index(), offset, struct_align);

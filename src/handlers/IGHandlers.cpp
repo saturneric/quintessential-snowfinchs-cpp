@@ -555,6 +555,11 @@ auto IRCallHandler(IRGeneratorContext* ctx, const ASTNodePtr& node, bool is_lhs)
       return nullptr;
     }
 
+    if (arg_0_type->Value().empty()) {
+      ctx->AddError("First argument of '__func_alloc' must have a valid size.");
+      return nullptr;
+    }
+
     // void* calloc(size_t nmemb, size_t size);
     // allocate memory for the object
     ctx->AddIns("param", nullptr,
@@ -703,6 +708,77 @@ auto IRArrayAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
   return ctx->MapSymbol(value_tmp);
 }
 
+auto IRFieldAccessHandler(IRGeneratorContext* ctx, const ASTNodePtr& node,
+                          bool is_lhs) -> SymbolPtr {
+  auto symbol = node->Symbol();
+  auto children = node->Children();
+  if (children.size() != 1) {
+    ctx->AddError("Field access must have exactly one lvalue: " +
+                  symbol->Name());
+    return {};
+  }
+
+  auto base_addr = ctx->ExpRoute(children.front(), true);
+  auto field_name = symbol->Name();
+
+  auto l_value_type = MetaGet<SymbolPtr>(children.front()->Symbol(),
+                                         SymbolMetaKey::kTYPE, nullptr);
+  if (!l_value_type) {
+    ctx->AddError("Field access requires a valid lvalue type.");
+    return {};
+  }
+
+  // lvalue type name must start with "struct_"
+  auto lvalue_type_name = l_value_type->Name();
+  if (lvalue_type_name.rfind("struct", 0) == std::string::npos) {
+    ctx->AddError("Field access requires a struct type, got: " +
+                  lvalue_type_name);
+    return {};
+  }
+
+  auto struct_type_name = lvalue_type_name.substr(7);  // remove "struct_"
+
+  // look up l_value
+  auto def_struct_sym =
+      ctx->MapDefSym(symbol->Scope(), "__struct_" + struct_type_name);
+  if (!def_struct_sym) {
+    ctx->AddError("Field access failed: struct '" + struct_type_name +
+                  "' not found.");
+    return {};
+  }
+
+  spdlog::debug("IR Field access: {}:{} with type: {} and field: {}",
+                def_struct_sym->Name(), def_struct_sym->Index(),
+                l_value_type ? l_value_type->Name() : "unknown", field_name);
+
+  // get field offset
+  auto field_offset = MetaGet<std::map<std::string, size_t>>(
+      def_struct_sym, SymbolMetaKey::kSTRUCT_FIELD_OFFSETS, {});
+
+  auto it = field_offset.find(field_name);
+  if (it == field_offset.end()) {
+    ctx->AddError("Field '" + field_name + "' not found in struct '" +
+                  struct_type_name + "'.");
+    return {};
+  }
+
+  auto offset = it->second;
+  spdlog::debug("Field '{}' offset: {}", field_name, offset);
+  auto offset_sym = ctx->MapSymbol(std::to_string(offset), "immediate");
+
+  auto field_addr = ctx->NewTempAddressVariable();
+  ctx->AddIns("add", field_addr, base_addr, offset_sym);
+
+  if (is_lhs) {
+    field_addr->SetMeta(SymbolMetaKey::kIS_ADDRESS, true);
+    return field_addr;
+  }
+
+  auto value_tmp = ctx->NewTempVariable();
+  ctx->AddIns("load", value_tmp, field_addr);
+  return ctx->MapSymbol(value_tmp);
+}
+
 const IRHandlerMapping kIRHandlerMapping = {
     {ASTNodeType::kASSIGN, IRAssignExpHandler},
     {ASTNodeType::kDECLARE, IRMeaninglessNodeHandler},
@@ -722,6 +798,7 @@ const IRHandlerMapping kIRHandlerMapping = {
     {ASTNodeType::kCALL, IRCallHandler},
     {ASTNodeType::kTYPE, IRMeaninglessNodeHandler},
     {ASTNodeType::kARRAY_ACCESS, IRArrayAccessHandler},
+    {ASTNodeType::kFIELD_ACCESS, IRFieldAccessHandler},
 };
 
 }  // namespace
