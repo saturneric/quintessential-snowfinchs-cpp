@@ -329,12 +329,21 @@ auto SMReturnHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   auto rtn_type = MetaGet<SymbolPtr>(
       node->Symbol(), SymbolMetaKey::kRETURN_TYPE, sa->LookupType("int"));
 
+  spdlog::debug("Return: {} with type: {}", node->Symbol()->Name(),
+                rtn_type ? rtn_type->Name() : "unknown");
+
   if (exp_type != rtn_type) {
-    sa->Error(node,
-              "The return type mismatch"
-              " (expected: " +
-                  rtn_type->Name() +
-                  ", got: " + (exp_type ? exp_type->Name() : "unknown") + ")");
+    // nullptr
+    if (rtn_type->Name().rfind("ptr_", 0) == 0 && exp_type &&
+        exp_type->Name() == "nullptr") {
+      // pass
+    } else {
+      sa->Error(node,
+                "The return type mismatch"
+                " (expected: " +
+                    rtn_type->Name() + ", got: " +
+                    (exp_type ? exp_type->Name() : "unknown") + ")");
+    }
   }
 
   sa->SetMeta("has_return", true);
@@ -503,6 +512,11 @@ auto SMUnOpHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
   auto sym_val = val->Symbol();
   auto sym_val_type = MetaGet<SymbolPtr>(sym_val, SymbolMetaKey::kTYPE);
+
+  if (!sym_val_type) {
+    sa->Error(node, "Type information missing for unary operation");
+    return node;
+  }
 
   if (op == "-" || op == "~") {
     if (sym_val_type != sa->LookupType("int")) {
@@ -796,50 +810,6 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
       {sa->LookupType("type"), sa->LookupType("int")});
 
   for (auto& fn : node->Children()) {
-    auto sym = fn->Symbol();
-
-    if (fn->Type() != ASTNodeType::kFUNCTION) continue;
-
-    auto [succ, def_sym] = sa->RecordRealSymbol(
-        sa->MapFunction(root_scope_id, sym->Name(), sym->Value()));
-    if (!succ) {
-      sa->Error(fn, "Redefine function: " + sym->Name());
-    }
-    auto ret_type = sym->Value();
-    SetReturnType(sa, def_sym, ret_type, node);
-
-    std::vector<SymbolPtr> param_types;
-    for (auto& child : fn->Children()) {
-      if (child->Tag() != ASTNodeTag::kPARAMS) continue;
-
-      for (auto& param_node : child->Children()) {
-        auto p_sym = param_node->Symbol();
-        auto [pok, pdef] = sa->RecordSymbol(p_sym);
-        if (!pok) {
-          sa->Error(param_node, "Redefine parameter: " + p_sym->Name());
-        }
-
-        SetReturnType(sa, pdef, param_node->Symbol()->Value(), param_node);
-        pdef->SetMeta(SymbolMetaKey::kHAS_INIT, true);
-
-        auto p_type = MetaGet<SymbolPtr>(pdef, SymbolMetaKey::kTYPE);
-
-        if (p_type == nullptr) {
-          sa->Error(param_node, "Invalid type for parameter: " + p_sym->Name());
-          continue;
-        }
-
-        spdlog::debug("Function parameter: {}:{} with type: {}", p_sym->Name(),
-                      p_sym->Index(), p_type->Name());
-
-        param_types.push_back(p_type);
-      }
-    }
-
-    MetaSet(def_sym, SymbolMetaKey::kFUNCTION_PARAMS, param_types);
-  }
-
-  for (auto& fn : node->Children()) {
     if (fn->Type() != ASTNodeType::kSTRUCT) continue;
 
     auto symbol = fn->Symbol();
@@ -890,6 +860,56 @@ auto SMProgramHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
 
     MetaSet(def_sym, SymbolMetaKey::kSTRUCT_FIELDS, fields);
     MetaSet(def_type_sym, SymbolMetaKey::kSTRUCT_SYMBOL, def_sym);
+  }
+
+  for (auto& fn : node->Children()) {
+    auto sym = fn->Symbol();
+
+    if (fn->Type() != ASTNodeType::kFUNCTION) continue;
+
+    auto [succ, def_sym] = sa->RecordRealSymbol(
+        sa->MapFunction(root_scope_id, sym->Name(), sym->Value()));
+    if (!succ) {
+      sa->Error(fn, "Redefine function: " + sym->Name());
+    }
+    auto ret_type = sym->Value();
+    SetReturnType(sa, def_sym, ret_type, node);
+
+    std::vector<SymbolPtr> param_types;
+    for (auto& child : fn->Children()) {
+      if (child->Tag() != ASTNodeTag::kPARAMS) continue;
+
+      for (auto& param_node : child->Children()) {
+        auto p_sym = param_node->Symbol();
+        auto [pok, pdef] = sa->RecordSymbol(p_sym);
+        if (!pok) {
+          sa->Error(param_node, "Redefine parameter: " + p_sym->Name());
+        }
+
+        SetReturnType(sa, pdef, param_node->Symbol()->Value(), param_node);
+        pdef->SetMeta(SymbolMetaKey::kHAS_INIT, true);
+
+        auto p_type = MetaGet<SymbolPtr>(pdef, SymbolMetaKey::kTYPE);
+
+        if (p_type == nullptr) {
+          sa->Error(param_node, "Invalid type for parameter: " + p_sym->Name());
+          continue;
+        }
+
+        // should not be a struct type
+        if (p_type->Name().rfind("struct_", 0) == 0) {
+          sa->Error(param_node, "Invalid type for parameter: " + p_sym->Name() +
+                                    " (struct type is not allowed)");
+        }
+
+        spdlog::debug("Function parameter: {}:{} with type: {}", p_sym->Name(),
+                      p_sym->Index(), p_type->Name());
+
+        param_types.push_back(p_type);
+      }
+    }
+
+    MetaSet(def_sym, SymbolMetaKey::kFUNCTION_PARAMS, param_types);
   }
 
   for (auto& fn : node->Children()) {
@@ -1102,6 +1122,8 @@ auto SMStructHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   spdlog::debug("Struct definition: {}:{} with name: {}, fields: {}",
                 def_sym->Name(), def_sym->Index(), struct_name, fields.size());
 
+  std::set<std::string> field_names;
+
   for (const auto& field : fields) {
     std::set<std::string> visited;
     if (StructContainsType(field.second, def_type_sym, sa, visited)) {
@@ -1110,6 +1132,13 @@ auto SMStructHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                     struct_name);
       continue;
     }
+
+    if (field_names.count(field.first) > 0) {
+      sa->Error(node, "Duplicate field name in struct: " + field.first);
+      continue;
+    }
+
+    field_names.insert(field.first);
   }
 
   return node;
