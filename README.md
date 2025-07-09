@@ -2,7 +2,7 @@
 
 L4Compiler is a simple L4 language compiler written in C++17, implementing the
 full compilation pipeline—from lexical analysis to assembly code emission.
-Developed through four lab stages, it progressively adds support for advanced
+Developed through four [lab stages](labs/), it progressively adds support for advanced
 language features, optimization passes, and runtime checks.
 
 ## Features
