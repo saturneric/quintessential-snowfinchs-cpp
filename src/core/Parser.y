@@ -457,9 +457,8 @@ expression:
 
     | expression DOT VALUE_ID    /* exp.field */
     {
-      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "dot", "exp", drv);
+      $$ = MakeASTTreeNode(ASTNodeType::kFIELD_ACCESS, "dot", $3, drv);
       $$->AddChild($1);
-      $$->AddChild(MakeASTTreeNode(ASTNodeType::kIDENT, "field", $3, drv));
     }
     | expression ARROW VALUE_ID  /* exp->field */
     {
