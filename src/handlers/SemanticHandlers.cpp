@@ -171,6 +171,7 @@ void TypeName2SymbolMetaType(SemanticAnalyzer* sa, const SymbolPtr& sym,
 
 void SetReturnType(SemanticAnalyzer* sa, const SymbolPtr& sym,
                    const std::string& type_name, const ASTNodePtr& node) {
+  spdlog::debug("SetReturnType: {} with type: {}", sym->Name(), type_name);
   TypeName2SymbolMetaType(sa, sym, type_name, node);
 }
 
@@ -690,9 +691,8 @@ auto SMFunctionHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
   auto sym = node->Symbol();
   auto return_type = sym->Value();
 
-  MetaSet(
-      node->Symbol(), SymbolMetaKey::kRETURN_TYPE,
-      return_type == "bool" ? sa->LookupType("bool") : sa->LookupType("int"));
+  MetaSet(node->Symbol(), SymbolMetaKey::kRETURN_TYPE,
+          TypeName2Symbol(sa, return_type, node));
 
   auto children = node->Children();
 
