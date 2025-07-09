@@ -74,5 +74,19 @@
     "source_file_path": "lab4/B3.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 0
+  },
+  {
+    "source_file_path": "lab4/B4.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
+  },
+  {
+    "source_file_path": "lab4/B5.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
+  },
+  {
+    "source_file_path": "lab4/B6.txt",
+    "compiler_exit_code": 7
   }
 ]
