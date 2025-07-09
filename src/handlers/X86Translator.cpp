@@ -200,7 +200,7 @@ void X86Translator::emit_mov_op(std::vector<std::string>& fins,
                                 const std::string& op, const IRInstruction& i) {
   const auto s_src = i.SRC(0);
   const auto s_dst = i.DST();
-  const auto src = format_operand(s_src);
+  auto src = format_operand(s_src);
   const auto dst = format_operand(s_dst);
 
   if (op == "mov") {
@@ -226,10 +226,17 @@ void X86Translator::emit_mov_op(std::vector<std::string>& fins,
     bool src_mem = !IsReg(s_src) && !IsImmediate(s_src);
     bool dst_mem = !IsReg(s_dst);
 
+    // if src is in memory, we need to move it to a register first
     if (src_mem) {
-      // [mem] -> *
-      fins.push_back(op_mov_ + " " + src + ", " + acc_reg_);
-      fins.push_back(op_mov_ + " (" + acc_reg_ + "), " + dst);
+      // [mem] -> [reg]
+      fins.push_back(op_mov_ + " " + src + ", " + rem_reg_);
+      src = rem_reg_;  // use rem_reg_ to hold the value
+    }
+
+    if (dst_mem) {
+      // * -> [mem]
+      fins.push_back(op_mov_ + " (" + src + "), " + acc_reg_);
+      fins.push_back(op_mov_ + " " + acc_reg_ + ", " + dst);
     } else {
       fins.push_back(op_mov_ + " (" + src + "), " + dst);
     }
