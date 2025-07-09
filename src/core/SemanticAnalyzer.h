@@ -23,6 +23,9 @@ class SemanticAnalyzer {
 
   auto LookupSymbol(const SymbolPtr& symbol) -> SymbolPtr;
 
+  auto LookupSymbol(const ScopePtr& scope, const std::string& name)
+      -> SymbolPtr;
+
   auto VisibleDefineSymbols(const ScopePtr& scope) -> std::vector<SymbolPtr>;
 
   void Error(const ASTNodePtr& node, const std::string& msg);
@@ -45,6 +48,8 @@ class SemanticAnalyzer {
   auto MapType(const std::string& id, const std::string& extra) -> SymbolPtr;
 
   auto GetRootScopeId() const -> int;
+
+  auto GetRootScope() const -> ScopePtr;
 
   auto LookupType(const std::string& type_name) -> SymbolPtr;
 

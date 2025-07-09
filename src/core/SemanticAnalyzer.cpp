@@ -144,3 +144,11 @@ auto SemanticAnalyzer::GetRootScopeId() const -> int {
 auto SemanticAnalyzer::LookupType(const std::string& type_name) -> SymbolPtr {
   return type_desc_sym_helper_.LookupSymbolWithoutScope(type_name);
 }
+
+auto SemanticAnalyzer::LookupSymbol(const ScopePtr& scope,
+                                    const std::string& name) -> SymbolPtr {
+  return def_sym_helper_.LookupSymbol(scope, name);
+}
+auto SemanticAnalyzer::GetRootScope() const -> ScopePtr {
+  return ast_root_ ? ast_root_->Symbol()->Scope() : nullptr;
+}
