@@ -1,0 +1,9 @@
+struct A {
+    int a;
+};
+
+int main() {
+    struct A* a = alloc(struct A);
+    (*a).a = 123;
+    return (*a).a;
+}

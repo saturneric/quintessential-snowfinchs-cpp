@@ -1,0 +1,20 @@
+struct e {
+ struct e *next;
+ int value;
+};
+
+int main() {
+ struct e *head = alloc(struct e);
+ 
+ struct e *current = head;
+ for (int i = 0; i < 10; i += 1) {
+  struct e *next = alloc(struct e);
+  
+  current->next = next;
+  current->value = 4;
+  
+  current = next;
+ }
+
+ return current->value;
+}

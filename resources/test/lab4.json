@@ -38,5 +38,15 @@
     "source_file_path": "lab4/A8.txt",
     "compiler_exit_code": 0,
     "exec_exit_code": 6
+  },
+  {
+    "source_file_path": "lab4/A9.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 123
+  },
+  {
+    "source_file_path": "lab4/A10.txt",
+    "compiler_exit_code": 0,
+    "exec_exit_code": 0
   }
 ]
