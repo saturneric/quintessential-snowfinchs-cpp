@@ -86,6 +86,22 @@ auto ParseType(SemanticAnalyzer* sa, const std::string& type_name,
     return type_name;
   }
 
+  // array []
+  if (ends_with(type_name, "[]")) {
+    auto base_type = Trim(type_name.substr(0, type_name.size() - 2));
+    SymbolPtr sym_base = nullptr;
+    auto base_type_name = ParseType(sa, base_type, sym_base, node);
+
+    if (base_type_name.empty() || sym_base == nullptr) {
+      sa->Error(nullptr, "Unknown base type for array: " + base_type);
+      return "";
+    }
+
+    sym = sa->MapType("array_" + base_type_name, "0");
+    sym->SetMeta(SymbolMetaKey::kBASE_TYPE, sym_base);
+    return "array_" + base_type_name;
+  }
+
   if (type_name.back() == '*') {
     auto base_type = Trim(type_name.substr(0, type_name.size() - 1));
     SymbolPtr sym_base = nullptr;
@@ -118,22 +134,6 @@ auto ParseType(SemanticAnalyzer* sa, const std::string& type_name,
 
     sym = sa->MapType("struct_" + struct_name, def_sym->Value());
     return "struct_" + struct_name;
-  }
-
-  // array []
-  if (ends_with(type_name, "[]")) {
-    auto base_type = Trim(type_name.substr(0, type_name.size() - 2));
-    SymbolPtr sym_base = nullptr;
-    auto base_type_name = ParseType(sa, base_type, sym_base, node);
-
-    if (base_type_name.empty() || sym_base == nullptr) {
-      sa->Error(nullptr, "Unknown base type for array: " + base_type);
-      return "";
-    }
-
-    sym = sa->MapType("array_" + base_type_name, "0");
-    sym->SetMeta(SymbolMetaKey::kBASE_TYPE, sym_base);
-    return "array_" + base_type_name;
   }
 
   sa->Error(node, "Unknown type: " + type_name);
@@ -1015,12 +1015,6 @@ auto SMStructHandler(SemanticAnalyzer* sa, const SMNodeRouter& router,
                   field_type ? field_type->Name() : "unknown");
 
     fields.emplace_back(field_sym->Value(), field_type);
-  }
-
-  // set fields to struct symbol
-  if (fields.empty()) {
-    sa->Error(node, "Struct must have at least one field: " + struct_name);
-    return node;
   }
 
   size_t offset = 0;
