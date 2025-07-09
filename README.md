@@ -13,7 +13,7 @@ advanced language features, optimization passes, and runtime checks.
 * Static type checking, scope management, symbol tables, and memory-safety
   validation.
 * Custom IR with Control‑Flow Graph (CFG), supporting optimization passes such
-  as function inlining, dead code elimination, and variable coalescing.
+  as dead code elimination, and variable coalescing.
 * Register Allocation: Graph‑coloring allocator with spill handling and
   calling‑convention support.
 * IR-to-assembly translation via X86Translator.
